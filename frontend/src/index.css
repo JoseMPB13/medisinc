@@ -1,0 +1,20 @@
+/* Importaciones de Tailwind CSS para la interfaz de MediSinc-IA */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilos base y variables globales */
+:root {
+  --color-brand-primary: #0284c7;
+  --color-brand-accent: #0ea5e9;
+  --color-triage-red: #ef4444;
+  --color-triage-yellow: #f59e0b;
+  --color-triage-green: #10b981;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
