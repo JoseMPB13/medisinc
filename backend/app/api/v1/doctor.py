@@ -44,13 +44,14 @@ async def get_doctor_dashboard():
     try:
         all_records = []
 
-        if supabase_service.client:
+        client = supabase_service.get_client()
+        if client:
             try:
-                resp = supabase_service.client.table("TRIAGE_RECORD").select("*, AI_RESULT(*)").execute()
+                resp = client.table("triage_record").select("*, ai_result(*)").execute()
                 if resp.data:
                     all_records = resp.data
             except Exception as e:
-                logger.error(f"Error al consultar Supabase Dashboard: {e}")
+                logger.error(f"Error al consultar Supabase Dashboard triage_record: {e}")
 
         if not all_records:
             # Recuperar registros de la base local de desarrollo
@@ -132,19 +133,17 @@ async def get_patient_detail_for_doctor(identifier: str):
         record["decrypted_ci"] = decrypted_ci
 
         # Trazabilidad Inalterable: Insertar log de auditoría
-        audit_entry = {
-            "user_id": "doc-uuid-12345",
-            "action": "VIEW_PATIENT_DETAIL",
-            "resource_id": record.get("id"),
-            "ip_address": "127.0.0.1",
-            "timestamp": datetime.utcnow().isoformat()
-        }
-
-        if supabase_service.client:
+        client = supabase_service.get_client()
+        if client:
             try:
-                supabase_service.client.table("AUDIT_LOG").insert(audit_entry).execute()
+                client.table("audit_log").insert({
+                    "action": "VIEW_PATIENT_DETAIL",
+                    "resource_id": record.get("id"),
+                    "ip_address": "127.0.0.1",
+                    "timestamp": datetime.utcnow().isoformat()
+                }).execute()
             except Exception as e:
-                logger.error(f"Error insertando AUDIT_LOG en Supabase: {e}")
+                logger.error(f"Error insertando audit_log en Supabase: {e}")
 
         return record
 
@@ -166,37 +165,34 @@ async def get_patient_detail_for_doctor(identifier: str):
 async def submit_medical_review(payload: MedicalReviewSchema):
     """
     Guarda la confirmación médica de atención presencial:
-    1. Registra la evaluación en la tabla `MEDICAL_REVIEW`.
-    2. Cambia el estado del triaje en `TRIAGE_RECORD` a 'REVIEWED'.
+    1. Registra la evaluación en la tabla `medical_review`.
+    2. Cambia el estado del triaje en `triage_record` a 'REVIEWED'.
     3. Si el médico ajustó la prioridad, actualiza `final_priority`.
-    4. Genera una entrada atómica en `AUDIT_LOG`.
+    4. Genera una entrada atómica en `audit_log`.
     """
     try:
         triage_id = payload.triage_id
 
-        # 1. Registro en MEDICAL_REVIEW
-        review_entry = {
-            "triage_id": triage_id,
-            "doctor_id": payload.doctor_id,
-            "doctor_notes": payload.doctor_notes,
-            "priority_adjusted": payload.priority_adjusted,
-            "reviewed_at": datetime.utcnow().isoformat()
-        }
-
-        if supabase_service.client:
+        # 1. Registro en medical_review
+        client = supabase_service.get_client()
+        if client:
             try:
-                supabase_service.client.table("MEDICAL_REVIEW").insert(review_entry).execute()
+                client.table("medical_review").insert({
+                    "triage_id": triage_id,
+                    "doctor_notes": payload.doctor_notes,
+                    "priority_adjusted": payload.priority_adjusted,
+                    "reviewed_at": datetime.utcnow().isoformat()
+                }).execute()
                 
-                # 2. Actualizar estado a REVIEWED en TRIAGE_RECORD
+                # 2. Actualizar estado a REVIEWED en triage_record
                 update_payload = {"status": "REVIEWED"}
                 if payload.priority_adjusted:
                     update_payload["final_priority"] = payload.priority_adjusted
 
-                supabase_service.client.table("TRIAGE_RECORD").update(update_payload).eq("id", triage_id).execute()
+                client.table("triage_record").update(update_payload).eq("id", triage_id).execute()
 
                 # 3. Log de Auditoría
-                supabase_service.client.table("AUDIT_LOG").insert({
-                    "user_id": payload.doctor_id,
+                client.table("audit_log").insert({
                     "action": "CONFIRM_MEDICAL_REVIEW",
                     "resource_id": triage_id,
                     "ip_address": "127.0.0.1",

@@ -22,27 +22,34 @@ class SupabaseService:
     """
 
     def __init__(self):
-        self.url = settings.SUPABASE_URL
-        self.key = settings.SUPABASE_SERVICE_ROLE_KEY
-        self.client: Optional[Client] = None
+        self._client: Optional[Client] = None
 
-        if self.url and "placeholder" not in self.url and self.key and "placeholder" not in self.key:
+    def get_client(self) -> Optional[Client]:
+        """
+        Obtiene de forma dinámica la instancia del cliente Supabase.
+        """
+        if self._client is not None:
+            return self._client
+
+        url = settings.SUPABASE_URL
+        key = settings.SUPABASE_SERVICE_ROLE_KEY
+
+        if url and "placeholder" not in url and key and "placeholder" not in key:
             try:
-                self.client = create_client(self.url, self.key)
-                logger.info("Cliente Supabase inicializado correctamente")
+                self._client = create_client(url, key)
+                logger.info(f"Cliente Supabase conectado a: {url}")
+                return self._client
             except Exception as e:
                 logger.error(f"Error al conectar con Supabase SDK: {e}")
-                self.client = None
+                self._client = None
         else:
-            logger.warning("Supabase URL/Key sin configurar o en modo placeholder. Se utilizará almacenamiento local de contingencia.")
-            self.client = None
+            logger.warning("Supabase URL/Key sin configurar o en modo placeholder.")
+
+        return None
 
     def create_triage_record(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Inserta un nuevo registro de triaje con estado inicial 'RECEIVED'.
-
-        Entrada: data (dict) - Campos de TRIAGE_RECORD.
-        Salida: dict - Registro creado en la base de datos.
         """
         record_payload = {
             "access_code": data.get("access_code"),
@@ -58,13 +65,16 @@ class SupabaseService:
             "final_priority": data.get("final_priority")
         }
 
-        if self.client:
+        client = self.get_client()
+        if client:
             try:
-                response = self.client.table("TRIAGE_RECORD").insert(record_payload).execute()
+                # Usar minúsculas para coincidir con el PostgREST cache de Supabase
+                response = client.table("triage_record").insert(record_payload).execute()
                 if response.data:
+                    logger.info(f"✓ Registro insertado con éxito en Supabase triage_record. ID: {response.data[0].get('id')}")
                     return response.data[0]
             except Exception as e:
-                logger.error(f"Error al insertar registro en Supabase TRIAGE_RECORD: {e}")
+                logger.error(f"Error al insertar registro en Supabase triage_record: {e}")
 
         # Fallback local de desarrollo
         triage_id = data.get("id") or f"local-id-{data.get('access_code')}"
@@ -83,7 +93,7 @@ class SupabaseService:
         override_reason: Optional[str]
     ) -> bool:
         """
-        Guarda la salida del resumen de IA en AI_RESULT y actualiza el estado de TRIAGE_RECORD a 'READY'.
+        Guarda la salida del resumen de IA en ai_result y actualiza el estado de triage_record a 'READY'.
         """
         ai_payload = {
             "triage_id": triage_id,
@@ -94,18 +104,20 @@ class SupabaseService:
             "override_reason": override_reason
         }
 
-        if self.client:
+        client = self.get_client()
+        if client:
             try:
-                # 1. Insertar en AI_RESULT
-                self.client.table("AI_RESULT").insert(ai_payload).execute()
-                # 2. Actualizar estado y prioridad en TRIAGE_RECORD
-                self.client.table("TRIAGE_RECORD").update({
+                # 1. Insertar en ai_result
+                client.table("ai_result").insert(ai_payload).execute()
+                # 2. Actualizar estado y prioridad en triage_record
+                client.table("triage_record").update({
                     "status": "READY",
                     "final_priority": final_priority
                 }).eq("id", triage_id).execute()
+                logger.info(f"✓ ai_result guardado en Supabase para triage_id: {triage_id}")
                 return True
             except Exception as e:
-                logger.error(f"Error al actualizar AI_RESULT en Supabase: {e}")
+                logger.error(f"Error al actualizar ai_result en Supabase: {e}")
 
         # Fallback local
         _IN_MEMORY_AI_DB[triage_id] = ai_payload
@@ -123,9 +135,10 @@ class SupabaseService:
         """
         Busca un registro de triaje por código alfanumérico (ej. MS-8X92K) o por hash del CI.
         """
-        if self.client:
+        client = self.get_client()
+        if client:
             try:
-                query = self.client.table("TRIAGE_RECORD").select("*, AI_RESULT(*)")
+                query = client.table("triage_record").select("*, ai_result(*)")
                 if access_code:
                     query = query.eq("access_code", access_code)
                 elif ci_hash:

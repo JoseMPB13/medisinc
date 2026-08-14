@@ -1,15 +1,21 @@
 """
 Módulo de Configuración Central de MediSinc-IA Backend.
-Carga y valida las variables de entorno utilizando Pydantic Settings.
+Carga y valida las variables de entorno utilizando Pydantic Settings
+buscando en la raíz del proyecto y directorio actual.
 """
 
+from pathlib import Path
 from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Ruta absoluta hacia la raíz del proyecto para asegurar la lectura del archivo .env
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+ROOT_ENV = BASE_DIR / ".env"
 
 
 class Settings(BaseSettings):
     """
-    Configuración global del sistema. Lee desde variables de entorno o archivo .env.
+    Configuración global del sistema. Lee desde variables de entorno o archivo .env en la raíz.
     """
     # Configuración del servidor
     PORT: int = 8000
@@ -33,9 +39,9 @@ class Settings(BaseSettings):
     UPSTASH_REDIS_REST_URL: Optional[str] = None
     UPSTASH_REDIS_REST_TOKEN: Optional[str] = None
 
-    # Carga de archivo .env opcional si existe en la raíz o directorio actual
+    # Carga de archivo .env en la raíz del proyecto o directorio actual
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(str(ROOT_ENV), "../.env", ".env"),
         env_file_encoding="utf-8",
         extra="ignore"
     )

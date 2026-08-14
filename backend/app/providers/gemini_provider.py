@@ -1,5 +1,5 @@
 """
-Adaptador de Proveedor de IA: Google Gemini 1.5 Flash.
+Adaptador de Proveedor de IA: Google Gemini.
 Procesa las peticiones de triaje mediante la API de Google Generative AI.
 """
 
@@ -15,24 +15,31 @@ logger = logging.getLogger(__name__)
 
 class GeminiProvider(BaseAIProvider):
     """
-    Implementación del proveedor Gemini de Google.
+    Implementación del proveedor Gemini de Google con múltiples modelos compatibles.
     """
 
     def __init__(self):
         self.api_key = settings.GEMINI_API_KEY
-        if self.api_key:
+        self.model = None
+
+        if self.api_key and "coloca_aqui" not in self.api_key:
             try:
                 import google.generativeai as genai
                 genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel(
-                    model_name="gemini-1.5-flash",
-                    generation_config={"response_mime_type": "application/json"}
-                )
+                
+                # Intentar inicializar modelos compatibles
+                for model_name in ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro", "gemini-pro"]:
+                    try:
+                        self.model = genai.GenerativeModel(
+                            model_name=model_name,
+                            generation_config={"response_mime_type": "application/json"}
+                        )
+                        break
+                    except Exception:
+                        continue
             except Exception as e:
                 logger.error(f"Error al inicializar Gemini Client: {e}")
                 self.model = None
-        else:
-            self.model = None
 
     async def process_triage(self, patient_data: Dict[str, Any]) -> AIStructuredOutput:
         prompt = self._build_prompt(patient_data)
