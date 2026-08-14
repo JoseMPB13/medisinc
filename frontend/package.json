@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.8",
+    "@supabase/supabase-js": "^2.112.3",
     "axios": "^1.19.0",
     "canvas-confetti": "^1.9.4",
     "html5-qrcode": "^2.3.8",
