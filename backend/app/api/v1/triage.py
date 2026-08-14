@@ -6,10 +6,11 @@ consulta de estado y búsqueda para médicos por código de acceso o CI hash.
 
 from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, HTTPException, status, BackgroundTasks, Query
+from fastapi import APIRouter, HTTPException, status, BackgroundTasks, Query, Depends, Request
 from pydantic import BaseModel, Field
 
 from app.core.security import encrypt_ci, hash_ci, generate_access_code
+from app.core.rate_limit import check_rate_limit
 from app.schemas.triage import PatientInputSchema, AIStructuredOutput, TriageResponseSchema
 from app.services.supabase_service import supabase_service
 from app.services.queue_service import queue_service
@@ -25,14 +26,15 @@ class ImmediateTriageResponseSchema(BaseModel):
     access_code: str = Field(..., description="Código corto alfanumérico generado (ej. MS-8X92K)")
     status: str = Field("RECEIVED", description="Estado inicial del registro ('RECEIVED')")
     patient_name: str
-    message: str = Field("Pre-triaje capturado exitosamente. Procesando análisis sintomático...", description="Mensaje informativo para el usuario")
+    message: str = Field("Pre-triaje capturado exitosamente. Procesando resumen clínico...", description="Mensaje informativo para el usuario")
     created_at: str
 
 
 @router.post(
     "/process",
     response_model=ImmediateTriageResponseSchema,
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(check_rate_limit)]
 )
 async def process_triage(
     patient_input: PatientInputSchema,
@@ -40,11 +42,12 @@ async def process_triage(
 ):
     """
     Endpoint Público de Ingreso de Paciente (Paso 3 del Formulario):
-    1. Genera código único de acceso (ej. MS-8X92K).
-    2. Cifra el CI (AES-256) y genera hash HMAC-SHA256.
-    3. Registra en Supabase con estado 'RECEIVED'.
-    4. Encola la tarea asíncrona en Redis / BackgroundTasks para procesamiento por IA.
-    5. Responde INMEDIATAMENTE al paciente para renderizado del Código QR sin demoras de red.
+    1. Verifica el Límite de Peticiones (Rate Limiting 5 req / 5 min).
+    2. Genera código único de acceso (ej. MS-8X92K).
+    3. Cifra el CI (AES-256) y genera hash HMAC-SHA256.
+    4. Registra en Supabase con estado 'RECEIVED'.
+    5. Encola la tarea asíncrona en Redis / BackgroundTasks para procesamiento por IA.
+    6. Responde INMEDIATAMENTE al paciente para renderizado del Código QR sin demoras de red.
     """
     try:
         # 1. Cifrado y Hashing de seguridad del CI
