@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/authService';
-import { Stethoscope, Lock, Mail, Shield, AlertCircle } from 'lucide-react';
+import { Stethoscope, Lock, Mail, Shield, AlertCircle, ShieldCheck } from 'lucide-react';
 
 /**
  * Vista de Inicio de Sesión Institucional para el Personal Médico y Administradores.
@@ -19,8 +19,14 @@ function Login() {
     setError(null);
 
     try {
-      await login(email, password);
-      navigate('/doctor/dashboard');
+      const result = await login(email, password);
+      const userRole = result?.user?.role || (email.includes('admin') ? 'ADMIN' : 'DOCTOR');
+
+      if (userRole === 'ADMIN') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/doctor/dashboard');
+      }
     } catch (err) {
       console.error('Error al iniciar sesión:', err);
       setError(err.message || 'Error al autenticar. Verifique sus credenciales.');
@@ -32,16 +38,16 @@ function Login() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 font-sans selection:bg-sky-500">
       <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
-        {/* Cabecera del Portal Médico */}
+        {/* Cabecera del Portal Médico / Admin */}
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="p-3.5 bg-gradient-to-tr from-sky-500 to-blue-600 rounded-2xl shadow-lg shadow-sky-500/20 mb-3">
+          <div className="p-3.5 bg-gradient-to-tr from-sky-500 to-indigo-600 rounded-2xl shadow-lg shadow-sky-500/20 mb-3">
             <Stethoscope className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-100">
-            Portal Médico <span className="text-sky-400 font-mono">MediSinc</span>
+            Acceso Institucional <span className="text-sky-400 font-mono">MediSinc</span>
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Acceso Exclusivo para Profesionales de Salud Autenticados
+            Portal Clínico para Médicos de Guardia y Administradores
           </p>
         </div>
 
@@ -64,7 +70,7 @@ function Login() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="doctor@medisinc.bo"
+                placeholder="doctor@medisinc.bo o admin@medisinc.bo"
                 className="w-full bg-slate-950 border border-slate-700/80 focus:border-sky-500 rounded-xl py-2.5 pl-10 pr-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none"
               />
             </div>
@@ -87,6 +93,23 @@ function Login() {
             </div>
           </div>
 
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => { setEmail('doctor@medisinc.bo'); setPassword('medisinc2026'); }}
+              className="flex-1 py-1 px-2 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-lg text-[10px] border border-slate-700 transition"
+            >
+              Demo: Médico
+            </button>
+            <button
+              type="button"
+              onClick={() => { setEmail('admin@medisinc.bo'); setPassword('medisinc2026'); }}
+              className="flex-1 py-1 px-2 bg-slate-800 hover:bg-slate-700 text-indigo-400 rounded-lg text-[10px] border border-slate-700 transition"
+            >
+              Demo: Administrador
+            </button>
+          </div>
+
           <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3 text-[11px] text-slate-400 flex items-center gap-2">
             <Shield className="w-4 h-4 text-sky-400 shrink-0" />
             <span>Acceso protegido por JWT Tokens e Inserción atómica en AUDIT_LOG.</span>
@@ -95,9 +118,9 @@ function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 px-6 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-semibold rounded-xl shadow-lg shadow-sky-500/20 transition duration-200 flex items-center justify-center gap-2"
+            className="w-full py-3.5 px-6 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-sky-500/20 transition duration-200 flex items-center justify-center gap-2"
           >
-            {loading ? 'Verificando Credenciales...' : 'Ingresar al Dashboard Médico'}
+            {loading ? 'Verificando Credenciales...' : 'Ingresar al Portal'}
           </button>
         </form>
       </div>
