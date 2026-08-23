@@ -7,7 +7,7 @@ y la descodificación segura del CI en memoria con trazabilidad inalterable en A
 import logging
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Request
 from pydantic import BaseModel, Field
 
 from app.core.security import decrypt_ci, hash_ci
@@ -105,41 +105,77 @@ async def get_doctor_dashboard():
     "/patient/{identifier}",
     tags=["Portal Médico"]
 )
-async def get_patient_detail_for_doctor(identifier: str):
+async def get_patient_detail_for_doctor(identifier: str, request: Request):
     """
-    Obtiene el detalle completo de un paciente por código de acceso o ID:
+    Obtiene el detalle completo de un paciente por ID, access_code (MS-XXXXX) o CI:
+    - Recupera el registro desde Supabase o memoria de contingencia con su AI_RESULT.
     - Descifra el CI en memoria (`decrypt_ci`) para visualización exclusiva del médico.
-    - Registra atómicamente un evento de auditoría en AUDIT_LOG.
+    - Registra atómicamente un evento de auditoría en AUDIT_LOG con la IP real del cliente.
     """
     try:
-        ci_hashed = hash_ci(identifier) if not identifier.startswith("MS-") else None
-        record = supabase_service.get_triage_by_code_or_hash(
-            access_code=identifier if identifier.startswith("MS-") else None,
-            ci_hash=ci_hashed
-        )
+        clean_id = identifier.strip()
+        client_ip = request.client.host if request.client else "127.0.0.1"
+        header_forwarded = request.headers.get("X-Forwarded-For")
+        if header_forwarded:
+            client_ip = header_forwarded.split(",")[0].strip()
 
-        if not record and identifier in _IN_MEMORY_TRIAGE_DB:
-            record = _IN_MEMORY_TRIAGE_DB[identifier]
+        record = None
+        client = supabase_service.get_client()
+
+        if client:
+            try:
+                # Intentar buscar por access_code, ID o ci_hash
+                query = client.table("triage_record").select("*, ai_result(*)")
+                if clean_id.startswith("MS-"):
+                    query = query.eq("access_code", clean_id)
+                elif len(clean_id) == 64:
+                    query = query.eq("ci_hash", clean_id)
+                else:
+                    # Búsqueda por ID directo o CI hash calculado
+                    ci_hashed = hash_ci(clean_id)
+                    query = query.or_(f"id.eq.{clean_id},access_code.eq.{clean_id},ci_hash.eq.{ci_hashed}")
+
+                response = query.execute()
+                if response.data and len(response.data) > 0:
+                    record = response.data[0]
+            except Exception as e:
+                logger.error(f"Error consultando Supabase para paciente '{clean_id}': {e}")
+
+        # Fallback de desarrollo en memoria
+        if not record:
+            if clean_id in _IN_MEMORY_TRIAGE_DB:
+                record = dict(_IN_MEMORY_TRIAGE_DB[clean_id])
+            else:
+                for k, v in _IN_MEMORY_TRIAGE_DB.items():
+                    if v.get("id") == clean_id or v.get("access_code") == clean_id or v.get("ci_hash") == hash_ci(clean_id):
+                        record = dict(v)
+                        break
 
         if not record:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Registro con identificador '{identifier}' no encontrado."
+                detail=f"Registro clínico con identificador '{identifier}' no encontrado."
             )
 
-        # Descifrar Carnet de Identidad en memoria para la pantalla dividida médica
+        # Descifrar Carnet de Identidad en memoria para visualización médica segura
         ci_encrypted = record.get("ci_encrypted", "")
-        decrypted_ci = decrypt_ci(ci_encrypted) if ci_encrypted else "CI Desconocido"
+        decrypted_ci = decrypt_ci(ci_encrypted) if ci_encrypted else record.get("ci", "CI No Registrado")
         record["decrypted_ci"] = decrypted_ci
 
+        # Formatear y adjuntar AI_RESULT
+        ai_res = record.get("ai_result") or record.get("AI_RESULT") or _IN_MEMORY_AI_DB.get(record.get("id"))
+        if isinstance(ai_res, list) and len(ai_res) > 0:
+            ai_res = ai_res[0]
+        record["ai_result"] = ai_res
+        record["AI_RESULT"] = ai_res
+
         # Trazabilidad Inalterable: Insertar log de auditoría
-        client = supabase_service.get_client()
         if client:
             try:
                 client.table("audit_log").insert({
                     "action": "VIEW_PATIENT_DETAIL",
                     "resource_id": record.get("id"),
-                    "ip_address": "127.0.0.1",
+                    "ip_address": client_ip,
                     "timestamp": datetime.now(timezone.utc).isoformat()
                 }).execute()
             except Exception as e:

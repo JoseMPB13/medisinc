@@ -31,7 +31,7 @@ Flujo de Commits:
 Después de completar cada cambio, módulo o funcionalidad lógica, debes realizar un commit y push al repositorio.
 Todos los mensajes de commit deben escribirse en español, siguiendo la convención de Conventional Commits:
 feat: ... (nuevas características)
-fix: ... (corrección de errores)
+fix: ... (corrección de errores)|
 docs: ... (documentación o archivo MD)
 style: ... (formato, CSS, diseño)
 refactor: ... (mejora de código sin cambiar funcionalidad)

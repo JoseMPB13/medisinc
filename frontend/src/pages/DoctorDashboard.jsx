@@ -16,7 +16,9 @@ import {
   RefreshCw,
   Eye,
   Camera,
-  X
+  X,
+  Loader2,
+  Activity
 } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
@@ -24,7 +26,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 /**
  * Vista de Dashboard para el Profesional Médico (/doctor/dashboard).
  * Presenta métricas rápidas, lista de espera ordenada automáticamente por nivel de urgencia,
- * buscador tripartito por QR, Código o CI, y modal de detalle clínico.
+ * buscador tripartito por QR, Código o CI, carga bajo demanda y modal de detalle clínico.
  */
 function DoctorDashboard() {
   const navigate = useNavigate();
@@ -33,6 +35,7 @@ function DoctorDashboard() {
   const [metrics, setMetrics] = useState({ waiting_count: 0, reviewed_count: 0, total_red: 0, total_today: 0 });
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingPatientDetail, setLoadingPatientDetail] = useState(false);
 
   // Estados del Buscador Tripartito
   const [searchCode, setSearchCode] = useState('');
@@ -63,6 +66,23 @@ function DoctorDashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  // Carga bajo demanda del detalle del paciente con CI descifrado en memoria y auditoría
+  const handleOpenPatientDetail = async (identifier) => {
+    if (!identifier) return;
+    setLoadingPatientDetail(true);
+    try {
+      const resp = await axios.get(`${API_BASE_URL}/doctor/patient/${identifier}`);
+      if (resp.data) {
+        setSelectedPatient(resp.data);
+      }
+    } catch (err) {
+      console.error(`Error obteniendo detalle de paciente (${identifier}):`, err);
+      alert(`No se pudo cargar el expediente para '${identifier}'. Verifique que el registro exista.`);
+    } finally {
+      setLoadingPatientDetail(false);
+    }
+  };
+
   // Inicializar escáner de Cámara QR html5-qrcode
   useEffect(() => {
     let scanner = null;
@@ -76,14 +96,15 @@ function DoctorDashboard() {
       scanner.render(
         (decodedText) => {
           console.log('Código QR Escaneado:', decodedText);
+          let codeToLookup = decodedText;
           try {
             const parsed = JSON.parse(decodedText);
-            if (parsed.code) decodedText = parsed.code;
+            if (parsed.code) codeToLookup = parsed.code;
           } catch (e) {}
 
           setShowQRScanner(false);
           scanner.clear();
-          handleSearchByCode(decodedText);
+          handleOpenPatientDetail(codeToLookup);
         },
         (error) => {
           // Ignorar errores menores de cuadro a cuadro
@@ -100,29 +121,16 @@ function DoctorDashboard() {
     };
   }, [showQRScanner]);
 
-  const handleSearchByCode = async (codeToSearch = searchCode) => {
-    if (!codeToSearch.trim()) return;
-    try {
-      const resp = await axios.get(`${API_BASE_URL}/doctor/patient/${codeToSearch.trim().toUpperCase()}`);
-      if (resp.data) {
-        setSelectedPatient(resp.data);
-      }
-    } catch (err) {
-      alert(`No se encontró paciente para el código: ${codeToSearch}`);
-    }
+  const handleSearchByCode = (e) => {
+    if (e) e.preventDefault();
+    if (!searchCode.trim()) return;
+    handleOpenPatientDetail(searchCode.trim().toUpperCase());
   };
 
   const handleSearchByCI = async (e) => {
     e.preventDefault();
     if (!searchCI.trim()) return;
-    try {
-      const resp = await axios.get(`${API_BASE_URL}/triage/lookup`, { params: { ci: searchCI.trim() } });
-      if (resp.data) {
-        setSelectedPatient(resp.data);
-      }
-    } catch (err) {
-      alert(`No se encontró registro para el CI: ${searchCI}`);
-    }
+    handleOpenPatientDetail(searchCI.trim());
   };
 
   const handleLogout = async () => {
@@ -138,6 +146,18 @@ function DoctorDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-sky-500">
+      {/* Indicador de Carga Global para Apertura de Expediente */}
+      {loadingPatientDetail && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center space-y-3">
+          <div className="p-4 bg-sky-500/10 rounded-2xl border border-sky-500/20 animate-pulse">
+            <Loader2 className="w-8 h-8 text-sky-400 animate-spin" />
+          </div>
+          <p className="text-sm font-semibold text-slate-200">
+            Descifrando Carnet de Identidad y cargando expediente clínico...
+          </p>
+        </div>
+      )}
+
       {/* Cabecera del Dashboard */}
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -237,22 +257,21 @@ function DoctorDashboard() {
             </button>
 
             {/* Vía 2: Buscador por Código Alfanumérico MS-8X92K */}
-            <div className="flex gap-2">
+            <form onSubmit={handleSearchByCode} className="flex gap-2">
               <input
                 type="text"
                 placeholder="Código MS-XXXXX"
                 value={searchCode}
                 onChange={(e) => setSearchCode(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearchByCode()}
-                className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-sky-500 font-mono"
+                className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-sky-500 font-mono uppercase"
               />
               <button
-                onClick={() => handleSearchByCode()}
+                type="submit"
                 className="px-3 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-xl border border-slate-700 text-xs transition"
               >
                 <Search className="w-4 h-4" />
               </button>
-            </div>
+            </form>
 
             {/* Vía 3: Buscador por Carnet de Identidad (CI) */}
             <form onSubmit={handleSearchByCI} className="flex gap-2">
@@ -265,7 +284,7 @@ function DoctorDashboard() {
               />
               <button
                 type="submit"
-                className="px-3 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-xl border border-slate-700 text-xs transition"
+                className="px-3 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-xl border border-slate-700 text-xs transition font-medium"
               >
                 Buscar CI
               </button>
@@ -340,7 +359,7 @@ function DoctorDashboard() {
                         {isReviewed ? '✓ Atendido' : '● Pendiente'}
                       </span>
                       <button
-                        onClick={() => setSelectedPatient(rec)}
+                        onClick={() => handleOpenPatientDetail(rec.access_code || rec.id)}
                         className="py-2 px-3 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
                       >
                         <Eye className="w-3.5 h-3.5" />
@@ -355,7 +374,7 @@ function DoctorDashboard() {
         </div>
       </main>
 
-      {/* Modal de Expediente Clínico y Cierre */}
+      {/* Modal de Expediente Clínico en Pantalla Dividida y Cierre */}
       {selectedPatient && (
         <PatientDetailModal
           patientData={selectedPatient}
