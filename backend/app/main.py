@@ -66,14 +66,29 @@ async def root():
     }
 
 
+@app.get("/health", tags=["Health"])
+async def health():
+    """
+    Endpoint público de verificación de salud para monitores de infraestructura (Render, Docker, Kubernetes).
+    """
+    return {
+        "status": "healthy",
+        "service": "MediSinc-IA API",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "version": "1.0.0"
+    }
+
+
 @app.get("/api/v1/health", tags=["Health"])
 async def health_check():
     """
     Endpoint de diagnóstico para verificar el estado de la API y la configuración de entorno.
     """
     return {
-        "status": "ok",
+        "status": "healthy",
+        "service": "MediSinc-IA API",
         "environment": settings.ENVIRONMENT,
         "ai_provider": settings.AI_PROVIDER,
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "version": "1.0.0"
     }
