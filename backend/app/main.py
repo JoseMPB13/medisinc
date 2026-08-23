@@ -5,7 +5,7 @@ y aplica el manejador global de excepciones con sanitización de errores.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -49,7 +49,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={
             "detail": "Ha ocurrido un error interno en el servidor. Por favor intente más tarde.",
             "status": 500,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
     )
 
@@ -75,5 +75,5 @@ async def health_check():
         "status": "ok",
         "environment": settings.ENVIRONMENT,
         "ai_provider": settings.AI_PROVIDER,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }

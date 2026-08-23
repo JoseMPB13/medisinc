@@ -4,7 +4,7 @@ Maneja la recepción inmediata de datos del paciente, encolamiento asíncrono,
 consulta de estado y búsqueda para médicos por código de acceso o CI hash.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, HTTPException, status, BackgroundTasks, Query, Depends, Request
 from pydantic import BaseModel, Field
@@ -92,7 +92,7 @@ async def process_triage(
             status="RECEIVED",
             patient_name=patient_input.patient_name,
             message="Pre-triaje registrado exitosamente. Tu resumen clínico se encuentra en procesamiento.",
-            created_at=datetime.utcnow().isoformat()
+            created_at=datetime.now(timezone.utc).isoformat()
         )
 
     except Exception as e:

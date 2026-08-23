@@ -5,7 +5,7 @@ y la descodificación segura del CI en memoria con trazabilidad inalterable en A
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, status, Query
 from pydantic import BaseModel, Field
@@ -140,7 +140,7 @@ async def get_patient_detail_for_doctor(identifier: str):
                     "action": "VIEW_PATIENT_DETAIL",
                     "resource_id": record.get("id"),
                     "ip_address": "127.0.0.1",
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 }).execute()
             except Exception as e:
                 logger.error(f"Error insertando audit_log en Supabase: {e}")
@@ -181,7 +181,7 @@ async def submit_medical_review(payload: MedicalReviewSchema):
                     "triage_id": triage_id,
                     "doctor_notes": payload.doctor_notes,
                     "priority_adjusted": payload.priority_adjusted,
-                    "reviewed_at": datetime.utcnow().isoformat()
+                    "reviewed_at": datetime.now(timezone.utc).isoformat()
                 }).execute()
                 
                 # 2. Actualizar estado a REVIEWED en triage_record
@@ -196,7 +196,7 @@ async def submit_medical_review(payload: MedicalReviewSchema):
                     "action": "CONFIRM_MEDICAL_REVIEW",
                     "resource_id": triage_id,
                     "ip_address": "127.0.0.1",
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 }).execute()
 
             except Exception as e:
@@ -212,7 +212,7 @@ async def submit_medical_review(payload: MedicalReviewSchema):
             "status": "success",
             "message": "Atención médica registrada y expediente cerrado.",
             "triage_id": triage_id,
-            "reviewed_at": datetime.utcnow().isoformat()
+            "reviewed_at": datetime.now(timezone.utc).isoformat()
         }
 
     except Exception as e:
