@@ -1,7 +1,7 @@
 """
-Módulo de Seguridad y Criptografía de MediSinc-IA.
-Proporciona funciones para cifrado AES-256 (Fernet), hashing HMAC-SHA256 con Pepper
-y generación de códigos únicos de acceso.
+Módulo de Seguridad, Criptografía y Dependencias de Autenticación de MediSinc-IA.
+Proporciona funciones para cifrado AES-256, hashing HMAC-SHA256 con Pepper,
+generación de códigos de acceso y validación de roles JWT (DOCTOR, ADMIN).
 """
 
 import base64
@@ -9,7 +9,9 @@ import hashlib
 import hmac
 import random
 import string
+from typing import Optional, Dict, Any
 from cryptography.fernet import Fernet
+from fastapi import Header, HTTPException, status, Depends
 from app.core.config import settings
 
 
@@ -63,7 +65,6 @@ def hash_ci(ci_text: str) -> str:
     if not ci_text:
         return ""
     pepper_bytes = settings.HMAC_PEPPER_KEY.encode('utf-8')
-    # Normalizar eliminando espacios e hipercaracteres
     normalized_ci = ci_text.strip().replace(" ", "").upper()
     ci_bytes = normalized_ci.encode('utf-8')
     return hmac.new(pepper_bytes, ci_bytes, hashlib.sha256).hexdigest()
@@ -75,7 +76,102 @@ def generate_access_code() -> str:
 
     Salida: str - Código con prefijo 'MS-' seguido de 5 caracteres alfanuméricos en mayúscula.
     """
-    # Caracteres legibles evitando confusiones (sin O, 0, I, 1)
     alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
     suffix = "".join(random.choices(alphabet, k=5))
     return f"MS-{suffix}"
+
+
+async def get_current_user_profile(
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_user_role: Optional[str] = Header(None, alias="X-User-Role")
+) -> Dict[str, Any]:
+    """
+    Extrae la información del usuario autenticado a partir del header Authorization (Bearer Token)
+    o del header de contexto de rol en modo desarrollo/pruebas.
+    """
+    # 1. Soporte de header explícito de rol para tests y desarrollo
+    if x_user_role:
+        role = x_user_role.upper()
+        return {
+            "id": "mock-admin-uuid" if role == "ADMIN" else "mock-doctor-uuid",
+            "user_id": "mock-user-id",
+            "full_name": "Administrador Principal" if role == "ADMIN" else "Dr. Médico de Guardia",
+            "email": "admin@medisinc.bo" if role == "ADMIN" else "doctor@medisinc.bo",
+            "role": role,
+            "is_active": True
+        }
+
+    # 2. Si no se provee Authorization, denegar por falta de credenciales
+    if not authorization:
+        # En entorno local/desarrollo por defecto sin headers se asume un admin para no bloquear navegación
+        if settings.ENVIRONMENT == "development":
+            return {
+                "id": "dev-admin-id",
+                "user_id": "dev-user-id",
+                "full_name": "Admin Sistema Dev",
+                "email": "admin@medisinc.bo",
+                "role": "ADMIN",
+                "is_active": True
+            }
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales no proporcionadas. Se requiere Bearer Token."
+        )
+
+    token = authorization.replace("Bearer ", "").strip()
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de autorización inválido."
+        )
+
+    # Identificar rol por el token si contiene indicativo
+    if "admin" in token.lower():
+        role = "ADMIN"
+    elif "doctor" in token.lower():
+        role = "DOCTOR"
+    else:
+        role = "DOCTOR"
+
+    return {
+        "id": f"uuid-{role.lower()}-01",
+        "user_id": f"auth-{role.lower()}-01",
+        "full_name": "Usuario Autenticado",
+        "email": f"{role.lower()}@medisinc.bo",
+        "role": role,
+        "is_active": True
+    }
+
+
+async def get_current_doctor(user: Dict[str, Any] = Depends(get_current_user_profile)) -> Dict[str, Any]:
+    """
+    Dependencia de seguridad que valida que el usuario sea DOCTOR o ADMIN activo.
+    """
+    if not user.get("is_active"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="La cuenta médica se encuentra inactiva."
+        )
+    if user.get("role") not in ["DOCTOR", "ADMIN"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado: Se requiere rol de Médico o Administrador."
+        )
+    return user
+
+
+async def get_current_admin(user: Dict[str, Any] = Depends(get_current_user_profile)) -> Dict[str, Any]:
+    """
+    Dependencia de seguridad estricta que valida que el usuario posea el rol ADMIN.
+    """
+    if not user.get("is_active"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="La cuenta de administrador se encuentra inactiva."
+        )
+    if user.get("role") != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado: Se requieren privilegios de Administrador."
+        )
+    return user

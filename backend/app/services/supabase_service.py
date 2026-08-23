@@ -1,11 +1,11 @@
 """
 Servicio de Persistencia con Supabase (PostgreSQL).
 Proporciona métodos para interactuar con la base de datos de MediSinc-IA
-utilizando el Service Role Key con el SDK oficial de Supabase.
+utilizando el Service Role Key con el SDK oficial de Supabase y soporte de fallback local.
 """
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from supabase import create_client, Client
 from app.core.config import settings
 
@@ -14,6 +14,29 @@ logger = logging.getLogger(__name__)
 # Memoria en almacenamiento local (Fallback si Supabase no tiene credenciales válidas en desarrollo)
 _IN_MEMORY_TRIAGE_DB: Dict[str, Dict[str, Any]] = {}
 _IN_MEMORY_AI_DB: Dict[str, Dict[str, Any]] = {}
+_IN_MEMORY_PROFILES_DB: Dict[str, Dict[str, Any]] = {
+    "admin-01": {
+        "id": "admin-01",
+        "user_id": "auth-admin-01",
+        "full_name": "Dr. Fernando Morales (Admin)",
+        "email": "admin@medisinc.bo",
+        "specialty": "Dirección Médica y Emergenciología",
+        "role": "ADMIN",
+        "is_active": True,
+        "created_at": "2026-08-01T08:00:00Z"
+    },
+    "doc-01": {
+        "id": "doc-01",
+        "user_id": "auth-doc-01",
+        "full_name": "Dra. Mariana Vaca",
+        "email": "doctor@medisinc.bo",
+        "specialty": "Medicina General y Triaje",
+        "role": "DOCTOR",
+        "is_active": True,
+        "created_at": "2026-08-05T09:30:00Z"
+    }
+}
+_IN_MEMORY_AUDIT_LOG_DB: List[Dict[str, Any]] = []
 
 
 class SupabaseService:
@@ -68,7 +91,6 @@ class SupabaseService:
         client = self.get_client()
         if client:
             try:
-                # Usar minúsculas para coincidir con el PostgREST cache de Supabase
                 response = client.table("triage_record").insert(record_payload).execute()
                 if response.data:
                     logger.info(f"✓ Registro insertado con éxito en Supabase triage_record. ID: {response.data[0].get('id')}")
