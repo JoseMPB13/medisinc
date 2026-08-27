@@ -6,7 +6,7 @@ con formato de respuesta JSON forzado y validación estricta en Pydantic.
 
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from app.core.config import settings
 from app.proveedores.proveedor_base import ProveedorIABase
 from app.esquemas.triaje import EsquemaSalidaEstructuradaIA
@@ -81,6 +81,48 @@ class ProveedorGroq(ProveedorIABase):
 
         # Fallback de contingencia
         return self.generar_salida_contingencia(datos_paciente)
+
+    async def generar_preguntas_dinamicas(
+        self,
+        sintomas: str,
+        edad: int,
+        genero: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Genera 2 a 3 preguntas adaptativas usando Groq Llama 3 con fallback semiológico.
+        """
+        if self.cliente:
+            try:
+                prompt = self.construir_prompt_preguntas_dinamicas(sintomas, edad, genero)
+                chat_completion = self.cliente.chat.completions.create(
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "Eres un médico de triaje. Responde estrictamente con un JSON array de 2 a 3 preguntas."
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    model="llama3-70b-8192"
+                )
+                raw_json = chat_completion.choices[0].message.content.strip()
+                # Limpieza de posibles bloques markdown
+                if "```json" in raw_json:
+                    raw_json = raw_json.split("```json")[1].split("```")[0].strip()
+                elif "```" in raw_json:
+                    raw_json = raw_json.split("```")[1].split("```")[0].strip()
+
+                parsed = json.loads(raw_json)
+                if isinstance(parsed, list) and len(parsed) >= 2:
+                    return parsed
+                elif isinstance(parsed, dict) and "preguntas" in parsed:
+                    return parsed["preguntas"]
+            except Exception as e:
+                logger.warning(f"[ProveedorGroq] Error generando preguntas dinámicas con Groq ({e}). Usando fallback.")
+
+        return self.generar_preguntas_dinamicas_fallback(sintomas, edad, genero)
 
 
 # -----------------------------------------------------------------------------

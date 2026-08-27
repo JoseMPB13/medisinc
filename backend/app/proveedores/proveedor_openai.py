@@ -6,7 +6,7 @@ y validación estricta en el esquema Pydantic EsquemaSalidaEstructuradaIA.
 
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from app.core.config import settings
 from app.proveedores.proveedor_base import ProveedorIABase
 from app.esquemas.triaje import EsquemaSalidaEstructuradaIA
@@ -81,6 +81,47 @@ class ProveedorOpenAI(ProveedorIABase):
 
         # Fallback de contingencia
         return self.generar_salida_contingencia(datos_paciente)
+
+    async def generar_preguntas_dinamicas(
+        self,
+        sintomas: str,
+        edad: int,
+        genero: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Genera 2 a 3 preguntas adaptativas usando OpenAI GPT-4o-mini con fallback semiológico.
+        """
+        if self.cliente:
+            try:
+                prompt = self.construir_prompt_preguntas_dinamicas(sintomas, edad, genero)
+                respuesta = self.cliente.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "Eres un médico de triaje. Genera exactamente un JSON con la lista de 2 a 3 preguntas."
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ]
+                )
+                raw_json = respuesta.choices[0].message.content.strip()
+                if "```json" in raw_json:
+                    raw_json = raw_json.split("```json")[1].split("```")[0].strip()
+                elif "```" in raw_json:
+                    raw_json = raw_json.split("```")[1].split("```")[0].strip()
+
+                parsed = json.loads(raw_json)
+                if isinstance(parsed, list) and len(parsed) >= 2:
+                    return parsed
+                elif isinstance(parsed, dict) and "preguntas" in parsed:
+                    return parsed["preguntas"]
+            except Exception as e:
+                logger.warning(f"[ProveedorOpenAI] Error generando preguntas dinámicas con OpenAI ({e}). Usando fallback.")
+
+        return self.generar_preguntas_dinamicas_fallback(sintomas, edad, genero)
 
 
 # -----------------------------------------------------------------------------

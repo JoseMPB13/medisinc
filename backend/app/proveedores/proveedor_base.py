@@ -1,7 +1,7 @@
 """
 Clase Base Abstracta para los Proveedores de Inteligencia Artificial en MediSinc-IA.
-Define la interfaz uniforme (patrón Adapter) y el motor de prompts con mapeador dialectal
-cruceño/boliviano que deben implementar Gemini, Groq y OpenAI.
+Define la interfaz uniforme (patrón Adapter) y el motor de prompts con metodología
+semiológica PQRST, triaje Manchester y mapeador sociolingüístico boliviano/cruceño.
 """
 
 from abc import ABC, abstractmethod
@@ -11,11 +11,11 @@ from app.esquemas.triaje import EsquemaSalidaEstructuradaIA, AIStructuredOutput
 # Mapeador Dialectal y Semántico de Expresiones Populares de Santa Cruz de la Sierra y Bolivia
 MAPEADOR_DIALECTAL_BOLIVIA = """
 GUÍA DE INTERPRETACIÓN SOCIOLINGÜÍSTICA (ESPAÑOL BOLIVIANO / CRUCEÑO):
-- "Chuy" / "Chucho de frío" -> Escalofríos intensos o síndrome febril en evolución.
-- "Basca" / "Asco" -> Náuseas o emesis (vómitos).
-- "Estómago aventado" / "Empacho" -> Distensión abdominal o meteorismo severo.
-- "Quebrantamiento de cuerpo" / "Cuerpo cortado" -> Astenia, adinamia, mialgias generalizadas.
-- "Dolor de tutuma" / "Retumbo en la cabeza" -> Cefalea holocraneana o pulsátil.
+- "Chuy" / "Chucho de frío" -> Escalofríos intensos o síndrome febril en evolución (riesgo de bacteriemia/dengue).
+- "Basca" / "Asco" -> Náuseas, arcadas o emesis/vómitos persistentes.
+- "Estómago aventado" / "Empacho" -> Distensión abdominal aguda o meteorismo/íleo severo.
+- "Quebrantamiento de cuerpo" / "Cuerpo cortado" -> Astenia, adinamia y mialgias generalizadas intensas.
+- "Dolor de tutuma" / "Retumbo en la cabeza" -> Cefalea holocraneana pulsátil o hipertensiva.
 """
 
 
@@ -59,7 +59,7 @@ class ProveedorIABase(ABC):
     def construir_prompt_triaje(self, patient_data: Dict[str, Any]) -> str:
         """
         Construye el prompt clínico para extracción estructurada inyectando las directivas
-        de triaje de emergencias y el mapeador dialectal de Bolivia.
+        de la escala Manchester, método semiológico PQRST y mapeador dialectal de Bolivia.
         """
         sintomas = patient_data.get("raw_symptoms") or patient_data.get("sintomas_brutos", "")
         edad = patient_data.get("age") if patient_data.get("age") is not None else patient_data.get("edad", 0)
@@ -75,37 +75,99 @@ Tu función es analizar la declaración del paciente y generar un informe clíni
 
 {MAPEADOR_DIALECTAL_BOLIVIA}
 
-REGLAS DE EVALUACIÓN Y CLINICAL REASONING:
-1. FORCING DE ESQUEMA JSON: Responde ÚNICAMENTE un objeto JSON válido sin texto introductorio ni explicaciones adicionales.
-2. NIVELES DE PRIORIDAD: Asigna preliminarmente strictly:
-   - "ROJO": Emergencia vital (dolor torácico opresivo, disnea aguda, síncope, convulsiones, hemorragias, parálisis o asimetría facial, lactantes <1 año febriles).
-   - "AMARILLO": Cuadro prioritario / dolor moderado a severo (6-8/10), deshidratación o fiebre persistente sin colapso.
-   - "VERDE": Cuadro leve (1-5/10), síntomas catarrales no complicados o consultas generales.
+REGLAS DE EVALUACIÓN CLÍNICA (ESCALA MANCHESTER / RAC ADAPTADO):
+1. FORCING DE ESQUEMA JSON: Responde ÚNICAMENTE un objeto JSON válido sin bloques markdown adicionales.
+2. NIVELES DE PRIORIDAD ESTRICTOS:
+   - "ROJO": Emergencia Vital Inmediata (dolor precordial irradiado, disnea aguda en reposo, síncope/desmayo, convulsiones, hemorragia activa severa, lactantes <1 año febriles).
+   - "AMARILLO": Urgencia Mayor / Riesgo Potencial (dolor agudo severo 7-10/10, sospecha de abdomen agudo en fosa ilíaca, vómitos incoercibles con deshidratación, fiebre alta persistente).
+   - "VERDE": Cuadro Leve / Consulta General (dolor leve/moderado 1-6/10 sin compromiso hemodinámico ni signos de alarma).
 3. TRADUCCIÓN SOCIOLINGÜÍSTICA: Interpreta modismos cruceños y bolivianos traduciéndolos a terminología médica formal.
-4. RESUMEN NARRATIVO: Redacta una síntesis clínica concisa de 2 a 3 oraciones usando lenguaje profesional médico.
+4. RESUMEN NARRATIVO: Redacta una síntesis clínica concisa de 2 a 3 oraciones usando lenguaje profesional médico estructurado.
 
 DATOS DEL PACIENTE:
 - Nombre: {nombre}
 - Edad: {edad} años | Género: {genero}
-- Motivo de Consulta (Declaración directa del paciente): "{sintomas}"
-- Datos Adicionales / Intensidad: {datos_estaticos}
-- Respuestas a Preguntas Dinámicas: {respuestas_dinamicas}
+- Motivo de Consulta: "{sintomas}"
+- Datos Adicionales e Intensidad: {datos_estaticos}
+- Respuestas a Preguntas Dinámicas (PQRST / Medicación): {respuestas_dinamicas}
 
 FORMATO JSON REQUERIDO:
 {{
   "sintomas_principales": ["lista de síntomas traducidos a terminología médica formal"],
-  "duracion_e_intensidad": "resumen de evolución e intensidad (ej. 'Evolución de 2 horas con intensidad 8/10')",
-  "factores_agravantes_antecedentes": ["factores agravantes o comorbilidades mencionadas"],
+  "duracion_e_intensidad": "resumen de evolución e intensidad (ej. 'Evolución de 3 horas con intensidad 8/10')",
+  "factores_agravantes_antecedentes": ["comorbilidades o factores agravantes reportados"],
   "senales_alerta_identificadas": ["banderas rojas o signos de alarma detectados"],
-  "prioridad_sugerida_ia": "ROJO" | "AMARILLO" | "VERDE" | "RED" | "YELLOW" | "GREEN",
+  "prioridad_sugerida_ia": "ROJO" | "AMARILLO" | "VERDE",
   "resumen_clinico_narrativo": "síntesis concisa de 2 a 3 oraciones para el médico de guardia",
   "informacion_faltante_critica": ["aspectos o datos no especificados que el médico debe interrogar"]
 }}
 """
 
-    def _build_prompt(self, patient_data: Dict[str, Any]) -> str:
-        """Alias para compatibilidad con código existente."""
-        return self.construir_prompt_triaje(patient_data)
+    def construir_prompt_preguntas_dinamicas(self, sintomas: str, edad: int, genero: str) -> str:
+        """
+        Construye el prompt para que el LLM formule de 2 a 3 preguntas adaptativas de opción múltiple
+        aplicando la metodología semiológica PQRST y detección de banderas rojas.
+        """
+        return f"""
+[SYSTEM PROMPT]
+Eres un médico especialista en triaje de emergencias de MediSinc-IA.
+Tu tarea es generar exactamente entre 2 y 3 preguntas clínicas de opción múltiple para interrogar a un paciente antes de su evaluación presencial.
+
+{MAPEADOR_DIALECTAL_BOLIVIA}
+
+METODOLOGÍA SEMIOLÓGICA PQRST OBLIGATORIA:
+1. PREGUNTA 1 (Banderas Rojas y Semiología Específica): Interroga la irradiación, tipo de dolor (opresivo vs punzante), velocidad de inicio o síntomas de alarma vital según el síntoma principal.
+2. PREGUNTA 2 (Comorbilidades / Antecedentes Crónicos): Interroga antecedentes relevantes (hipertensión, diabetes, cardiopatía, asma, etc.).
+3. PREGUNTA 3 (Medicación Actual y Tratamientos Recientes): Interroga fármacos habituales (antihipertensivos, anticoagulantes, insulina o analgésicos tomados).
+
+REGLAS DE FORMATO JSON:
+- Responde ÚNICAMENTE un array JSON con 2 a 3 objetos.
+- Cada objeto debe contener:
+  - "id": identificador único en minúsculas (ej: "q_caracteristica_dolor", "q_enfermedades_previas", "q_medicacion")
+  - "pregunta": texto claro y empático en español dirigido al paciente.
+  - "tipo_pregunta": "single_choice" o "multiple_choice"
+  - "opciones": lista de 3 a 4 opciones con {{"etiqueta": "...", "valor": "..."}}
+
+DATOS DEL PACIENTE:
+- Motivo de Consulta: "{sintomas}"
+- Edad: {edad} años | Género: {genero}
+
+EJEMPLO DE SALIDA ESPERADA:
+[
+  {{
+    "id": "q_caracteristica",
+    "pregunta": "¿Cómo describirías la molestia principal y hacia dónde se extiende?",
+    "tipo_pregunta": "single_choice",
+    "opciones": [
+      {{"etiqueta": "Opresión intensa que irradia a mandíbula o brazo", "valor": "irradiado"}},
+      {{"etiqueta": "Punzante o quemante localizado", "valor": "localizado"}},
+      {{"etiqueta": "Sensación de pesadez difusa", "valor": "difuso"}}
+    ]
+  }},
+  {{
+    "id": "q_enfermedades",
+    "pregunta": "¿Padece alguna enfermedad o condición médica diagnosticada?",
+    "tipo_pregunta": "multiple_choice",
+    "opciones": [
+      {{"etiqueta": "Hipertensión arterial (presión alta)", "valor": "hipertension"}},
+      {{"etiqueta": "Diabetes mellitus (azúcar alta)", "valor": "diabetes"}},
+      {{"etiqueta": "Problemas cardíacos o respiratorios crónicos", "valor": "cardio_resp"}},
+      {{"etiqueta": "Ninguna enfermedad diagnosticada", "valor": "ninguna"}}
+    ]
+  }},
+  {{
+    "id": "q_medicamentos",
+    "pregunta": "¿Toma medicamentos habitualmente o ha tomado algo hoy para este malestar?",
+    "tipo_pregunta": "multiple_choice",
+    "opciones": [
+      {{"etiqueta": "Medicamentos para la presión o anticoagulantes", "valor": "cardiovasculares"}},
+      {{"etiqueta": "Medicación para la diabetes", "valor": "antidiabeticos"}},
+      {{"etiqueta": "Tomé analgésicos o antiinflamatorios recientemente", "valor": "analgesicos"}},
+      {{"etiqueta": "No tomo ningún medicamento", "valor": "ninguno"}}
+    ]
+  }}
+]
+"""
 
     def generar_salida_contingencia(self, patient_data: Dict[str, Any]) -> EsquemaSalidaEstructuradaIA:
         """
@@ -155,9 +217,90 @@ FORMATO JSON REQUERIDO:
             ]
         )
 
-    def _generate_fallback(self, patient_data: Dict[str, Any]) -> EsquemaSalidaEstructuradaIA:
-        """Alias para compatibilidad con código existente."""
-        return self.generar_salida_contingencia(patient_data)
+    def generar_preguntas_dinamicas_fallback(self, sintomas: str, edad: int, genero: str) -> List[Dict[str, Any]]:
+        """
+        Retorna preguntas estructuradas adaptadas por árbol de decisión semiológico si el LLM no responde.
+        """
+        sintoma_norm = (sintomas or "").lower()
+
+        if any(t in sintoma_norm for t in ["cabeza", "cefalea", "tutuma"]):
+            p1 = {
+                "id": "q_headache_pqrst",
+                "pregunta": "¿El dolor de cabeza inició súbitamente de golpe o con alteración visual/cuello rígido?",
+                "tipo_pregunta": "single_choice",
+                "opciones": [
+                    {"etiqueta": "Inicio súbito en segundos con dolor insoportable", "valor": "subito_trueno"},
+                    {"etiqueta": "Acompañado de rigidez de cuello o fiebre alta", "valor": "rigidez_nuca"},
+                    {"etiqueta": "Dolor progresivo o pulsátil habitual", "valor": "progresivo"}
+                ]
+            }
+        elif any(t in sintoma_norm for t in ["pecho", "torac", "card", "palpit"]):
+            p1 = {
+                "id": "q_chest_pqrst",
+                "pregunta": "¿Cómo describirías la molestia en el pecho y hacia dónde se extiende?",
+                "tipo_pregunta": "single_choice",
+                "opciones": [
+                    {"etiqueta": "Opresión fuerte que va hacia brazo izquierdo, cuello o mandíbula", "valor": "irradiado_brazo"},
+                    {"etiqueta": "Punzante al respirar hondo o toser", "valor": "pleuritico"},
+                    {"etiqueta": "Sensación de ardor o acidez digestiva", "valor": "reflujo"}
+                ]
+            }
+        elif any(t in sintoma_norm for t in ["estomago", "abdom", "barriga", "aventado", "basca"]):
+            p1 = {
+                "id": "q_abdo_pqrst",
+                "pregunta": "¿En qué zona del abdomen se ubica y presenta vómitos continuos?",
+                "tipo_pregunta": "single_choice",
+                "opciones": [
+                    {"etiqueta": "En la parte inferior derecha con dolor agudo al tacto", "valor": "fosa_iliaca_derecha"},
+                    {"etiqueta": "En la boca del estómago con náuseas y ardor", "valor": "epigastrio"},
+                    {"etiqueta": "Vómitos continuos e imposibilidad de retener líquidos", "valor": "vomitos_incoercibles"}
+                ]
+            }
+        else:
+            p1 = {
+                "id": "q_gen_pqrst",
+                "pregunta": "¿Con qué rapidez aparecieron los síntomas y qué tanto limitan su actividad?",
+                "tipo_pregunta": "single_choice",
+                "opciones": [
+                    {"etiqueta": "Aparición súbita e incapacidad total de mantenerse de pie", "valor": "agudo_severo"},
+                    {"etiqueta": "Comenzó gradualmente en las últimas 24 a 48 horas", "valor": "subagudo"},
+                    {"etiqueta": "Molestia persistente de más de una semana", "valor": "cronico"}
+                ]
+            }
+
+        p2 = {
+            "id": "q_enfermedades_comorbilidades",
+            "pregunta": "¿Padece alguna de las siguientes enfermedades de base?",
+            "tipo_pregunta": "multiple_choice",
+            "opciones": [
+                {"etiqueta": "Hipertensión arterial (presión alta)", "valor": "hipertension"},
+                {"etiqueta": "Diabetes mellitus (azúcar en sangre)", "valor": "diabetes"},
+                {"etiqueta": "Problemas cardíacos o infarto previo", "valor": "cardiopatia"},
+                {"etiqueta": "Asma, bronquitis crónica o EPOC", "valor": "asma_epoc"},
+                {"etiqueta": "Ninguna enfermedad diagnosticada", "valor": "ninguna"}
+            ]
+        }
+
+        p3 = {
+            "id": "q_medicamentos_tratamientos",
+            "pregunta": "¿Toma medicamentos habitualmente o ha tomado fármacos para este malestar?",
+            "tipo_pregunta": "multiple_choice",
+            "opciones": [
+                {"etiqueta": "Medicamentos para la presión arterial o el corazón", "valor": "antihipertensivos"},
+                {"etiqueta": "Anticoagulantes o aspirina diariamente", "valor": "anticoagulantes"},
+                {"etiqueta": "Insulina o pastillas para la diabetes", "valor": "antidiabeticos"},
+                {"etiqueta": "Tomé analgésicos o antibióticos en las últimas horas", "valor": "analgesicos"},
+                {"etiqueta": "No tomo ningún medicamento de forma regular", "valor": "ninguno"}
+            ]
+        }
+
+        return [p1, p2, p3]
+
+    async def generar_preguntas_dinamicas(self, sintomas: str, edad: int, genero: str) -> List[Dict[str, Any]]:
+        """
+        Método por defecto que invoca el árbol de contingencia si no se sobreescribe en la subclase.
+        """
+        return self.generar_preguntas_dinamicas_fallback(sintomas, edad, genero)
 
 
 # -----------------------------------------------------------------------------

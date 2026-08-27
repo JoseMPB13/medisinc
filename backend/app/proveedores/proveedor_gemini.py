@@ -6,7 +6,7 @@ manejo resiliente de excepciones, compatibilidad multi-modelo y fallback clínic
 
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from app.core.config import settings
 from app.proveedores.proveedor_base import ProveedorIABase
 from app.esquemas.triaje import EsquemaSalidaEstructuradaIA
@@ -86,6 +86,27 @@ class ProveedorGemini(ProveedorIABase):
 
         # Fallback de contingencia inmediato
         return self.generar_salida_contingencia(datos_paciente)
+
+    async def generar_preguntas_dinamicas(
+        self,
+        sintomas: str,
+        edad: int,
+        genero: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Genera 2 a 3 preguntas dinámicas adaptativas aplicando semiología PQRST con fallback clínico.
+        """
+        if self.modelo:
+            try:
+                prompt = self.construir_prompt_preguntas_dinamicas(sintomas, edad, genero)
+                respuesta = self.modelo.generate_content(prompt)
+                parsed = json.loads(respuesta.text.strip())
+                if isinstance(parsed, list) and len(parsed) >= 2:
+                    return parsed
+            except Exception as e:
+                logger.warning(f"[ProveedorGemini] Error generando preguntas dinámicas ({e}). Activando fallback.")
+
+        return self.generar_preguntas_dinamicas_fallback(sintomas, edad, genero)
 
 
 # -----------------------------------------------------------------------------

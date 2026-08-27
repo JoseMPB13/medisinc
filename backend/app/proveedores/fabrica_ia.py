@@ -34,7 +34,20 @@ def obtener_proveedor_ia() -> ProveedorIABase:
         return ProveedorGemini()
 
 
+class FabricaIA:
+    """Clase envolvente Fábrica para compatibilidad de invocación estática."""
+
+    @staticmethod
+    def obtener_proveedor() -> ProveedorIABase:
+        return obtener_proveedor_ia()
+
+    @staticmethod
+    def get_provider() -> ProveedorIABase:
+        return obtener_proveedor_ia()
+
+
 # -----------------------------------------------------------------------------
 # ALIASES DE COMPATIBILIDAD CON CÓDIGO EXISTENTE
 # -----------------------------------------------------------------------------
 get_ai_provider = obtener_proveedor_ia
+AIFactory = FabricaIA

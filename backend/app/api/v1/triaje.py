@@ -20,6 +20,7 @@ from app.esquemas.triaje import (
 )
 from app.servicios.servicio_supabase import servicio_supabase
 from app.services.queue_service import queue_service
+from app.proveedores.fabrica_ia import FabricaIA
 
 logger = logging.getLogger(__name__)
 
@@ -140,134 +141,60 @@ async def procesar_triaje(
 )
 async def generar_preguntas_dinamicas_api(entrada: EsquemaEntradaPreguntasDinamicas):
     """
-    Genera de 2 a 3 preguntas dinámicas orientadas a:
+    Genera de 2 a 3 preguntas dinámicas adaptativas mediante IA / PQRST orientadas a:
     1. Descartar banderas rojas y características específicas del padecimiento.
     2. Identificar antecedentes y enfermedades preexistentes (diabetes, hipertensión, asma, etc.).
     3. Conocer medicamentos habituales y tratamientos recientes.
     """
     try:
-        sintoma_texto = (entrada.sintomas_brutos or entrada.sintoma or "").lower().strip()
+        sintoma_texto = (entrada.sintomas_brutos or entrada.sintoma or "").strip()
+        genero_texto = entrada.genero or "No especificado"
 
-        # Pregunta 1: Específica del síntoma o banderas rojas
-        if "cabeza" in sintoma_texto or "cefalea" in sintoma_texto or "tutuma" in sintoma_texto:
-            p1 = {
-                "id": "q_headache_type",
-                "pregunta": "¿El dolor de cabeza comenzó de forma súbita e intensa (como un trueno) o con visión borrosa?",
-                "question_text": "¿El dolor de cabeza comenzó de forma súbita e intensa (como un trueno) o con visión borrosa?",
-                "tipo_pregunta": "single_choice",
-                "question_type": "single_choice",
-                "opciones": [
-                    {"etiqueta": "Sí, comenzó de golpe y con intensidad extrema", "label": "Sí, comenzó de golpe y con intensidad extrema", "valor": "subito_intenso", "value": "subito_intenso"},
-                    {"etiqueta": "Acompañado de rigidez de cuello o fiebre alta", "label": "Acompañado de rigidez de cuello o fiebre alta", "valor": "rigidez_cuello", "value": "rigidez_cuello"},
-                    {"etiqueta": "No, fue apareciendo de forma progresiva", "label": "No, fue apareciendo de forma progresiva", "valor": "progresivo", "value": "progresivo"}
-                ]
-            }
-        elif "pecho" in sintoma_texto or "torac" in sintoma_texto or "card" in sintoma_texto or "palpita" in sintoma_texto:
-            p1 = {
-                "id": "q_chest_type",
-                "pregunta": "¿Cómo describirías el dolor en el pecho y hacia dónde se extiende?",
-                "question_text": "¿Cómo describirías el dolor en el pecho y hacia dónde se extiende?",
-                "tipo_pregunta": "single_choice",
-                "question_type": "single_choice",
-                "opciones": [
-                    {"etiqueta": "Opresión fuerte que va hacia el brazo izquierdo, cuello o mandíbula", "label": "Opresión fuerte que va hacia el brazo izquierdo, cuello o mandíbula", "valor": "irradiado_brazo_mandibula", "value": "irradiado_brazo_mandibula"},
-                    {"etiqueta": "Punzante al respirar hondo o toser", "label": "Punzante al respirar hondo o toser", "valor": "punzante_pleuritico", "value": "punzante_pleuritico"},
-                    {"etiqueta": "Ardor o molestia con acidez estomacal", "label": "Ardor o molestia con acidez estomacal", "valor": "ardor_reflujo", "value": "ardor_reflujo"}
-                ]
-            }
-        elif "estomago" in sintoma_texto or "abdom" in sintoma_texto or "barriga" in sintoma_texto or "aventado" in sintoma_texto or "basca" in sintoma_texto:
-            p1 = {
-                "id": "q_abdo_loc",
-                "pregunta": "¿En qué zona se concentra el dolor y presenta vómitos incontrolables?",
-                "question_text": "¿En qué zona se concentra el dolor y presenta vómitos incontrolables?",
-                "tipo_pregunta": "single_choice",
-                "question_type": "single_choice",
-                "opciones": [
-                    {"etiqueta": "En la parte inferior derecha del abdomen (fosa ilíaca)", "label": "En la parte inferior derecha del abdomen (fosa ilíaca)", "valor": "fosa_iliaca_derecha", "value": "fosa_iliaca_derecha"},
-                    {"etiqueta": "En la boca del estómago o dolor difuso con náuseas", "label": "En la boca del estómago o dolor difuso con náuseas", "valor": "epigastrio_nauseas", "value": "epigastrio_nauseas"},
-                    {"etiqueta": "Vómitos frecuentes o imposibilidad de retener líquidos", "label": "Vómitos frecuentes o imposibilidad de retener líquidos", "valor": "vomitos_severos", "value": "vomitos_severos"}
-                ]
-            }
-        elif "respir" in sintoma_texto or "aire" in sintoma_texto or "tos" in sintoma_texto or "ahog" in sintoma_texto:
-            p1 = {
-                "id": "q_resp_severity",
-                "pregunta": "¿Tiene dificultad para respirar en reposo o silbidos en el pecho?",
-                "question_text": "¿Tiene dificultad para respirar en reposo o silbidos en el pecho?",
-                "tipo_pregunta": "single_choice",
-                "question_type": "single_choice",
-                "opciones": [
-                    {"etiqueta": "Sí, me falta el aire incluso al estar sentado o hablar", "label": "Sí, me falta el aire incluso al estar sentado o hablar", "valor": "disnea_reposo", "value": "disnea_reposo"},
-                    {"etiqueta": "Tengo tos persistente con silbidos en el pecho", "label": "Tengo tos persistente con silbidos en el pecho", "valor": "tos_sibilancias", "value": "tos_sibilancias"},
-                    {"etiqueta": "Molestia leve solo al realizar esfuerzos físicos", "label": "Molestia leve solo al realizar esfuerzos físicos", "valor": "esfuerzo_leve", "value": "esfuerzo_leve"}
-                ]
-            }
-        elif "fiebr" in sintoma_texto or "chuy" in sintoma_texto or "chucho" in sintoma_texto or "calentura" in sintoma_texto:
-            p1 = {
-                "id": "q_fever_signs",
-                "pregunta": "¿Qué síntomas acompañan a la fiebre o escalofríos?",
-                "question_text": "¿Qué síntomas acompañan a la fiebre o escalofríos?",
-                "tipo_pregunta": "single_choice",
-                "question_type": "single_choice",
-                "opciones": [
-                    {"etiqueta": "Fiebre alta (>38.5 °C) con quebrantamiento y dolor detrás de los ojos", "label": "Fiebre alta (>38.5 °C) con quebrantamiento y dolor detrás de los ojos", "valor": "fiebre_dengue_like", "value": "fiebre_dengue_like"},
-                    {"etiqueta": "Escalofríos intensos con tos o dolor de garganta", "label": "Escalofríos intensos con tos o dolor de garganta", "valor": "fiebre_respiratoria", "value": "fiebre_respiratoria"},
-                    {"etiqueta": "Fiebre moderada sin otros signos de alarma", "label": "Fiebre moderada sin otros signos de alarma", "valor": "febril_leve", "value": "febril_leve"}
-                ]
-            }
-        else:
-            p1 = {
-                "id": "q_gen_evolution",
-                "pregunta": "¿Cómo ha sido la evolución y rapidez de los síntomas?",
-                "question_text": "¿Cómo ha sido la evolución y rapidez de los síntomas?",
-                "tipo_pregunta": "single_choice",
-                "question_type": "single_choice",
-                "opciones": [
-                    {"etiqueta": "Aparición repentina en las últimas horas", "label": "Aparición repentina en las últimas horas", "valor": "inicio_agudo", "value": "inicio_agudo"},
-                    {"etiqueta": "Malestar progresivo de 1 a 3 días", "label": "Malestar progresivo de 1 a 3 días", "valor": "inicio_subagudo", "value": "inicio_subagudo"},
-                    {"etiqueta": "Cuadro persistente desde hace más de una semana", "label": "Cuadro persistente desde hace más de una semana", "valor": "inicio_cronico", "value": "inicio_cronico"}
-                ]
-            }
+        proveedor = FabricaIA.obtener_proveedor()
+        preguntas_generadas = await proveedor.generar_preguntas_dinamicas(
+            sintomas=sintoma_texto,
+            edad=entrada.edad,
+            genero=genero_texto
+        )
 
-        # Pregunta 2: Enfermedades previas / Comorbilidades
-        p2 = {
-            "id": "q_antecedentes_enfermedades",
-            "pregunta": "¿Padece alguna enfermedad o condición médica previa relevante?",
-            "question_text": "¿Padece alguna enfermedad o condición médica previa relevante?",
-            "tipo_pregunta": "multiple_choice",
-            "question_type": "multiple_choice",
-            "opciones": [
-                {"etiqueta": "Hipertensión arterial (presión alta)", "label": "Hipertensión arterial (presión alta)", "valor": "hipertension", "value": "hipertension"},
-                {"etiqueta": "Diabetes mellitus (azúcar en sangre)", "label": "Diabetes mellitus (azúcar en sangre)", "valor": "diabetes", "value": "diabetes"},
-                {"etiqueta": "Problemas del corazón / infarto previo", "label": "Problemas del corazón / infarto previo", "valor": "cardiopatia", "value": "cardiopatia"},
-                {"etiqueta": "Asma, bronquitis crónica o EPOC", "label": "Asma, bronquitis crónica o EPOC", "valor": "asma_epoc", "value": "asma_epoc"},
-                {"etiqueta": "Enfermedad renal o hepática", "label": "Enfermedad renal o hepática", "valor": "renal_hepatica", "value": "renal_hepatica"},
-                {"etiqueta": "Ninguna enfermedad diagnosticada", "label": "Ninguna enfermedad diagnosticada", "valor": "ninguna", "value": "ninguna"}
-            ]
-        }
+        # Normalización bilingüe de claves
+        preguntas_formateadas = []
+        for p in preguntas_generadas:
+            p_dict = dict(p)
+            texto_p = p_dict.get("pregunta") or p_dict.get("question_text") or ""
+            p_dict["pregunta"] = texto_p
+            p_dict["question_text"] = texto_p
 
-        # Pregunta 3: Medicamentos habituales o recientes
-        p3 = {
-            "id": "q_medicamentos_actuales",
-            "pregunta": "¿Toma medicamentos habitualmente o ha tomado algo para este malestar?",
-            "question_text": "¿Toma medicamentos habitualmente o ha tomado algo para este malestar?",
-            "tipo_pregunta": "multiple_choice",
-            "question_type": "multiple_choice",
-            "opciones": [
-                {"etiqueta": "Medicamentos para la presión arterial o el corazón", "label": "Medicamentos para la presión arterial o el corazón", "valor": "antihipertensivos", "value": "antihipertensivos"},
-                {"etiqueta": "Anticoagulantes o aspirina diariamente", "label": "Anticoagulantes o aspirina diariamente", "valor": "anticoagulantes", "value": "anticoagulantes"},
-                {"etiqueta": "Insulina o pastillas para la diabetes", "label": "Insulina o pastillas para la diabetes", "valor": "antidiabeticos", "value": "antidiabeticos"},
-                {"etiqueta": "Tomé analgésicos o antibióticos en las últimas horas", "label": "Tomé analgésicos o antibióticos en las últimas horas", "valor": "analgesicos_recientes", "value": "analgesicos_recientes"},
-                {"etiqueta": "No tomo ningún medicamento de forma regular", "label": "No tomo ningún medicamento de forma regular", "valor": "ninguno", "value": "ninguno"}
-            ]
-        }
+            tipo_p = p_dict.get("tipo_pregunta") or p_dict.get("question_type") or "single_choice"
+            p_dict["tipo_pregunta"] = tipo_p
+            p_dict["question_type"] = tipo_p
 
-        preguntas = [p1, p2, p3]
+            opciones_raw = p_dict.get("opciones") or p_dict.get("options") or []
+            opciones_fmt = []
+            for o in opciones_raw:
+                if isinstance(o, dict):
+                    lbl = o.get("etiqueta") or o.get("label") or o.get("texto") or ""
+                    val = o.get("valor") or o.get("value") or o.get("id") or lbl
+                    opciones_fmt.append({"etiqueta": lbl, "label": lbl, "valor": val, "value": val})
+                elif isinstance(o, str):
+                    opciones_fmt.append({"etiqueta": o, "label": o, "valor": o.lower().replace(" ", "_"), "value": o.lower().replace(" ", "_")})
+
+            p_dict["opciones"] = opciones_fmt
+            p_dict["options"] = opciones_fmt
+            preguntas_formateadas.append(p_dict)
 
         return EsquemaRespuestaPreguntasDinamicas(
             sintoma_evaluado=sintoma_texto,
             symptom_evaluated=sintoma_texto,
-            preguntas=preguntas,
-            questions=preguntas
+            preguntas=preguntas_formateadas,
+            questions=preguntas_formateadas
+        )
+
+    except Exception as e:
+        logger.error(f"Error al generar preguntas dinámicas: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al procesar preguntas adaptativas: {str(e)}"
         )
 
     except Exception as e:

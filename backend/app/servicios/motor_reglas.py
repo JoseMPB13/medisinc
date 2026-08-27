@@ -1,5 +1,6 @@
 """
 Motor Determinista de Reglas Duras de Seguridad Clínica (Safety Overrides Engine).
+Calibrado según la Escala de Triaje Manchester y RAC Adaptado.
 Evalúa de manera rigurosa y determinista los síntomas, edad y datos del paciente para
 prevenir que cuadros críticos subestimados por el modelo de IA ingresen con prioridad baja.
 Soporta normalización diacrítica y modismos populares de Santa Cruz de la Sierra / Bolivia.
@@ -13,11 +14,6 @@ def normalizar_texto(texto: str) -> str:
     """
     Normaliza el texto de entrada removiendo acentos, tildes, caracteres diacríticos
     y espacios adicionales. Convierte a minúsculas para coincidencia determinista.
-
-    Entrada:
-        texto (str): Cadena de texto a normalizar.
-    Salida:
-        str: Texto limpio en minúsculas y sin acentos.
     """
     if not texto:
         return ""
@@ -30,9 +26,11 @@ def normalizar_texto(texto: str) -> str:
     )
 
 
-# Lista exhaustiva de señales de peligro vital (Banderas Rojas y Modismos Cruceños/Bolivianos)
+# -----------------------------------------------------------------------------
+# 1. BANDERAS ROJAS CRÍTICAS (Emergencia Vital / Nivel I-II -> ROJO)
+# -----------------------------------------------------------------------------
 BANDERAS_ROJAS_CRITICAS = [
-    # 1. Emergencias Cardiológicas y Torácicas
+    # Cardiológico / Torácico
     "dolor de pecho",
     "dolor toracico",
     "opresion en el pecho",
@@ -41,9 +39,10 @@ BANDERAS_ROJAS_CRITICAS = [
     "punzada en el pecho",
     "dolor irradiado al brazo",
     "dolor en el brazo izquierdo",
+    "dolor irradiado a mandibula",
     "palpitaciones severas",
 
-    # 2. Emergencias Respiratorias
+    # Respiratorio
     "dificultad para respirar",
     "dificultad respiratoria",
     "falta de aire",
@@ -53,8 +52,9 @@ BANDERAS_ROJAS_CRITICAS = [
     "sensacion de ahogo",
     "cianosis",
     "labios morados",
+    "estridor",
 
-    # 3. Emergencias Neurológicas y Estado de Conciencia
+    # Neurológico / Conciencia
     "perdida de conocimiento",
     "perdida de conciencia",
     "desmayo",
@@ -72,28 +72,43 @@ BANDERAS_ROJAS_CRITICAS = [
     "rigidez de nuca",
     "rigidez en el cuello",
 
-    # 4. Hemorragias y Cuadros Abdominales Quirúrgicos
+    # Hemorrágico / Quirúrgico Agudo
     "sangrado severo",
     "hemorragia",
     "vomito con sangre",
     "hematemesis",
     "sangrado incontrolable",
+    "herida penetrante",
+    "arma blanca",
+    "arma de fuego",
+]
+
+# -----------------------------------------------------------------------------
+# 2. BANDERAS AMARILLAS (Urgencia Mayor / Riesgo Potencial -> AMARILLO)
+# -----------------------------------------------------------------------------
+BANDERAS_AMARILLAS_URGENCIA = [
+    # Abdomen Agudo
     "dolor en fosa iliaca derecha",
+    "fosa iliaca derecha",
+    "apendicitis",
     "abdomen en tabla",
     "dolor abdominal insoportable",
+    "vientre duro",
 
-    # 5. Modismos Populares Regionales de Santa Cruz de la Sierra y Bolivia
-    "chuy",
-    "chucho de frio",
-    "chucho",
-    "basca",
+    # Digestivo / Deshidratación / Modismos
     "basca persistente",
+    "vomitos constantes",
+    "vomitos incoercibles",
+    "intolerancia oral",
+    "deshidratacion",
     "estomago aventado",
     "empacho grave",
-    "quebrantamiento de cuerpo",
-    "cuerpo cortado",
+
+    # Cefalea / Infeccioso severo
     "dolor de tutuma",
     "retumbo en la cabeza",
+    "quebrantamiento de cuerpo",
+    "cuerpo cortado",
 ]
 
 
@@ -108,10 +123,11 @@ def evaluar_sobreescrituras_seguridad(
     Analiza clínicamente los síntomas brutos y evalúa si se debe forzar una sobreescritura
     determinista sobre la prioridad propuesta por el modelo de IA.
 
-    Soporta argumentos posicionales y nominales en español e inglés:
-    (sintomas_brutos/raw_symptoms, edad/age, datos_estaticos/static_data, salida_ia/ai_output).
+    Alineado a la Escala Manchester:
+    - ROJO (Emergencia Vital): Inestabilidad hemodinámica, dolor torácico, disnea, síncope, lactante febril.
+    - AMARILLO (Urgencia Mayor): Dolor severo (>= 7/10), abdomen agudo, vómitos incoercibles.
+    - VERDE (No Urgente): Cuadros leves o moderados sin compromiso vital.
     """
-    # Manejo flexible de parámetros español / inglés
     texto_sintomas = sintomas_brutos or kwargs.get("raw_symptoms") or ""
     edad_paciente = edad if edad is not None else kwargs.get("age", 0)
     datos_extra = datos_estaticos if datos_estaticos is not None else kwargs.get("static_data", {})
@@ -119,7 +135,7 @@ def evaluar_sobreescrituras_seguridad(
 
     sintomas_normalizados = normalizar_texto(texto_sintomas)
 
-    # Extraer prioridad sugerida por la IA (compatible con dict o Pydantic model)
+    # Extraer prioridad sugerida por la IA
     prioridad_ia_original = ""
     if isinstance(resultado_ia, dict):
         prioridad_ia_original = str(resultado_ia.get("prioridad_sugerida_ia") or resultado_ia.get("prioridad_final") or "").upper()
@@ -128,19 +144,21 @@ def evaluar_sobreescrituras_seguridad(
     elif resultado_ia is not None:
         prioridad_ia_original = str(resultado_ia).upper()
 
-    # Normalizar a estándar bilingüe
-    prioridad_es_baja = prioridad_ia_original in ["GREEN", "VERDE", "YELLOW", "AMARILLO", ""]
     es_ingles = "GREEN" in prioridad_ia_original or "YELLOW" in prioridad_ia_original or "RED" in prioridad_ia_original or prioridad_ia_original == ""
+    prioridad_es_verde = prioridad_ia_original in ["GREEN", "VERDE", ""]
 
-    # 1. Regla Crítica: Banderas Rojas y Emergencias Médicas Inmediatas
+    # =========================================================================
+    # REGLA 1 (ROJO): Banderas Rojas Críticas Inmediatas
+    # =========================================================================
     for bandera in BANDERAS_ROJAS_CRITICAS:
         if bandera in sintomas_normalizados:
-            if prioridad_es_baja or prioridad_ia_original in ["RED", "ROJO"]:
-                motivo = f"Regla de Seguridad: Detectado síntoma de riesgo crítico ({bandera.title()})"
-                prioridad_retorno = "RED" if es_ingles else "ROJO"
-                return prioridad_retorno, True, motivo
+            motivo = f"Regla de Seguridad (Escala Manchester Nivel I-II): Detectado síntoma de riesgo crítico ({bandera.title()})"
+            prioridad_retorno = "RED" if es_ingles else "ROJO"
+            return prioridad_retorno, True, motivo
 
-    # 2. Regla Crítica Pediatría: Lactantes menores de 1 año con síndrome febril o "chuy"
+    # =========================================================================
+    # REGLA 2 (ROJO PEDIÁTRICO): Lactante menor de 1 año con síndrome febril o "chuy"
+    # =========================================================================
     if edad_paciente < 1:
         intensidad_normalizada = normalizar_texto(str(datos_extra.get("intensidad", "")))
         duracion_normalizada = normalizar_texto(str(datos_extra.get("duracion", "")))
@@ -149,24 +167,44 @@ def evaluar_sobreescrituras_seguridad(
             or "fiebre" in intensidad_normalizada
             or "fiebre" in duracion_normalizada
             or "chuy" in sintomas_normalizados
+            or "chucho" in sintomas_normalizados
             or "temperatura" in sintomas_normalizados
+            or "calentura" in sintomas_normalizados
         ):
-            motivo = "Regla de Seguridad Pediatría: Lactante menor de 1 año con cuadro febril"
+            motivo = "Regla de Seguridad Pediatría (Nivel I): Lactante menor de 1 año con cuadro febril / riesgo de sepsis"
             prioridad_retorno = "RED" if es_ingles else "ROJO"
             return prioridad_retorno, True, motivo
 
-    # 3. Regla Crítica por Dolor Severo / Extremo (Intensidad 9-10/10)
+    # =========================================================================
+    # REGLA 3 (AMARILLO / ROJO por Intensidad de Dolor >= 7/10)
+    # =========================================================================
     try:
         valor_intensidad = int(datos_extra.get("intensidad", 0))
-        if valor_intensidad >= 9 and prioridad_ia_original in ["GREEN", "VERDE"]:
-            motivo = f"Regla de Seguridad: Intensidad severa de dolor ({valor_intensidad}/10)"
+        if valor_intensidad >= 9 and prioridad_es_verde:
+            motivo = f"Regla de Seguridad (Nivel II): Dolor severo agudo de intensidad crítica ({valor_intensidad}/10)"
+            prioridad_retorno = "YELLOW" if es_ingles else "AMARILLO"
+            return prioridad_retorno, True, motivo
+        elif valor_intensidad >= 7 and prioridad_es_verde:
+            motivo = f"Regla de Seguridad (Nivel III): Dolor agudo de intensidad moderada-alta ({valor_intensidad}/10)"
             prioridad_retorno = "YELLOW" if es_ingles else "AMARILLO"
             return prioridad_retorno, True, motivo
     except (ValueError, TypeError):
         pass
 
-    # Si no aplica ninguna regla dura, se respeta la prioridad sugerida por la IA
-    return prioridad_ia_original if prioridad_ia_original else "GREEN", False, None
+    # =========================================================================
+    # REGLA 4 (AMARILLO): Banderas de Abdomen Agudo o Deshidratación Severa
+    # =========================================================================
+    for bandera in BANDERAS_AMARILLAS_URGENCIA:
+        if bandera in sintomas_normalizados and prioridad_es_verde:
+            motivo = f"Regla de Seguridad (Nivel III): Detectado signo de urgencia mayor ({bandera.title()})"
+            prioridad_retorno = "YELLOW" if es_ingles else "AMARILLO"
+            return prioridad_retorno, True, motivo
+
+    # =========================================================================
+    # REGLA 5: Respetar la evaluación emitida por el modelo de IA
+    # =========================================================================
+    prioridad_final = prioridad_ia_original if prioridad_ia_original else ("GREEN" if es_ingles else "VERDE")
+    return prioridad_final, False, None
 
 
 # -----------------------------------------------------------------------------
