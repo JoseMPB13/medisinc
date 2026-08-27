@@ -140,11 +140,13 @@ class EsquemaRespuestaTriaje(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     codigo_acceso: str = Field(..., alias="access_code", description="Código alfanumérico único para el paciente")
-    estado: str = Field(..., alias="status", description="Estado del registro (RECIBIDO, LISTO, REVISADO)")
+    estado: str = Field(..., alias="status", description="Estado del registro (RECIBIDO, LISTO, EN_CONSULTA, REVISADO)")
     prioridad_final: Literal["ROJO", "AMARILLO", "VERDE", "RED", "YELLOW", "GREEN"] = Field(..., alias="final_priority")
     sobreescritura_aplicada: bool = Field(False, alias="override_applied")
     motivo_sobreescritura: Optional[str] = Field(None, alias="override_reason")
     resultado_ia: Optional[EsquemaSalidaEstructuradaIA] = Field(None, alias="ai_result")
+    medico_asignado_id: Optional[str] = Field(None, alias="assigned_doctor_id")
+    asignado_en: Optional[str] = Field(None, alias="assigned_at")
     creado_en: str = Field(..., alias="created_at")
 
 
@@ -185,6 +187,16 @@ class EsquemaRespuestaPreguntasDinamicas(BaseModel):
     preguntas: List[Dict[str, Any]] = Field(default_factory=list, alias="questions")
 
 
+class EsquemaAsignacionPacienteEntrada(BaseModel):
+    """
+    Datos de entrada para reclamar o liberar un paciente por parte del médico de guardia.
+    """
+    model_config = ConfigDict(populate_by_name=True)
+
+    triaje_id: str = Field(..., alias="triage_id", description="Identificador único del registro de triaje")
+    medico_id: Optional[str] = Field(None, alias="doctor_id", description="ID del perfil del profesional médico")
+
+
 class EsquemaRevisionMedicaEntrada(BaseModel):
     """Esquema de entrada para guardar la evaluación y cierre del médico."""
     model_config = ConfigDict(populate_by_name=True)
@@ -211,12 +223,15 @@ class EsquemaDetalleExpedienteMedico(BaseModel):
     estado: str = Field(..., alias="status")
     prioridad_final: Optional[str] = Field(None, alias="final_priority")
     resultado_ia: Optional[Dict[str, Any]] = Field(None, alias="ai_result")
+    medico_asignado_id: Optional[str] = Field(None, alias="assigned_doctor_id")
+    asignado_en: Optional[str] = Field(None, alias="assigned_at")
     creado_en: str = Field(..., alias="created_at")
 
 
 # -----------------------------------------------------------------------------
 # ALIASES DE RETROCOMPATIBILIDAD CON CÓDIGO EXISTENTE
 # -----------------------------------------------------------------------------
+PatientAssignmentSchema = EsquemaAsignacionPacienteEntrada
 PatientInputSchema = EsquemaEntradaPaciente
 AIStructuredOutput = EsquemaSalidaEstructuradaIA
 ImmediateTriageResponseSchema = EsquemaRespuestaInmediataTriaje
