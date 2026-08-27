@@ -1,14 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import './index.css';
 
 /**
  * Punto de entrada principal de la aplicación React.
- * Renderiza el componente raíz App dentro del elemento HTML 'root'.
+ * Envuelve el componente raíz App dentro de BrowserRouter y React.StrictMode.
  */
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </React.StrictMode>
 );
