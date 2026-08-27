@@ -13,8 +13,8 @@ jobs:
 
     env:
       ENVIRONMENT: test
-      AES_SECRET_KEY: cb1dae7f0f79118be73d708fe368dd20
-      HMAC_PEPPER_KEY: 18ef1a006cf598e79239f54edba0ba36
+      AES_SECRET_KEY: medisinc_secret_aes_key_32_bytes_len!
+      HMAC_PEPPER_KEY: medisinc_hmac_pepper_secret_key
       AI_PROVIDER: gemini
       GEMINI_API_KEY: mock_gemini_key_for_tests
       SUPABASE_URL: https://mock.supabase.co
@@ -36,10 +36,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Backend Automated Tests (CV01-CV20 + Admin)
+      - name: Run Spanish Automated Test Suite (CV01-CV20)
         working-directory: ./backend
         run: |
-          pytest tests/ -v --color=yes
+          python pruebas/ejecutar_pruebas.py
+          pytest pruebas/ -v --color=yes
 
   frontend-build:
     name: Frontend Build & Lint (React 18 + Vite)

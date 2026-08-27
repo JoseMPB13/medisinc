@@ -350,25 +350,27 @@ def test_cv17_in_memory_ci_decryption():
 # CV18: Lógica de ordenamiento del Dashboard de guardia por gravedad
 # =============================================================================
 def test_cv18_doctor_dashboard_priority_sorting():
-    _IN_MEMORY_TRIAGE_DB.clear()
-    
-    records = [
-        {"id": "rec-green", "access_code": "MS-GRN01", "final_priority": "GREEN", "status": "READY", "created_at": "2026-08-13T10:00:00Z"},
-        {"id": "rec-red", "access_code": "MS-RED01", "final_priority": "RED", "status": "READY", "created_at": "2026-08-13T10:05:00Z"},
-        {"id": "rec-yellow", "access_code": "MS-YEL01", "final_priority": "YELLOW", "status": "READY", "created_at": "2026-08-13T10:02:00Z"},
-    ]
-    for r in records:
-        _IN_MEMORY_TRIAGE_DB[r["id"]] = r
+    from unittest.mock import patch
+    with patch.object(supabase_service, "obtener_cliente", return_value=None), patch.object(supabase_service, "get_client", return_value=None):
+        _IN_MEMORY_TRIAGE_DB.clear()
+        
+        records = [
+            {"id": "rec-green", "access_code": "MS-GRN01", "final_priority": "GREEN", "status": "READY", "created_at": "2026-08-13T10:00:00Z"},
+            {"id": "rec-red", "access_code": "MS-RED01", "final_priority": "RED", "status": "READY", "created_at": "2026-08-13T10:05:00Z"},
+            {"id": "rec-yellow", "access_code": "MS-YEL01", "final_priority": "YELLOW", "status": "READY", "created_at": "2026-08-13T10:02:00Z"},
+        ]
+        for r in records:
+            _IN_MEMORY_TRIAGE_DB[r["id"]] = r
 
-    response = client.get("/api/v1/doctor/dashboard")
-    assert response.status_code == 200
-    data = response.json()
-    sorted_recs = data["records"]
-    assert len(sorted_recs) >= 3
-    priorities = [r["final_priority"] for r in sorted_recs]
-    assert priorities[0] == "RED"
-    assert priorities[1] == "YELLOW"
-    assert priorities[2] == "GREEN"
+        response = client.get("/api/v1/doctor/dashboard")
+        assert response.status_code == 200
+        data = response.json()
+        sorted_recs = data["records"]
+        assert len(sorted_recs) == 3
+        priorities = [r["final_priority"] for r in sorted_recs]
+        assert priorities[0] == "RED"
+        assert priorities[1] == "YELLOW"
+        assert priorities[2] == "GREEN"
 
 
 # =============================================================================

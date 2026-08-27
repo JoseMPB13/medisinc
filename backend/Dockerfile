@@ -9,7 +9,7 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Instalar dependencias de compilación mínimas
+# Instalar dependencias de compilación mínimas y curl para healthcheck
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
@@ -20,8 +20,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copiar el código fuente de la aplicación
+# Copiar el código fuente de la aplicación y suite de pruebas
 COPY app/ ./app/
+COPY pruebas/ ./pruebas/
 COPY tests/ ./tests/
 COPY conftest.py .
 
@@ -30,7 +31,7 @@ EXPOSE 8000
 
 # Healthcheck de contenedor Docker
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8000/health || exit 1
+  CMD curl -f http://localhost:8000/salud || curl -f http://localhost:8000/health || exit 1
 
 # Comando de ejecución en producción
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
