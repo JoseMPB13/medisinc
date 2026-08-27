@@ -182,7 +182,7 @@ class EsquemaRespuestaPreguntasDinamicas(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     sintoma_evaluado: Optional[str] = Field("", alias="symptom_evaluated")
-    preguntas: List[Dict[str, Any]] = Field(..., alias="questions")
+    preguntas: List[Dict[str, Any]] = Field(default_factory=list, alias="questions")
 
 
 class EsquemaRevisionMedicaEntrada(BaseModel):

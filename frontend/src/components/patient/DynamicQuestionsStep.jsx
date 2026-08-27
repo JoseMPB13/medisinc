@@ -1,5 +1,4 @@
 /**
- * Puente de retrocompatibilidad hacia src/componentes/paciente/PasoPreguntasDinamicas.jsx
+ * Puente de compatibilidad hacia componentes/paciente/PasoPreguntasDinamicas.jsx
  */
-
-export { PasoPreguntasDinamicas, DynamicQuestionsStep, default } from '../../componentes/paciente/PasoPreguntasDinamicas';
+export { PasoPreguntasDinamicas as default, PasoPreguntasDinamicas as DynamicQuestionsStep } from '../../componentes/paciente/PasoPreguntasDinamicas';
