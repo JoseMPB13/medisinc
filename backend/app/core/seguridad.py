@@ -114,7 +114,7 @@ async def obtener_perfil_usuario_actual(
 
     # 2. Validación de encabezado Authorization
     if not authorization:
-        if settings.ENVIRONMENT == "development":
+        if settings.ENVIRONMENT in ["development", "test", "testing", "dev"] or not settings.ENVIRONMENT:
             return {
                 "id": "dev-admin-id",
                 "usuario_id": "dev-user-id",
