@@ -1,13 +1,23 @@
 /**
  * Componente: Paso 2 del Asistente de Paciente (Preguntas Complementarias de IA).
  * Consulta y renderiza de 2 a 3 preguntas clínicas adaptativas orientadas a:
- * 1. Banderas rojas y características específicas del padecimiento actual.
+ * 1. Banderas rojas y semiología PQRST adaptada a la especialidad médica.
  * 2. Enfermedades de base y comorbilidades (diabetes, hipertensión, etc.).
- * 3. Medicamentos actuales o tratamientos recientes.
+ * 3. Medicamentos actuales, tratamientos recientes y alergias.
  */
 
 import React, { useState, useEffect } from 'react';
-import { HelpCircle, ArrowLeft, Send, CheckCircle2, Loader2, Sparkles, AlertCircle, FileText, Pill, HeartPulse } from 'lucide-react';
+import {
+  HelpCircle,
+  ArrowLeft,
+  Send,
+  CheckCircle2,
+  Loader2,
+  Sparkles,
+  AlertCircle,
+  FileText,
+  HeartPulse,
+} from 'lucide-react';
 import { servicioTriaje } from '../../servicios/servicioTriaje';
 
 // Preguntas de contingencia inmediata para garantizar que la vista nunca quede vacía
@@ -19,8 +29,8 @@ const PREGUNTAS_FALLBACK_DEFAULT = [
     opciones: [
       { etiqueta: 'Aparición repentina y muy intensa en las últimas horas', valor: 'inicio_agudo_intenso' },
       { etiqueta: 'Malestar progresivo a lo largo de 1 a 3 días', valor: 'inicio_subagudo' },
-      { etiqueta: 'Molestia persistente desde hace más de una semana', valor: 'inicio_cronico' }
-    ]
+      { etiqueta: 'Molestia persistente desde hace más de una semana', valor: 'inicio_cronico' },
+    ],
   },
   {
     id: 'q_antecedentes_enfermedades',
@@ -31,9 +41,8 @@ const PREGUNTAS_FALLBACK_DEFAULT = [
       { etiqueta: 'Diabetes mellitus (azúcar en sangre)', valor: 'diabetes' },
       { etiqueta: 'Problemas del corazón o infarto previo', valor: 'cardiopatia' },
       { etiqueta: 'Asma, bronquitis crónica o EPOC', valor: 'asma_epoc' },
-      { etiqueta: 'Enfermedad renal o hepática', valor: 'renal_hepatica' },
-      { etiqueta: 'Ninguna enfermedad diagnosticada', valor: 'ninguna' }
-    ]
+      { etiqueta: 'Ninguna enfermedad diagnosticada', valor: 'ninguna' },
+    ],
   },
   {
     id: 'q_medicamentos_actuales',
@@ -44,12 +53,18 @@ const PREGUNTAS_FALLBACK_DEFAULT = [
       { etiqueta: 'Anticoagulantes o aspirina diariamente', valor: 'anticoagulantes' },
       { etiqueta: 'Insulina o pastillas para la diabetes', valor: 'antidiabeticos' },
       { etiqueta: 'Tomé analgésicos o antibióticos en las últimas horas', valor: 'analgesicos_recientes' },
-      { etiqueta: 'No tomo ningún medicamento de forma regular', valor: 'ninguno' }
-    ]
-  }
+      { etiqueta: 'No tomo ningún medicamento de forma regular', valor: 'ninguno' },
+    ],
+  },
 ];
 
-export const PasoPreguntasDinamicas = ({ datos, alCambiar, alAtras, alFinalizar, estaEnviando }) => {
+export const PasoPreguntasDinamicas = ({
+  datos,
+  alCambiar,
+  alAtras,
+  alFinalizar,
+  estaEnviando,
+}) => {
   const [preguntas, setPreguntas] = useState(PREGUNTAS_FALLBACK_DEFAULT);
   const [cargando, setCargando] = useState(true);
   const [respuestasSeleccionadas, setRespuestasSeleccionadas] = useState(
@@ -59,17 +74,26 @@ export const PasoPreguntasDinamicas = ({ datos, alCambiar, alAtras, alFinalizar,
     datos.respuestas_dinamicas?.notas_adicionales || ''
   );
 
+  const especialidad = datos.especialidad_solicitada || datos.requested_specialty || 'Medicina General';
+
   useEffect(() => {
     let montado = true;
     const cargarPreguntas = async () => {
       setCargando(true);
       try {
-        const sintoma = datos.sintomas_brutos || datos.raw_symptoms || 'Malestar general';
-        const edad = datos.edad || datos.age || 30;
-        const genero = datos.genero || datos.gender || 'No especificado';
+        const payload = {
+          sintomas_brutos: datos.sintomas_brutos || datos.raw_symptoms || 'Malestar general',
+          edad: datos.edad || datos.age || 30,
+          genero: datos.genero || datos.gender || 'No especificado',
+          especialidad_solicitada: especialidad,
+          alergias_medicamentosas: datos.alergias_medicamentosas || datos.drug_allergies || 'Ninguna conocida',
+          medicacion_actual: datos.medicacion_actual || datos.current_medication || 'Ninguna',
+          enfermedades_base: datos.enfermedades_base || datos.base_diseases || [],
+        };
 
-        const res = await servicioTriaje.obtenerPreguntasDinamicas(sintoma, edad, genero);
-        const listaPreguntas = res?.preguntas || res?.questions || res?.data?.preguntas || res?.data?.questions;
+        const res = await servicioTriaje.obtenerPreguntasDinamicas(payload);
+        const listaPreguntas =
+          res?.preguntas || res?.questions || res?.data?.preguntas || res?.data?.questions;
 
         if (montado && Array.isArray(listaPreguntas) && listaPreguntas.length > 0) {
           setPreguntas(listaPreguntas);
@@ -90,7 +114,17 @@ export const PasoPreguntasDinamicas = ({ datos, alCambiar, alAtras, alFinalizar,
     return () => {
       montado = false;
     };
-  }, [datos.sintomas_brutos, datos.raw_symptoms, datos.edad, datos.age, datos.genero, datos.gender]);
+  }, [
+    datos.sintomas_brutos,
+    datos.raw_symptoms,
+    datos.edad,
+    datos.age,
+    datos.genero,
+    datos.gender,
+    especialidad,
+    datos.alergias_medicamentosas,
+    datos.medicacion_actual,
+  ]);
 
   const seleccionarOpcion = (idPregunta, valor, tipoPregunta = 'single_choice') => {
     let nuevoValor;
@@ -98,7 +132,9 @@ export const PasoPreguntasDinamicas = ({ datos, alCambiar, alAtras, alFinalizar,
     if (tipoPregunta === 'multiple_choice') {
       const valoresPrevios = Array.isArray(respuestasSeleccionadas[idPregunta])
         ? respuestasSeleccionadas[idPregunta]
-        : (respuestasSeleccionadas[idPregunta] ? [respuestasSeleccionadas[idPregunta]] : []);
+        : respuestasSeleccionadas[idPregunta]
+        ? [respuestasSeleccionadas[idPregunta]]
+        : [];
 
       if (valor === 'ninguno' || valor === 'ninguna') {
         nuevoValor = ['ninguno'];
@@ -117,7 +153,7 @@ export const PasoPreguntasDinamicas = ({ datos, alCambiar, alAtras, alFinalizar,
     const nuevasRespuestas = {
       ...respuestasSeleccionadas,
       [idPregunta]: nuevoValor,
-      ...(notasAdicionales ? { notas_adicionales: notasAdicionales } : {})
+      ...(notasAdicionales ? { notas_adicionales: notasAdicionales } : {}),
     };
 
     setRespuestasSeleccionadas(nuevasRespuestas);
@@ -138,146 +174,148 @@ export const PasoPreguntasDinamicas = ({ datos, alCambiar, alAtras, alFinalizar,
     e.preventDefault();
     const respuestasFinales = {
       ...respuestasSeleccionadas,
-      ...(notasAdicionales ? { notas_adicionales: notasAdicionales } : {})
+      ...(notasAdicionales ? { notas_adicionales: notasAdicionales } : {}),
     };
     alFinalizar(respuestasFinales);
   };
 
-  if (cargando) {
-    return (
-      <div className="py-16 text-center space-y-4 animate-fade-in text-slate-100">
-        <div className="relative w-16 h-16 mx-auto">
-          <div className="absolute inset-0 rounded-full border-4 border-teal-500/20 border-t-teal-400 animate-spin"></div>
-          <Sparkles className="w-6 h-6 text-teal-400 absolute inset-0 m-auto animate-pulse" />
-        </div>
-        <h3 className="text-lg font-bold text-white">Generando preguntas clínicas adaptativas...</h3>
-        <p className="text-xs text-slate-400 max-w-sm mx-auto">
-          La Inteligencia Artificial está estructurando preguntas sobre tus síntomas, enfermedades previas y medicamentos.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <form onSubmit={manejarEnvio} className="space-y-6 animate-fade-in text-slate-100">
-      {/* Encabezado del Paso */}
+      {/* Encabezado del Paso con Indicador de IA */}
       <div className="border-b border-slate-800 pb-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <HelpCircle className="w-6 h-6 text-teal-400" />
-            Paso 2: Preguntas Complementarias
-          </h2>
-          <span className="text-xs font-semibold px-2.5 py-1 bg-teal-500/10 border border-teal-500/30 text-teal-400 rounded-full flex items-center gap-1">
-            <Sparkles className="w-3 h-3" /> IA Adaptativa
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-400 text-xs font-semibold uppercase tracking-wider">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Paso 2 de 3 · Preguntas Adaptativas</span>
+          </div>
+
+          <span className="text-xs text-slate-400 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">
+            Rama: <strong className="text-teal-300 font-semibold">{especialidad}</strong>
           </span>
         </div>
+
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <HelpCircle className="w-6 h-6 text-teal-400" />
+          Preguntas de Clarificación Clínica
+        </h2>
         <p className="text-xs text-slate-400 mt-1">
-          Por favor responde estas breves preguntas sobre tu padecimiento, antecedentes médicos y medicamentos para que el médico evalúe tu caso con máxima precisión.
+          La Inteligencia Artificial ha seleccionado estas preguntas personalizadas para ayudar al médico de guardia a comprender mejor tu cuadro antes de entrar a consulta.
         </p>
       </div>
 
-      {/* Lista de Preguntas Dinámicas */}
-      <div className="space-y-6">
-        {preguntas.map((item, index) => {
-          const id = item.id || `pregunta_${index}`;
-          const textoPregunta = item.pregunta || item.question_text || `Pregunta ${index + 1}`;
-          const tipo = item.tipo_pregunta || item.question_type || 'single_choice';
-          const opciones = item.opciones || item.options || [];
-          const respuestaActual = respuestasSeleccionadas[id];
+      {/* Lista de Preguntas o Estado de Carga */}
+      {cargando ? (
+        <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-3 bg-slate-900/50 rounded-2xl border border-slate-800">
+          <Loader2 className="w-8 h-8 text-teal-400 animate-spin" />
+          <p className="text-sm font-medium">Analizando síntomas con IA clínica...</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {preguntas.map((p, idx) => {
+            const idPregunta = p.id || `pregunta_${idx}`;
+            const textoPregunta = p.pregunta || p.question_text;
+            const tipoPregunta = p.tipo_pregunta || p.question_type || 'single_choice';
+            const opciones = p.opciones || p.options || [];
+            const respuestaActual = respuestasSeleccionadas[idPregunta];
 
-          return (
-            <div key={id} className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 shadow-lg">
-              <div className="flex items-start gap-2 mb-3">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-teal-500/20 text-teal-400 text-xs font-bold shrink-0 mt-0.5">
-                  {index + 1}
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-slate-100">{textoPregunta}</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    {tipo === 'multiple_choice' ? 'Puedes seleccionar una o más opciones' : 'Selecciona la opción que mejor describe tu situación'}
-                  </p>
+            return (
+              <div
+                key={idPregunta}
+                className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 hover:border-slate-700 transition"
+              >
+                <h3 className="text-sm font-semibold text-white mb-1 flex items-start gap-2">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-teal-500/20 text-teal-300 flex items-center justify-center text-xs font-bold mt-0.5">
+                    {idx + 1}
+                  </span>
+                  <span>{textoPregunta}</span>
+                </h3>
+
+                <p className="text-[11px] text-slate-400 ml-8 mb-3">
+                  {tipoPregunta === 'multiple_choice'
+                    ? 'Selecciona una o más opciones que correspondan:'
+                    : 'Selecciona la opción más precisa:'}
+                </p>
+
+                {/* Opciones de la Pregunta */}
+                <div className="grid grid-cols-1 gap-2.5 ml-8">
+                  {opciones.map((opc, opcIdx) => {
+                    const etiqueta = opc.etiqueta || opc.label || opc;
+                    const valor = opc.valor || opc.value || etiqueta;
+
+                    let esSeleccionado = false;
+                    if (tipoPregunta === 'multiple_choice') {
+                      esSeleccionado =
+                        Array.isArray(respuestaActual) && respuestaActual.includes(valor);
+                    } else {
+                      esSeleccionado = respuestaActual === valor;
+                    }
+
+                    return (
+                      <button
+                        type="button"
+                        key={opcIdx}
+                        onClick={() => seleccionarOpcion(idPregunta, valor, tipoPregunta)}
+                        className={`text-left p-3.5 rounded-xl border text-xs font-medium transition flex items-center justify-between ${
+                          esSeleccionado
+                            ? 'bg-teal-500/20 border-teal-400 text-teal-200 shadow-sm'
+                            : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white'
+                        }`}
+                      >
+                        <span className="pr-3 leading-relaxed">{etiqueta}</span>
+                        {esSeleccionado && (
+                          <CheckCircle2 className="w-4 h-4 text-teal-400 flex-shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+            );
+          })}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                {opciones.map((opc, opcIdx) => {
-                  const valor = opc.valor !== undefined ? opc.valor : (opc.value !== undefined ? opc.value : opc);
-                  const etiqueta = opc.etiqueta || opc.label || opc;
-
-                  let estaSeleccionado = false;
-                  if (Array.isArray(respuestaActual)) {
-                    estaSeleccionado = respuestaActual.includes(valor);
-                  } else {
-                    estaSeleccionado = respuestaActual === valor;
-                  }
-
-                  return (
-                    <button
-                      type="button"
-                      key={opcIdx}
-                      onClick={() => seleccionarOpcion(id, valor, tipo)}
-                      className={`text-left p-3.5 rounded-xl border text-xs font-medium transition flex items-center justify-between ${
-                        estaSeleccionado
-                          ? 'bg-teal-500/20 border-teal-400 text-teal-200 shadow-md shadow-teal-950/40 ring-1 ring-teal-400/50'
-                          : 'bg-slate-800/40 border-slate-700/60 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
-                      }`}
-                    >
-                      <span className="leading-relaxed">{etiqueta}</span>
-                      {estaSeleccionado ? (
-                        <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0 ml-2" />
-                      ) : (
-                        <div className="w-4 h-4 rounded-full border border-slate-600 shrink-0 ml-2" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Campo Opcional: Aclaraciones de medicamentos y antecedentes */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 shadow-lg space-y-2">
-          <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-            <Pill className="w-4 h-4 text-teal-400" />
-            <span>Otras enfermedades, medicamentos o alergias no mencionadas (opcional):</span>
-          </label>
-          <textarea
-            rows={2}
-            value={notasAdicionales}
-            onChange={manejarCambioNotas}
-            placeholder="Ej: Soy alérgico a la penicilina, tomo Losartán 50mg cada mañana..."
-            className="w-full bg-slate-950/60 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition"
-          />
+          {/* Caja de Comentarios Adicionales */}
+          <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800">
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <FileText className="w-4 h-4 text-teal-400" />
+              <span>¿Deseas agregar algún otro detalle importante? (Opcional)</span>
+            </label>
+            <textarea
+              rows="2"
+              value={notasAdicionales}
+              onChange={manejarCambioNotas}
+              placeholder="Cualquier información adicional que consideres relevante para el médico..."
+              className="w-full bg-slate-950/60 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 resize-none"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Botones de Navegación */}
-      <div className="pt-4 flex items-center justify-between border-t border-slate-800">
+      <div className="pt-4 flex items-center justify-between gap-4">
         <button
           type="button"
           onClick={alAtras}
           disabled={estaEnviando}
-          className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 px-5 rounded-xl transition flex items-center gap-2 text-sm disabled:opacity-50"
+          className="px-5 py-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition flex items-center gap-2 text-sm font-semibold disabled:opacity-50"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Volver al Paso 1</span>
+          <span>Atrás</span>
         </button>
 
         <button
           type="submit"
-          disabled={estaEnviando}
-          className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-semibold py-3 px-8 rounded-xl shadow-lg shadow-emerald-900/30 transition duration-200 flex items-center gap-2 text-sm disabled:opacity-50"
+          disabled={estaEnviando || cargando}
+          className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-extrabold py-3 px-8 rounded-xl shadow-lg shadow-teal-500/20 transition flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {estaEnviando ? (
             <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Procesando Pre-Triaje...</span>
+              <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+              <span>Generando Código y QR...</span>
             </>
           ) : (
             <>
-              <span>Generar Código y QR</span>
-              <Send className="w-4 h-4" />
+              <span>Finalizar y Obtener Código QR</span>
+              <Send className="w-4 h-4 text-slate-950" />
             </>
           )}
         </button>

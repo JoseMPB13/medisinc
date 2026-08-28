@@ -22,12 +22,14 @@ export const servicioMedico = {
   /**
    * Obtiene la lista de guardia y métricas cuantitativas en tiempo real.
    * @param {boolean} soloDisponibles - Filtrar únicamente pacientes sin médico asignado
+   * @param {string} [especialidad=null] - Filtrar por especialidad médica solicitada
    */
-  async obtenerPanelGuardia(soloDisponibles = false) {
-    const res = await axios.get(
-      `${URL_BASE_API}/api/v1/medico/panel?solo_disponibles=${soloDisponibles}`,
-      obtenerCabeceras()
-    );
+  async obtenerPanelGuardia(soloDisponibles = false, especialidad = null) {
+    let url = `${URL_BASE_API}/api/v1/medico/panel?solo_disponibles=${soloDisponibles}`;
+    if (especialidad && especialidad !== 'Todas') {
+      url += `&especialidad=${encodeURIComponent(especialidad)}`;
+    }
+    const res = await axios.get(url, obtenerCabeceras());
     return res.data;
   },
 
@@ -98,10 +100,10 @@ export const servicioMedico = {
 
 // Aliases para retrocompatibilidad
 export const doctorService = {
-  getGuardDashboard: (onlyAvailable) => servicioMedico.obtenerPanelGuardia(onlyAvailable),
-  getMyPatients: (includeReviewed) => servicioMedico.obtenerMisPacientes(includeReviewed),
-  assignPatient: (triageId) => servicioMedico.asignarPaciente(triageId),
-  releasePatient: (triageId) => servicioMedico.liberarPaciente(triageId),
-  getPatientRecord: (triageId) => servicioMedico.obtenerExpedientePaciente(triageId),
-  saveMedicalReview: (reviewData) => servicioMedico.guardarRevisionMedica(reviewData),
+  getTriageQueue: (soloDisp = false, esp = null) => servicioMedico.obtenerPanelGuardia(soloDisp, esp),
+  getMyPatients: servicioMedico.obtenerMisPacientes,
+  assignPatient: servicioMedico.asignarPaciente,
+  releasePatient: servicioMedico.liberarPaciente,
+  getPatientRecord: servicioMedico.obtenerExpedientePaciente,
+  submitReview: servicioMedico.guardarRevisionMedica,
 };

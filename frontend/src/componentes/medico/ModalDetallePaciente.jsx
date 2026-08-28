@@ -1,6 +1,7 @@
 /**
  * Modal en Pantalla Dividida (Split View) para la Evaluación y Consulta Médica.
- * Panel Izquierdo: Anamnesis original del paciente, CI descifrado en memoria y respuestas PQRST.
+ * Panel Izquierdo: Anamnesis original del paciente, CI descifrado en memoria,
+ * especialidad solicitada, alerta de alergias y antecedentes patológicos.
  * Panel Derecho: Resumen estructurado por IA, banderas rojas, examen sugerido y formulario de cierre.
  */
 
@@ -23,6 +24,9 @@ import {
   Activity,
   AlertOctagon,
   Pill,
+  Check,
+  FileHeart,
+  BriefcaseMedical,
 } from 'lucide-react';
 import { servicioMedico } from '../../servicios/servicioMedico';
 import { servicioAutenticacion } from '../../servicios/servicioAutenticacion';
@@ -54,7 +58,13 @@ const formatearEtiquetaPregunta = (clave) => {
     motivo: 'Motivo Principal de Consulta',
   };
 
-  return mapa[clave] || clave.replace(/_/g, ' ').replace(/^q\s*/i, '').replace(/\b\w/g, (l) => l.toUpperCase());
+  return (
+    mapa[clave] ||
+    clave
+      .replace(/_/g, ' ')
+      .replace(/^q\s*/i, '')
+      .replace(/\b\w/g, (l) => l.toUpperCase())
+  );
 };
 
 /**
@@ -63,7 +73,11 @@ const formatearEtiquetaPregunta = (clave) => {
 const formatearValorRespuesta = (valor) => {
   if (valor === null || valor === undefined || valor === '') return 'No especificado';
   if (Array.isArray(valor)) {
-    return valor.map((v) => (typeof v === 'object' ? v.label || v.etiqueta || v.valor || JSON.stringify(v) : String(v))).join(', ');
+    return valor
+      .map((v) =>
+        typeof v === 'object' ? v.label || v.etiqueta || v.valor || JSON.stringify(v) : String(v)
+      )
+      .join(', ');
   }
   if (typeof valor === 'object') {
     return valor.label || valor.etiqueta || valor.valor || valor.texto || JSON.stringify(valor);
@@ -85,31 +99,57 @@ export const ModalDetallePaciente = ({ expediente, alCerrar, alActualizar }) => 
 
   if (!expediente) return null;
 
-  const resultadoIa = expediente.resultado_ia || expediente.ai_result || expediente.resultados_ia || {};
+  const resultadoIa =
+    expediente.resultado_ia || expediente.ai_result || expediente.resultados_ia || {};
   const sintomasPrincipales = resultadoIa.sintomas_principales || [];
   const senalesAlerta = resultadoIa.senales_alerta_identificadas || [];
   const preguntasFaltantes = resultadoIa.informacion_faltante_critica || [];
-  const resumenNarrativo = resultadoIa.resumen_clinico_narrativo || 'Evaluación médica preliminar generada.';
+  const factoresAgravantes = resultadoIa.factores_agravantes_antecedentes || [];
+  const resumenNarrativo =
+    resultadoIa.resumen_clinico_narrativo || 'Evaluación médica preliminar generada.';
 
   const datosEstaticos = expediente.datos_estaticos || expediente.static_data || {};
   const respuestasDinamicas = expediente.respuestas_dinamicas || expediente.dynamic_answers || {};
+
+  const especialidad =
+    expediente.especialidad_solicitada || expediente.requested_specialty || 'Medicina General';
+  const alergias =
+    expediente.alergias_medicamentosas || expediente.drug_allergies || 'Ninguna conocida';
+  const medicacion = expediente.medicacion_actual || expediente.current_medication || 'Ninguna';
+  const enfermedadesBase =
+    expediente.enfermedades_base || expediente.base_diseases || [];
+
+  const tieneAlergiasRiesgo =
+    alergias &&
+    alergias !== 'Ninguna' &&
+    alergias !== 'Ninguna conocida' &&
+    alergias.trim() !== '';
 
   const estadoActual = (expediente.estado || expediente.status || 'RECIBIDO').toUpperCase();
   const esRevisado = estadoActual === 'REVISADO' || estadoActual === 'REVIEWED';
   const esEnConsulta = estadoActual === 'EN_CONSULTA' || estadoActual === 'IN_CONSULTATION';
 
   const medicoAsignadoId = expediente.medico_asignado_id || expediente.assigned_doctor_id;
-  const esMiPaciente = medicoAsignadoId && usuarioActual?.id && (medicoAsignadoId === usuarioActual.id || medicoAsignadoId === usuarioActual.usuario_id);
+  const esMiPaciente =
+    medicoAsignadoId &&
+    usuarioActual?.id &&
+    (medicoAsignadoId === usuarioActual.id || medicoAsignadoId === usuarioActual.usuario_id);
 
   const valorIntensidad = parseInt(datosEstaticos.intensidad || 5, 10);
   const colorIntensidad =
-    valorIntensidad >= 7 ? 'text-rose-400 bg-rose-950/40 border-rose-500/30' : valorIntensidad >= 4 ? 'text-amber-400 bg-amber-950/40 border-amber-500/30' : 'text-emerald-400 bg-emerald-950/40 border-emerald-500/30';
+    valorIntensidad >= 7
+      ? 'text-rose-400 bg-rose-950/40 border-rose-500/30'
+      : valorIntensidad >= 4
+      ? 'text-amber-400 bg-amber-950/40 border-amber-500/30'
+      : 'text-emerald-400 bg-emerald-950/40 border-emerald-500/30';
 
   // Guardar evaluación médica y cerrar consulta
   const guardarRevision = async (e) => {
     e.preventDefault();
     if (!notasMedico.trim()) {
-      setMensajeError('Por favor ingrese las observaciones clínicas y diagnóstico antes de finalizar la atención.');
+      setMensajeError(
+        'Por favor ingrese las observaciones clínicas y diagnóstico antes de finalizar la atención.'
+      );
       return;
     }
 
@@ -188,6 +228,12 @@ export const ModalDetallePaciente = ({ expediente, alCerrar, alActualizar }) => 
                   {expediente.codigo_acceso || expediente.access_code}
                 </span>
 
+                {/* Badge de Especialidad */}
+                <span className="inline-flex items-center gap-1 text-xs font-semibold bg-teal-950 text-teal-300 border border-teal-500/30 px-2.5 py-0.5 rounded-lg">
+                  <BriefcaseMedical className="w-3.5 h-3.5" />
+                  {especialidad}
+                </span>
+
                 {/* Badge de Estado del Ciclo de Vida */}
                 <span
                   className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
@@ -202,8 +248,14 @@ export const ModalDetallePaciente = ({ expediente, alCerrar, alActualizar }) => 
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                {expediente.edad || expediente.age} años | Género: {expediente.genero || expediente.gender || 'No especificado'} | Ingreso:{' '}
-                {expediente.creado_en ? new Date(expediente.creado_en).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Reciente'}
+                {expediente.edad || expediente.age} años | Género:{' '}
+                {expediente.genero || expediente.gender || 'No especificado'} | Ingreso:{' '}
+                {expediente.creado_en
+                  ? new Date(expediente.creado_en).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : 'Reciente'}
               </p>
             </div>
           </div>
@@ -218,7 +270,11 @@ export const ModalDetallePaciente = ({ expediente, alCerrar, alActualizar }) => 
                 className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
                 title="Devolver este paciente a la cola general"
               >
-                {liberando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowLeftRight className="w-3.5 h-3.5" />}
+                {liberando ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <ArrowLeftRight className="w-3.5 h-3.5" />
+                )}
                 <span className="hidden sm:inline">Liberar a Guardia</span>
               </button>
             )}
@@ -251,11 +307,26 @@ export const ModalDetallePaciente = ({ expediente, alCerrar, alActualizar }) => 
         {/* Contenido en Pantalla Dividida (Split View) */}
         {/* ========================================================================= */}
         <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-0">
-          {/* PANEL IZQUIERDO: Anamnesis y Declaración Original (5 Columnas) */}
+          {/* PANEL IZQUIERDO: Anamnesis, Antecedentes y Declaración Original (5 Columnas) */}
           <div className="lg:col-span-5 p-6 border-b lg:border-b-0 lg:border-r border-slate-800 bg-slate-950/40 space-y-5 overflow-y-auto">
+            {/* Banner de Advertencia de Alergias */}
+            {tieneAlergiasRiesgo && (
+              <div className="p-4 rounded-2xl bg-amber-950/60 border border-amber-500/60 shadow-lg text-amber-200 flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5 animate-bounce" />
+                <div>
+                  <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider">
+                    ¡Alerta de Alergia a Medicamentos!
+                  </h4>
+                  <p className="text-xs mt-1 font-semibold text-white">
+                    {alergias}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
               <User className="w-4 h-4 text-teal-400" />
-              <span>Anamnesis y Declaración Original</span>
+              <span>Anamnesis y Declaración del Paciente</span>
             </div>
 
             {/* Carnet de Identidad Descifrado con Badge Criptográfico */}
@@ -292,156 +363,235 @@ export const ModalDetallePaciente = ({ expediente, alCerrar, alActualizar }) => 
                 <span className="text-[11px] text-slate-400 flex items-center gap-1.5 mb-1">
                   <Activity className="w-3.5 h-3.5" /> Escala del Dolor:
                 </span>
-                <span className="text-xs font-black">
-                  {valorIntensidad} / 10
-                </span>
+                <span className="text-xs font-black">{valorIntensidad} / 10</span>
               </div>
             </div>
 
-            {/* Respuestas a Preguntas Dinámicas Adaptativas (PQRST) */}
-            {Object.keys(respuestasDinamicas).length > 0 && (
-              <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3 shadow-sm">
-                <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                  <HelpCircle className="w-4 h-4 text-teal-400" /> Respuestas Semiológicas (PQRST):
-                </span>
-
-                <div className="space-y-2 text-xs">
-                  {Object.entries(respuestasDinamicas).map(([clave, valor]) => (
-                    <div key={clave} className="bg-slate-950/70 p-3 rounded-xl border border-slate-800/80 space-y-1">
-                      <span className="text-[11px] font-semibold text-slate-400 block">
-                        {formatearEtiquetaPregunta(clave)}
-                      </span>
-                      <span className="font-bold text-slate-100 block">
-                        {formatearValorRespuesta(valor)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+            {/* Antecedentes Clínicos: Medicación y Comorbilidades */}
+            <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3 shadow-sm">
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-300">
+                <FileHeart className="w-4 h-4 text-teal-400" />
+                <span>Antecedentes Clínicos</span>
               </div>
-            )}
+
+              <div>
+                <span className="text-[11px] text-slate-400 font-semibold block mb-0.5">
+                  Medicación Actual:
+                </span>
+                <p className="text-xs text-slate-200 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
+                  {medicacion || 'Ninguna reportada'}
+                </p>
+              </div>
+
+              <div>
+                <span className="text-[11px] text-slate-400 font-semibold block mb-1">
+                  Comorbilidades / Enfermedades de Base:
+                </span>
+                {enfermedadesBase.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {enfermedadesBase.map((enf, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-slate-800 text-teal-300 border border-slate-700 text-xs font-medium"
+                      >
+                        <Check className="w-3 h-3 text-teal-400" />
+                        {enf}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">Sin antecedentes diagnosticados</p>
+                )}
+              </div>
+            </div>
+
+            {/* Respuestas a Preguntas Dinámicas PQRST */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                <HelpCircle className="w-4 h-4 text-teal-400" />
+                <span>Respuestas Dinámicas (Semiología PQRST)</span>
+              </div>
+
+              {Object.keys(respuestasDinamicas).length === 0 ? (
+                <p className="text-xs text-slate-500 italic bg-slate-900 p-3.5 rounded-2xl border border-slate-800">
+                  No se registraron respuestas complementarias.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {Object.entries(respuestasDinamicas).map(([clave, valor]) => {
+                    if (clave === 'notas_adicionales') return null;
+                    return (
+                      <div
+                        key={clave}
+                        className="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 text-xs space-y-1"
+                      >
+                        <span className="font-semibold text-teal-300 block">
+                          {formatearEtiquetaPregunta(clave)}:
+                        </span>
+                        <span className="text-slate-200 block font-medium">
+                          {formatearValorRespuesta(valor)}
+                        </span>
+                      </div>
+                    );
+                  })}
+
+                  {respuestasDinamicas.notas_adicionales && (
+                    <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 text-xs space-y-1">
+                      <span className="font-semibold text-slate-400 block">
+                        Detalles / Comentarios Adicionales del Paciente:
+                      </span>
+                      <p className="text-slate-200 italic">
+                        "{respuestasDinamicas.notas_adicionales}"
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* PANEL DERECHO: Inteligencia Artificial y Cierre Médico (7 Columnas) */}
-          <div className="lg:col-span-7 p-6 space-y-5 overflow-y-auto">
-            <div className="flex items-center justify-between flex-wrap gap-2">
+          {/* PANEL DERECHO: Resumen Clínico por IA y Formulario de Cierre (7 Columnas) */}
+          <div className="lg:col-span-7 p-6 space-y-5 overflow-y-auto bg-slate-900/50">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-teal-400">
                 <Sparkles className="w-4 h-4" />
-                <span>Resumen Clínico y Ayuda Diagnóstica IA</span>
+                <span>Síntesis Clínica Asistida por IA</span>
               </div>
 
-              {/* Badge de Prioridad de Triaje */}
-              <span
-                className={`text-xs font-extrabold px-3 py-1 rounded-full border shadow-sm ${
-                  prioridadAjustada === 'ROJO' || prioridadAjustada === 'RED'
-                    ? 'bg-rose-500/20 border-rose-500 text-rose-300'
-                    : prioridadAjustada === 'AMARILLO' || prioridadAjustada === 'YELLOW'
-                    ? 'bg-amber-500/20 border-amber-500 text-amber-300'
-                    : 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
-                }`}
-              >
-                Prioridad Actual: {prioridadAjustada}
-              </span>
+              {expediente.sobreescritura_aplicada && (
+                <span className="text-[11px] font-bold text-rose-400 bg-rose-950/60 border border-rose-500/40 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                  <AlertOctagon className="w-3.5 h-3.5" /> Safety Override Manchester
+                </span>
+              )}
             </div>
 
-            {/* Resumen Clínico Narrativo */}
-            <div className="bg-slate-800/40 p-4 rounded-2xl border border-slate-700/60 shadow-sm space-y-1">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-                Síntesis Clínica Estructurada:
+            {/* Resumen Narrativo */}
+            <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-1.5">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Resumen Ejecutivo para el Médico:
               </span>
-              <p className="text-xs leading-relaxed text-slate-200">{resumenNarrativo}</p>
+              <p className="text-xs text-slate-200 leading-relaxed font-medium">
+                {resumenNarrativo}
+              </p>
             </div>
 
-            {/* Banderas Rojas y Señales de Alerta */}
+            {/* Tarjeta de Banderas Rojas y Signos de Alarma */}
             {senalesAlerta.length > 0 && (
               <div className="bg-rose-950/20 border border-rose-500/30 p-4 rounded-2xl space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-rose-400">
-                  <AlertTriangle className="w-4 h-4" /> Banderas Rojas / Signos de Alerta Detectados:
-                </div>
-                <ul className="list-disc list-inside text-xs text-rose-200/90 space-y-1">
-                  {senalesAlerta.map((alerta, i) => (
-                    <li key={i}>{alerta}</li>
+                <span className="text-xs font-bold text-rose-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-rose-400" /> Banderas Rojas y Signos de Alerta:
+                </span>
+                <ul className="space-y-1 text-xs text-rose-200">
+                  {senalesAlerta.map((alerta, idx) => (
+                    <li key={idx} className="flex items-start gap-1.5">
+                      <span className="text-rose-400 font-bold">•</span>
+                      <span>{alerta}</span>
+                    </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {/* Información Faltante y Examen Físico Sugerido */}
-            {preguntasFaltantes.length > 0 && (
-              <div className="bg-amber-950/20 border border-amber-500/30 p-4 rounded-2xl space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
-                  <HelpCircle className="w-4 h-4" /> Puntos Críticos para el Examen Físico:
-                </div>
-                <ul className="list-disc list-inside text-xs text-amber-200/90 space-y-1">
-                  {preguntasFaltantes.map((pregunta, i) => (
-                    <li key={i}>{pregunta}</li>
-                  ))}
+            {/* Datos Clínicos Estructurados (Síntomas y Factores Agravantes) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <span className="text-xs font-bold text-teal-400 uppercase tracking-wider">
+                  Síntomas Normalizados:
+                </span>
+                <ul className="space-y-1 text-xs text-slate-300">
+                  {sintomasPrincipales.length > 0 ? (
+                    sintomasPrincipales.map((s, idx) => (
+                      <li key={idx} className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
+                        <span>{s}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-slate-500 italic">No identificados</li>
+                  )}
                 </ul>
               </div>
-            )}
 
-            {/* ========================================================================= */}
-            {/* Formulario de Evaluación y Cierre de Consulta */}
-            {/* ========================================================================= */}
-            <form onSubmit={guardarRevision} className="space-y-4 pt-4 border-t border-slate-800">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                  <FileText className="w-4 h-4 text-teal-400" />
-                  <span>Diagnóstico Presuntivo y Conducta Médica</span>
-                </label>
+              <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                  Factores y Antecedentes:
+                </span>
+                <ul className="space-y-1 text-xs text-slate-300">
+                  {factoresAgravantes.length > 0 ? (
+                    factoresAgravantes.map((f, idx) => (
+                      <li key={idx} className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                        <span>{f}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-slate-500 italic">Sin agravantes registrados</li>
+                  )}
+                </ul>
+              </div>
+            </div>
 
-                {/* Selector Facultativo de Prioridad */}
+            {/* Formulario de Cierre de Consulta Médica */}
+            <form
+              onSubmit={guardarRevision}
+              className="bg-slate-950/90 p-5 rounded-2xl border border-slate-800 space-y-4 pt-4 shadow-xl"
+            >
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-teal-400" /> Cierre y Conducta Médica
+                </span>
+
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-slate-400">Ajuste de Prioridad:</span>
+                  <span className="text-[11px] text-slate-400">Nivel Triaje:</span>
                   <select
                     value={prioridadAjustada}
                     onChange={(e) => setPrioridadAjustada(e.target.value)}
                     disabled={esRevisado}
-                    className="bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none focus:border-teal-500 font-bold"
+                    className="bg-slate-900 border border-slate-700 text-xs rounded-xl px-2.5 py-1 text-white focus:outline-none focus:border-teal-500 font-bold"
                   >
-                    <option value="ROJO">🔴 ROJO (Vital)</option>
-                    <option value="AMARILLO">🟡 AMARILLO (Urgencia)</option>
-                    <option value="VERDE">🟢 VERDE (No Urgente)</option>
+                    <option value="ROJO">🔴 ROJO (Nivel I - Emergencia)</option>
+                    <option value="AMARILLO">🟡 AMARILLO (Nivel II - Urgente)</option>
+                    <option value="VERDE">🟢 VERDE (Nivel III - General)</option>
                   </select>
                 </div>
               </div>
 
-              {/* Área de Texto para Notas de Evolución */}
-              <textarea
-                value={notasMedico}
-                onChange={(e) => setNotasMedico(e.target.value)}
-                placeholder={
-                  esRevisado
-                    ? 'Consulta concluida y sellada.'
-                    : 'Describa el diagnóstico presuntivo, signos vitales tomados, fármacos indicados y conducta terapéutica...'
-                }
-                disabled={esRevisado || enviandoRevision}
-                rows={4}
-                className="w-full bg-slate-950 border border-slate-700/80 rounded-2xl p-3.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition resize-none disabled:opacity-60"
-              />
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Diagnóstico Presuntivo, Conducta y Prescripción Médica:
+                </label>
+                <textarea
+                  rows="3"
+                  value={notasMedico}
+                  onChange={(e) => setNotasMedico(e.target.value)}
+                  disabled={esRevisado}
+                  placeholder={
+                    esRevisado
+                      ? 'Consulta médica cerrada.'
+                      : 'Escriba las observaciones del examen físico, indicación farmacológica o derivación...'
+                  }
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 transition resize-none disabled:opacity-60"
+                />
+              </div>
 
-              {/* Botón de Cierre de Consulta */}
-              {!esRevisado ? (
+              {!esRevisado && (
                 <button
                   type="submit"
                   disabled={enviandoRevision}
-                  className="w-full py-3.5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-slate-950 font-bold rounded-2xl text-xs flex items-center justify-center gap-2 transition shadow-lg shadow-teal-500/20 disabled:opacity-60"
+                  className="w-full bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-extrabold py-3 px-6 rounded-xl shadow-lg shadow-teal-500/20 transition flex items-center justify-center gap-2 text-xs disabled:opacity-50"
                 >
                   {enviandoRevision ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Guardando Dictamen Médico...</span>
+                      <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                      <span>Guardando en Expediente Clínico...</span>
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Confirmar y Finalizar Atención Médica</span>
+                      <Send className="w-4 h-4 text-slate-950" />
+                      <span>Finalizar Atención y Cerrar Consulta</span>
                     </>
                   )}
                 </button>
-              ) : (
-                <div className="p-3 bg-slate-800/60 border border-slate-700 rounded-xl text-center text-xs text-slate-400">
-                  ✓ Este caso ya fue atendido y cerrado en el historial médico.
-                </div>
               )}
             </form>
           </div>

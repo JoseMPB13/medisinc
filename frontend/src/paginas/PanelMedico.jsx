@@ -1,7 +1,8 @@
 /**
  * Portal del Médico de Guardia (MediSinc-IA).
  * Dashboard clínico con navegación por pestañas (Cola General vs Mis Pacientes),
- * asignación concurrente de casos, escáner QR y visor de expediente en pantalla dividida.
+ * filtrado por especialidad médica, asignación concurrente de casos,
+ * escáner QR y visor de expediente en pantalla dividida.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -26,10 +27,21 @@ import {
   AlertCircle,
   X,
   Play,
+  BriefcaseMedical,
 } from 'lucide-react';
 import { servicioMedico } from '../servicios/servicioMedico';
 import { servicioAutenticacion } from '../servicios/servicioAutenticacion';
 import ModalDetallePaciente from '../componentes/medico/ModalDetallePaciente';
+
+const ESPECIALIDADES_DISPONIBLES = [
+  'TODAS',
+  'Medicina General',
+  'Pediatría',
+  'Ginecología y Obstetricia',
+  'Traumatología y Urgencias',
+  'Cardiología y Medicina Interna',
+  'Odontología',
+];
 
 export const PanelMedico = () => {
   const usuarioActual = servicioAutenticacion.obtenerUsuarioActual();
@@ -51,6 +63,7 @@ export const PanelMedico = () => {
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState('');
   const [filtroPrioridad, setFiltroPrioridad] = useState('TODOS');
+  const [filtroEspecialidad, setFiltroEspecialidad] = useState('TODAS');
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
   const [mostrarEscaner, setMostrarEscaner] = useState(false);
   const [notificacion, setNotificacion] = useState(null);
@@ -64,8 +77,9 @@ export const PanelMedico = () => {
   // Cargar datos de la cola general y mis pacientes
   const cargarDatos = async () => {
     try {
+      const espParam = filtroEspecialidad === 'TODAS' ? null : filtroEspecialidad;
       const [resPanel, resMisPacientes] = await Promise.allSettled([
-        servicioMedico.obtenerPanelGuardia(false),
+        servicioMedico.obtenerPanelGuardia(false, espParam),
         servicioMedico.obtenerMisPacientes(incluirRevisados),
       ]);
 
@@ -99,7 +113,7 @@ export const PanelMedico = () => {
     cargarDatos();
     const intervalo = setInterval(cargarDatos, 6000);
     return () => clearInterval(intervalo);
-  }, [incluirRevisados]);
+  }, [incluirRevisados, filtroEspecialidad]);
 
   // Manejo del escáner QR por cámara
   useEffect(() => {
@@ -175,17 +189,21 @@ export const PanelMedico = () => {
     const prioridad = (p.prioridad_final || p.final_priority || '').toUpperCase();
     const nombre = (p.nombre_paciente || p.patient_name || '').toLowerCase();
     const codigo = (p.codigo_acceso || p.access_code || '').toLowerCase();
+    const esp = p.especialidad_solicitada || p.requested_specialty || 'Medicina General';
     const termino = busqueda.toLowerCase().trim();
 
     const coincideBusqueda = !termino || nombre.includes(termino) || codigo.includes(termino);
-    const coincideFiltro =
+    const coincidePrioridad =
       filtroPrioridad === 'TODOS' ||
       prioridad === filtroPrioridad ||
       (filtroPrioridad === 'ROJO' && prioridad === 'RED') ||
       (filtroPrioridad === 'AMARILLO' && prioridad === 'YELLOW') ||
       (filtroPrioridad === 'VERDE' && prioridad === 'GREEN');
 
-    return coincideBusqueda && coincideFiltro;
+    const coincideEspecialidad =
+      filtroEspecialidad === 'TODAS' || esp === filtroEspecialidad;
+
+    return coincideBusqueda && coincidePrioridad && coincideEspecialidad;
   });
 
   return (
@@ -201,7 +219,10 @@ export const PanelMedico = () => {
             </div>
             <div>
               <h1 className="font-black text-lg text-white tracking-tight flex items-center gap-2">
-                Panel Médico de Guardia <span className="text-[11px] bg-teal-950 text-teal-300 px-2 py-0.5 rounded-full border border-teal-500/30">En Vivo</span>
+                Panel Médico de Guardia{' '}
+                <span className="text-[11px] bg-teal-950 text-teal-300 px-2 py-0.5 rounded-full border border-teal-500/30">
+                  En Vivo
+                </span>
               </h1>
               <p className="text-xs text-slate-400">
                 {usuarioActual?.nombre || 'Dr. Médico de Turno'} | Servicio de Emergencias
@@ -232,6 +253,30 @@ export const PanelMedico = () => {
           </div>
         </div>
       </header>
+
+      {/* Modal del Escáner QR */}
+      {mostrarEscaner && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-base text-white flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-teal-400" />
+                Escaneo de Código de Paciente
+              </h3>
+              <button
+                onClick={() => setMostrarEscaner(false)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div id="qr-reader-container" className="rounded-2xl overflow-hidden bg-black"></div>
+            <p className="text-xs text-slate-400 text-center mt-3">
+              Apunta con la cámara hacia el código QR generado en el comprobante del paciente.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Notificación Flotante / Toast */}
       {notificacion && (
@@ -300,7 +345,7 @@ export const PanelMedico = () => {
         {/* Navegación por Pestañas de Gestión */}
         {/* ========================================================================= */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setPestanaActiva('COLA_GENERAL')}
               className={`px-5 py-2.5 rounded-2xl text-xs font-extrabold flex items-center gap-2 transition ${
@@ -311,7 +356,11 @@ export const PanelMedico = () => {
             >
               <Users className="w-4 h-4" />
               <span>Cola General de Guardia</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${pestanaActiva === 'COLA_GENERAL' ? 'bg-slate-950 text-teal-300' : 'bg-slate-800 text-slate-400'}`}>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  pestanaActiva === 'COLA_GENERAL' ? 'bg-slate-950 text-teal-300' : 'bg-slate-800 text-slate-400'
+                }`}
+              >
                 {pacientesCola.length}
               </span>
             </button>
@@ -326,7 +375,11 @@ export const PanelMedico = () => {
             >
               <UserCheck className="w-4 h-4" />
               <span>Mis Pacientes Asignados</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${pestanaActiva === 'MIS_PACIENTES' ? 'bg-slate-950 text-teal-300' : 'bg-slate-800 text-slate-400'}`}>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  pestanaActiva === 'MIS_PACIENTES' ? 'bg-slate-950 text-teal-300' : 'bg-slate-800 text-slate-400'
+                }`}
+              >
                 {misPacientes.length}
               </span>
             </button>
@@ -348,10 +401,10 @@ export const PanelMedico = () => {
         </div>
 
         {/* ========================================================================= */}
-        {/* Barra de Filtros y Búsqueda */}
+        {/* Barra de Filtros, Especialidad y Búsqueda */}
         {/* ========================================================================= */}
-        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="relative w-full md:w-96">
+        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-3xl flex flex-col lg:flex-row items-center justify-between gap-4">
+          <div className="relative w-full lg:w-80">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             <input
               type="text"
@@ -370,7 +423,24 @@ export const PanelMedico = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+          {/* Selector de Especialidad */}
+          <div className="flex items-center gap-2 w-full lg:w-auto">
+            <BriefcaseMedical className="w-4 h-4 text-teal-400 flex-shrink-0" />
+            <select
+              value={filtroEspecialidad}
+              onChange={(e) => setFiltroEspecialidad(e.target.value)}
+              className="bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500"
+            >
+              {ESPECIALIDADES_DISPONIBLES.map((esp) => (
+                <option key={esp} value={esp}>
+                  {esp === 'TODAS' ? '🏥 Todas las Especialidades' : esp}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro de Prioridad */}
+          <div className="flex items-center gap-2 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0">
             <span className="text-xs text-slate-400 flex items-center gap-1">
               <Filter className="w-3.5 h-3.5" /> Prioridad:
             </span>
@@ -406,6 +476,7 @@ export const PanelMedico = () => {
                 <tr>
                   <th className="py-3.5 px-4">Prioridad</th>
                   <th className="py-3.5 px-4">Código / Paciente</th>
+                  <th className="py-3.5 px-4">Especialidad</th>
                   <th className="py-3.5 px-4">Motivo Principal</th>
                   <th className="py-3.5 px-4">Estado / Asignación</th>
                   <th className="py-3.5 px-4">Llegada</th>
@@ -415,14 +486,14 @@ export const PanelMedico = () => {
               <tbody className="divide-y divide-slate-800/60">
                 {cargando ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-500">
+                    <td colSpan={7} className="py-12 text-center text-slate-500">
                       <RefreshCw className="w-6 h-6 animate-spin mx-auto text-teal-400 mb-2" />
                       Cargando registros clínicos en tiempo real...
                     </td>
                   </tr>
                 ) : pacientesFiltrados.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-500">
+                    <td colSpan={7} className="py-12 text-center text-slate-500">
                       No se encontraron pacientes para el filtro seleccionado.
                     </td>
                   </tr>
@@ -430,12 +501,16 @@ export const PanelMedico = () => {
                   pacientesFiltrados.map((paciente) => {
                     const prioridad = (paciente.prioridad_final || paciente.final_priority || 'VERDE').toUpperCase();
                     const estado = (paciente.estado || paciente.status || 'RECIBIDO').toUpperCase();
+                    const esp = paciente.especialidad_solicitada || paciente.requested_specialty || 'Medicina General';
                     const esRojo = prioridad === 'ROJO' || prioridad === 'RED';
                     const esAmarillo = prioridad === 'AMARILLO' || prioridad === 'YELLOW';
                     const esVerde = prioridad === 'VERDE' || prioridad === 'GREEN';
 
                     const medicoAsig = paciente.medico_asignado_id || paciente.assigned_doctor_id;
-                    const asignadoAMi = medicoAsig && usuarioActual?.id && (medicoAsig === usuarioActual.id || medicoAsig === usuarioActual.usuario_id);
+                    const asignadoAMi =
+                      medicoAsig &&
+                      usuarioActual?.id &&
+                      (medicoAsig === usuarioActual.id || medicoAsig === usuarioActual.usuario_id);
                     const asignadoAOtro = medicoAsig && !asignadoAMi;
                     const enConsulta = estado === 'EN_CONSULTA' || estado === 'IN_CONSULTATION';
                     const revisado = estado === 'REVISADO' || estado === 'REVIEWED';
@@ -450,100 +525,106 @@ export const PanelMedico = () => {
                         {/* 1. Prioridad */}
                         <td className="py-4 px-4 whitespace-nowrap">
                           <span
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border ${
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black tracking-wide ${
                               esRojo
-                                ? 'bg-rose-500/20 border-rose-500 text-rose-400'
+                                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
                                 : esAmarillo
-                                ? 'bg-amber-500/20 border-amber-500 text-amber-300'
-                                : 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                             }`}
                           >
-                            <span className="w-2 h-2 rounded-full bg-current"></span>
+                            <span
+                              className={`w-2 h-2 rounded-full ${
+                                esRojo
+                                  ? 'bg-rose-400 animate-ping'
+                                  : esAmarillo
+                                  ? 'bg-amber-400'
+                                  : 'bg-emerald-400'
+                              }`}
+                            ></span>
                             {prioridad}
                           </span>
                         </td>
 
-                        {/* 2. Código y Paciente */}
+                        {/* 2. Código / Paciente */}
                         <td className="py-4 px-4">
-                          <div className="font-extrabold text-white text-sm">
+                          <div className="font-mono text-xs font-bold text-teal-400">
+                            {paciente.codigo_acceso || paciente.access_code}
+                          </div>
+                          <div className="font-bold text-white text-sm">
                             {paciente.nombre_paciente || paciente.patient_name || 'Paciente'}
                           </div>
-                          <div className="text-[11px] text-slate-400 font-mono">
-                            {paciente.codigo_acceso || paciente.access_code} | {paciente.edad || paciente.age} años (
-                            {paciente.genero || paciente.gender || 'N/E'})
+                          <div className="text-[11px] text-slate-400">
+                            {paciente.edad || paciente.age} años · {paciente.genero || paciente.gender}
                           </div>
                         </td>
 
-                        {/* 3. Motivo Principal */}
-                        <td className="py-4 px-4 max-w-xs truncate text-slate-300">
-                          {paciente.sintomas_brutos || paciente.raw_symptoms || 'Sin declaración'}
+                        {/* 3. Especialidad Solicitada */}
+                        <td className="py-4 px-4 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-teal-300 border border-slate-700">
+                            {esp}
+                          </span>
                         </td>
 
-                        {/* 4. Estado y Asignación */}
+                        {/* 4. Motivo Principal */}
+                        <td className="py-4 px-4 max-w-xs">
+                          <p className="line-clamp-2 text-slate-300 leading-snug">
+                            {paciente.sintomas_brutos || paciente.raw_symptoms || 'Sin motivo reportado'}
+                          </p>
+                        </td>
+
+                        {/* 5. Estado / Asignación */}
                         <td className="py-4 px-4 whitespace-nowrap">
                           {revisado ? (
-                            <span className="text-[11px] font-bold bg-slate-800 text-slate-400 px-2.5 py-1 rounded-lg border border-slate-700">
-                              ATENDIDO
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800 text-slate-400 text-xs font-bold border border-slate-700">
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                              Atendido
                             </span>
-                          ) : enConsulta ? (
-                            asignadoAMi ? (
-                              <span className="text-[11px] font-bold bg-cyan-950 text-cyan-300 px-2.5 py-1 rounded-lg border border-cyan-500/40">
-                                En tu consulta
-                              </span>
-                            ) : (
-                              <span className="text-[11px] font-bold bg-amber-950 text-amber-300 px-2.5 py-1 rounded-lg border border-amber-500/40">
-                                En consulta (Otro médico)
-                              </span>
-                            )
+                          ) : asignadoAMi ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-500/20 text-cyan-300 text-xs font-bold border border-cyan-500/30">
+                              <UserCheck className="w-3.5 h-3.5 text-cyan-400" />
+                              En tu consulta
+                            </span>
+                          ) : asignadoAOtro ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800 text-slate-400 text-xs font-medium border border-slate-700">
+                              <Users className="w-3.5 h-3.5 text-slate-500" />
+                              Con otro colega
+                            </span>
                           ) : (
-                            <span className="text-[11px] font-bold bg-emerald-950 text-emerald-300 px-2.5 py-1 rounded-lg border border-emerald-500/40">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800/80 text-amber-300 text-xs font-medium border border-amber-500/20">
+                              <Clock className="w-3.5 h-3.5 text-amber-400" />
                               En espera
                             </span>
                           )}
                         </td>
 
-                        {/* 5. Hora de Llegada */}
-                        <td className="py-4 px-4 whitespace-nowrap text-slate-400 text-xs">
-                          {paciente.creado_en
-                            ? new Date(paciente.creado_en).toLocaleTimeString([], {
+                        {/* 6. Hora de Llegada */}
+                        <td className="py-4 px-4 whitespace-nowrap text-slate-400">
+                          {paciente.creado_en || paciente.created_at
+                            ? new Date(paciente.creado_en || paciente.created_at).toLocaleTimeString([], {
                                 hour: '2-digit',
                                 minute: '2-digit',
                               })
                             : 'Reciente'}
                         </td>
 
-                        {/* 6. Botón de Acción */}
+                        {/* 7. Botones de Acción */}
                         <td className="py-4 px-4 text-right whitespace-nowrap">
-                          {revisado ? (
+                          {pestanaActiva === 'COLA_GENERAL' && !enConsulta && !revisado ? (
                             <button
-                              onClick={() => abrirExpediente(paciente)}
-                              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 transition"
-                            >
-                              Ver Ficha
-                            </button>
-                          ) : enConsulta && asignadoAMi ? (
-                            <button
-                              onClick={() => abrirExpediente(paciente)}
-                              className="px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 ml-auto shadow-md transition"
+                              onClick={() => handleReclamarYAtender(paciente)}
+                              className="px-3.5 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs shadow-md shadow-teal-500/20 transition flex items-center gap-1.5 ml-auto"
                             >
                               <Play className="w-3.5 h-3.5 fill-current" />
-                              <span>Continuar</span>
-                            </button>
-                          ) : enConsulta && asignadoAOtro ? (
-                            <button
-                              onClick={() => abrirExpediente(paciente)}
-                              className="px-3 py-1.5 bg-slate-800/80 text-slate-500 rounded-xl text-xs font-semibold cursor-pointer hover:text-slate-300"
-                              title="Consultar expediente en modo solo lectura"
-                            >
-                              Inspeccionar
+                              <span>Atender</span>
                             </button>
                           ) : (
                             <button
-                              onClick={() => handleReclamarYAtender(paciente)}
-                              className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 ml-auto shadow-md shadow-teal-500/20 transition"
+                              onClick={() => abrirExpediente(paciente)}
+                              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-300 font-semibold text-xs border border-slate-700 transition flex items-center gap-1.5 ml-auto"
                             >
-                              <Stethoscope className="w-3.5 h-3.5" />
-                              <span>Atender</span>
+                              <span>Ver Expediente</span>
+                              <ChevronRight className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </td>
@@ -557,39 +638,7 @@ export const PanelMedico = () => {
         </div>
       </main>
 
-      {/* ========================================================================= */}
-      {/* Modal de Escaneo QR por Cámara Web */}
-      {/* ========================================================================= */}
-      {mostrarEscaner && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-white flex items-center gap-2 text-sm">
-                <QrCode className="w-4 h-4 text-teal-400" /> Escanear Código QR del Paciente
-              </h3>
-              <button
-                onClick={() => setMostrarEscaner(false)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-xl bg-slate-800"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div
-              id="qr-reader-container"
-              className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950"
-            ></div>
-
-            <p className="text-[11px] text-slate-400 text-center">
-              Apunta la cámara al código QR impreso o en pantalla del paciente.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* Modal de Detalle de Expediente Clínico (Split View) */}
-      {/* ========================================================================= */}
+      {/* Modal de Detalle Clínico Split View */}
       {pacienteSeleccionado && (
         <ModalDetallePaciente
           expediente={pacienteSeleccionado}

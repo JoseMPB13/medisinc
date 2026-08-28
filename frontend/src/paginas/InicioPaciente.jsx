@@ -1,24 +1,33 @@
 /**
  * Página Principal del Asistente de Paciente (MediSinc-IA).
- * Implementa el flujo Wizard de 3 pasos para la captura y estructuración del pre-triaje.
+ * Implementa el flujo Wizard de 4 pasos para la captura y estructuración del pre-triaje:
+ * - Paso 0: Selección interactiva de especialidad médica y turno de guardia.
+ * - Paso 1: Datos demográficos, motivo de consulta, antecedentes clínicos y alergias.
+ * - Paso 2: Preguntas de clarificación adaptativas (PQRST) contextualizadas por IA.
+ * - Paso 3: Confirmación y generación del código de acceso alfanumérico y QR.
  */
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Stethoscope, Shield, HeartPulse, Activity, Check } from 'lucide-react';
+import PasoSelectorEspecialidad from '../componentes/paciente/PasoSelectorEspecialidad';
 import PasoDatosEstaticos from '../componentes/paciente/PasoDatosEstaticos';
 import PasoPreguntasDinamicas from '../componentes/paciente/PasoPreguntasDinamicas';
 import PasoConfirmacionQR from '../componentes/paciente/PasoConfirmacionQR';
 import { servicioTriaje } from '../servicios/servicioTriaje';
 
 export const InicioPaciente = () => {
-  const [pasoActual, setPasoActual] = useState(1);
+  const [pasoActual, setPasoActual] = useState(0);
   const [datosFormulario, setDatosFormulario] = useState({
     nombre_paciente: '',
     ci: '',
     edad: '',
     genero: '',
     sintomas_brutos: '',
+    especialidad_solicitada: 'Medicina General',
+    alergias_medicamentosas: 'Ninguna conocida',
+    medicacion_actual: 'Ninguna',
+    enfermedades_base: [],
     datos_estaticos: {
       duracion: '2 a 6 horas',
       intensidad: 5,
@@ -63,6 +72,10 @@ export const InicioPaciente = () => {
       edad: '',
       genero: '',
       sintomas_brutos: '',
+      especialidad_solicitada: 'Medicina General',
+      alergias_medicamentosas: 'Ninguna conocida',
+      medicacion_actual: 'Ninguna',
+      enfermedades_base: [],
       datos_estaticos: {
         duracion: '2 a 6 horas',
         intensidad: 5,
@@ -70,7 +83,23 @@ export const InicioPaciente = () => {
       respuestas_dinamicas: {},
     });
     setResultadoTriaje(null);
-    setPasoActual(1);
+    setPasoActual(0);
+  };
+
+  // Cálculo de ancho porcentual para la barra de progreso
+  const calcularAnchoProgreso = () => {
+    switch (pasoActual) {
+      case 0:
+        return '0%';
+      case 1:
+        return '33%';
+      case 2:
+        return '66%';
+      case 3:
+        return '100%';
+      default:
+        return '0%';
+    }
   };
 
   return (
@@ -103,17 +132,33 @@ export const InicioPaciente = () => {
       </header>
 
       {/* Contenido Principal con Wizard */}
-      <main className="max-w-3xl mx-auto px-4 py-8 w-full flex-1">
-        {/* Indicador Visual de Pasos */}
+      <main className="max-w-4xl mx-auto px-4 py-8 w-full flex-1">
+        {/* Indicador Visual de 4 Pasos */}
         <div className="mb-8">
-          <div className="flex items-center justify-between relative max-w-md mx-auto">
+          <div className="flex items-center justify-between relative max-w-lg mx-auto">
             <div className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-slate-800 w-full -z-0"></div>
             <div
               className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-teal-500 transition-all duration-300 -z-0"
-              style={{ width: pasoActual === 1 ? '0%' : pasoActual === 2 ? '50%' : '100%' }}
+              style={{ width: calcularAnchoProgreso() }}
             ></div>
 
-            {/* Paso 1 */}
+            {/* Paso 0: Especialidad */}
+            <div className="flex flex-col items-center relative z-10">
+              <div
+                className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition shadow-md ${
+                  pasoActual > 0
+                    ? 'bg-teal-500 text-slate-950 shadow-teal-500/30'
+                    : pasoActual === 0
+                    ? 'bg-teal-500 text-slate-950 ring-4 ring-teal-500/20'
+                    : 'bg-slate-800 text-slate-400'
+                }`}
+              >
+                {pasoActual > 0 ? <Check className="w-4 h-4" /> : '0'}
+              </div>
+              <span className="text-[11px] font-semibold text-slate-300 mt-1.5">Especialidad</span>
+            </div>
+
+            {/* Paso 1: Datos y Antecedentes */}
             <div className="flex flex-col items-center relative z-10">
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition shadow-md ${
@@ -129,7 +174,7 @@ export const InicioPaciente = () => {
               <span className="text-[11px] font-semibold text-slate-300 mt-1.5">Datos</span>
             </div>
 
-            {/* Paso 2 */}
+            {/* Paso 2: Preguntas PQRST */}
             <div className="flex flex-col items-center relative z-10">
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition shadow-md ${
@@ -142,15 +187,15 @@ export const InicioPaciente = () => {
               >
                 {pasoActual > 2 ? <Check className="w-4 h-4" /> : '2'}
               </div>
-              <span className="text-[11px] font-semibold text-slate-300 mt-1.5">Preguntas IA</span>
+              <span className="text-[11px] font-semibold text-slate-300 mt-1.5">Preguntas</span>
             </div>
 
-            {/* Paso 3 */}
+            {/* Paso 3: Código y QR */}
             <div className="flex flex-col items-center relative z-10">
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition shadow-md ${
                   pasoActual === 3
-                    ? 'bg-teal-500 text-slate-950 ring-4 ring-teal-500/20 shadow-teal-500/30'
+                    ? 'bg-teal-500 text-slate-950 ring-4 ring-teal-500/20'
                     : 'bg-slate-800 text-slate-400'
                 }`}
               >
@@ -163,22 +208,33 @@ export const InicioPaciente = () => {
 
         {/* Mensaje de Error en Envío */}
         {errorEnvio && (
-          <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300">
+          <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm">
             {errorEnvio}
           </div>
         )}
 
-        {/* Tarjeta Contenedora del Paso Activo */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
-          {pasoActual === 1 && (
+        {/* Contenedor del Paso Activo */}
+        {pasoActual === 0 && (
+          <PasoSelectorEspecialidad
+            especialidadSeleccionada={datosFormulario.especialidad_solicitada}
+            onSeleccionarEspecialidad={(esp) => actualizarCampo('especialidad_solicitada', esp)}
+            onContinuar={() => setPasoActual(1)}
+          />
+        )}
+
+        {pasoActual === 1 && (
+          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
             <PasoDatosEstaticos
               datos={datosFormulario}
               alCambiar={actualizarCampo}
               alSiguiente={() => setPasoActual(2)}
+              alAtras={() => setPasoActual(0)}
             />
-          )}
+          </div>
+        )}
 
-          {pasoActual === 2 && (
+        {pasoActual === 2 && (
+          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
             <PasoPreguntasDinamicas
               datos={datosFormulario}
               alCambiar={actualizarCampo}
@@ -186,24 +242,25 @@ export const InicioPaciente = () => {
               alFinalizar={enviarPreTriajeFinal}
               estaEnviando={estaEnviando}
             />
-          )}
+          </div>
+        )}
 
-          {pasoActual === 3 && (
-            <PasoConfirmacionQR
-              resultadoTriaje={resultadoTriaje}
-              alReiniciar={reiniciarFormulario}
-            />
-          )}
-        </div>
+        {pasoActual === 3 && resultadoTriaje && (
+          <PasoConfirmacionQR
+            resultado={resultadoTriaje}
+            datosPaciente={datosFormulario}
+            alReiniciar={reiniciarFormulario}
+          />
+        )}
       </main>
 
-      {/* Pie de Página con Sellos de Seguridad */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-6 text-center text-xs text-slate-500">
+      {/* Pie de Página */}
+      <footer className="border-t border-slate-800/80 bg-slate-900/30 py-6 text-center text-xs text-slate-500">
         <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>© 2026 MediSinc-IA. Centro de Salud Santa Cruz de la Sierra, Bolivia.</p>
-          <div className="flex items-center gap-4 text-slate-400">
-            <span className="flex items-center gap-1"><Shield className="w-3.5 h-3.5 text-teal-400" /> Cifrado AES-256</span>
-            <span className="flex items-center gap-1"><Activity className="w-3.5 h-3.5 text-emerald-400" /> Motor Clínico v2.0</span>
+          <p>© {new Date().getFullYear()} MediSinc-IA · Sistema de Triaje Clínico Asistido por Inteligencia Artificial</p>
+          <div className="flex items-center gap-1 text-slate-400">
+            <Shield className="w-3.5 h-3.5 text-teal-400" />
+            <span>Datos protegidos bajo cifrado de grado médico</span>
           </div>
         </div>
       </footer>
