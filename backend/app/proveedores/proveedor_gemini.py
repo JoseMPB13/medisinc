@@ -28,13 +28,14 @@ class ProveedorGemini(ProveedorIABase):
                 import google.generativeai as genai
                 genai.configure(api_key=self.api_key)
 
-                # Modelos compatibles con modo de respuesta JSON
+                # Modelos oficiales compatibles con modo JSON en la API activa
                 for nombre_modelo in [
-                    "gemini-1.5-flash-latest",
+                    "gemini-2.5-flash",
+                    "gemini-flash-latest",
+                    "gemini-2.5-flash-lite",
+                    "gemini-2.5-pro",
                     "gemini-1.5-flash",
-                    "gemini-2.0-flash",
-                    "gemini-1.5-pro",
-                    "gemini-pro"
+                    "gemini-pro-latest"
                 ]:
                     try:
                         self.modelo = genai.GenerativeModel(
