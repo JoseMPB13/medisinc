@@ -1,10 +1,11 @@
 """
 Adaptador de Proveedor de IA: Google Gemini.
 Procesa las peticiones de triaje mediante la API de Google Generative AI con
-manejo resiliente de excepciones, compatibilidad multi-modelo y fallback clínico inmediato.
+manejo asíncrono no bloqueante (asyncio.to_thread), timeout estricto y fallback clínico inmediato (< 10ms).
 """
 
 import json
+import asyncio
 import logging
 from typing import Dict, Any, Optional, List
 from app.core.config import settings
@@ -63,7 +64,7 @@ class ProveedorGemini(ProveedorIABase):
         **kwargs
     ) -> EsquemaSalidaEstructuradaIA:
         """
-        Procesa los datos clínicos del paciente. Si la API de Gemini falla o no responde,
+        Procesa los datos clínicos del paciente. Si la API de Gemini falla, tarda más de 6s o no responde,
         activa inmediatamente el resumen estructurado de contingencia médica (< 10ms).
         """
         datos_paciente = {
@@ -91,12 +92,16 @@ class ProveedorGemini(ProveedorIABase):
 
         if self.modelo:
             try:
-                respuesta = self.modelo.generate_content(prompt)
+                # Ejecutar llamada con timeout defensivo de 12s
+                respuesta = await asyncio.wait_for(
+                    asyncio.to_thread(self.modelo.generate_content, prompt),
+                    timeout=12.0
+                )
                 raw_json = respuesta.text.strip()
                 parsed = json.loads(raw_json)
                 return EsquemaSalidaEstructuradaIA(**parsed)
             except Exception as e:
-                logger.warning(f"[ProveedorGemini] Fallo en llamada a Gemini API ({e}). Activando fallback clínico inmediato.")
+                logger.warning(f"[ProveedorGemini] Fallo o timeout en llamada a Gemini API ({type(e).__name__}: {e}). Activando fallback clínico inmediato.")
 
         # Fallback de contingencia inmediato
         return self.generar_salida_contingencia(datos_paciente)
@@ -113,7 +118,7 @@ class ProveedorGemini(ProveedorIABase):
         **kwargs
     ) -> List[Dict[str, Any]]:
         """
-        Genera 2 a 3 preguntas dinámicas adaptativas aplicando semiología PQRST con fallback clínico.
+        Genera 2 a 3 preguntas dinámicas adaptativas aplicando semiología PQRST con fallback clínico no bloqueante.
         """
         if self.modelo:
             try:
@@ -126,12 +131,17 @@ class ProveedorGemini(ProveedorIABase):
                     medicacion_actual=medicacion_actual,
                     enfermedades_base=enfermedades_base
                 )
-                respuesta = self.modelo.generate_content(prompt)
+                # Ejecutar con timeout de 10.0s
+                respuesta = await asyncio.wait_for(
+                    asyncio.to_thread(self.modelo.generate_content, prompt),
+                    timeout=10.0
+                )
                 parsed = json.loads(respuesta.text.strip())
-                if isinstance(parsed, list) and len(parsed) >= 2:
-                    return parsed
+                lista = parsed if isinstance(parsed, list) else parsed.get("preguntas") or parsed.get("questions") or []
+                if isinstance(lista, list) and len(lista) >= 2:
+                    return lista
             except Exception as e:
-                logger.warning(f"[ProveedorGemini] Error generando preguntas dinámicas ({e}). Activando fallback.")
+                logger.warning(f"[ProveedorGemini] Error o timeout generando preguntas dinámicas ({type(e).__name__}: {e}). Activando fallback.")
 
         return self.generar_preguntas_dinamicas_fallback(
             sintomas=sintomas,

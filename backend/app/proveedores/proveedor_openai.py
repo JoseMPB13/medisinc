@@ -1,10 +1,11 @@
 """
 Adaptador de Proveedor de IA: OpenAI (GPT-4o / GPT-4o-mini).
-Procesa peticiones de triaje mediante la API de OpenAI con JSON Object Mode
-y validación estricta en el esquema Pydantic EsquemaSalidaEstructuradaIA.
+Procesa el resumen clínico y las preguntas de clarificación utilizando la API oficial
+de OpenAI con salida estructurada en modo JSON y ejecución asíncrona no bloqueante.
 """
 
 import json
+import asyncio
 import logging
 from typing import Dict, Any, Optional, List
 from app.core.config import settings
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class ProveedorOpenAI(ProveedorIABase):
     """
-    Implementación del proveedor OpenAI para modelos GPT-4o y GPT-4o-mini.
+    Implementación del proveedor OpenAI con gpt-4o-mini y JSON Mode.
     """
 
     def __init__(self):
@@ -28,7 +29,7 @@ class ProveedorOpenAI(ProveedorIABase):
                 from openai import OpenAI
                 self.cliente = OpenAI(api_key=self.api_key)
             except Exception as e:
-                logger.warning(f"[ProveedorOpenAI] Error al inicializar cliente OpenAI ({e}). Operando en contingencia.")
+                logger.warning(f"[ProveedorOpenAI] No se pudo inicializar OpenAI Client ({e}). Operando en contingencia.")
                 self.cliente = None
 
     async def estructurar_triaje(
@@ -72,25 +73,31 @@ class ProveedorOpenAI(ProveedorIABase):
 
         if self.cliente:
             try:
-                respuesta = self.cliente.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": "Eres un médico de emergencias y triaje. Responde estrictamente en formato JSON."
-                        },
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ],
-                    response_format={"type": "json_object"}
+                def llamar_openai():
+                    return self.cliente.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": "Eres un médico de emergencias y triaje. Responde estrictamente en formato JSON."
+                            },
+                            {
+                                "role": "user",
+                                "content": prompt
+                            }
+                        ],
+                        response_format={"type": "json_object"}
+                    )
+
+                respuesta = await asyncio.wait_for(
+                    asyncio.to_thread(llamar_openai),
+                    timeout=6.0
                 )
                 raw_json = respuesta.choices[0].message.content.strip()
                 parsed = json.loads(raw_json)
                 return EsquemaSalidaEstructuradaIA(**parsed)
             except Exception as e:
-                logger.warning(f"[ProveedorOpenAI] Error en llamada a OpenAI API ({e}). Activando fallback clínico.")
+                logger.warning(f"[ProveedorOpenAI] Error o timeout en llamada a OpenAI API ({e}). Activando fallback clínico.")
 
         # Fallback de contingencia
         return self.generar_salida_contingencia(datos_paciente)
@@ -107,7 +114,7 @@ class ProveedorOpenAI(ProveedorIABase):
         **kwargs
     ) -> List[Dict[str, Any]]:
         """
-        Genera 2 a 3 preguntas adaptativas usando OpenAI GPT-4o-mini con fallback semiológico.
+        Genera 2 a 3 preguntas adaptativas usando OpenAI GPT-4o-mini con fallback semiológico no bloqueante.
         """
         if self.cliente:
             try:
@@ -120,19 +127,26 @@ class ProveedorOpenAI(ProveedorIABase):
                     medicacion_actual=medicacion_actual,
                     enfermedades_base=enfermedades_base
                 )
-                respuesta = self.cliente.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": "Eres un asistente médico en triaje. Genera un JSON con una lista 'preguntas' de 2 a 3 preguntas."
-                        },
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ],
-                    response_format={"type": "json_object"}
+
+                def llamar_openai_preguntas():
+                    return self.cliente.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": "Eres un asistente médico en triaje. Genera un JSON con una lista 'preguntas' de 2 a 3 preguntas."
+                            },
+                            {
+                                "role": "user",
+                                "content": prompt
+                            }
+                        ],
+                        response_format={"type": "json_object"}
+                    )
+
+                respuesta = await asyncio.wait_for(
+                    asyncio.to_thread(llamar_openai_preguntas),
+                    timeout=5.5
                 )
                 raw_json = respuesta.choices[0].message.content.strip()
                 parsed = json.loads(raw_json)
@@ -140,7 +154,7 @@ class ProveedorOpenAI(ProveedorIABase):
                 if isinstance(lista, list) and len(lista) >= 2:
                     return lista
             except Exception as e:
-                logger.warning(f"[ProveedorOpenAI] Error generando preguntas en OpenAI ({e}). Activando fallback.")
+                logger.warning(f"[ProveedorOpenAI] Error o timeout generando preguntas en OpenAI ({e}). Activando fallback.")
 
         return self.generar_preguntas_dinamicas_fallback(
             sintomas=sintomas,

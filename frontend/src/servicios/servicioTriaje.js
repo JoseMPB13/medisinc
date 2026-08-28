@@ -12,7 +12,7 @@ const clienteApi = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 15000,
+  timeout: 30000,
 });
 
 export const servicioTriaje = {
