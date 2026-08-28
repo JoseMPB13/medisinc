@@ -105,11 +105,17 @@ async def obtener_catalogo_especialidades():
             EsquemaItemCatalogoEspecialidad(
                 id=item["id"],
                 nombre=nombre_esp,
+                name=nombre_esp,
                 icono=item["icono"],
+                icon=item["icono"],
                 descripcion=item["descripcion"],
+                description=item["descripcion"],
                 medicos_activos_turno=len(docs),
+                active_doctors=len(docs),
                 medicos_disponibles=docs,
-                medico_de_guardia=medico_turno
+                available_doctors=docs,
+                medico_de_guardia=medico_turno,
+                on_duty_doctor=medico_turno
             )
         )
 

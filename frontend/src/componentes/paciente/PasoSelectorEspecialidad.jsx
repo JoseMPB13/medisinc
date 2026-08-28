@@ -1,6 +1,7 @@
 /**
  * Componente: Paso 0 - Selector Interactivo de Especialidad Médica con Médico de Turno.
- * Permite al paciente elegir la rama de atención y muestra al médico de guardia que lo atenderá.
+ * Al hacer clic en cualquier especialidad, selecciona la rama y el médico de guardia
+ * y pasa de forma automática e inmediata al formulario de datos del paciente (Paso 1).
  */
 
 import React, { useState, useEffect } from 'react';
@@ -50,14 +51,15 @@ export const PasoSelectorEspecialidad = ({
       try {
         setCargando(true);
         const data = await servicioTriaje.obtenerEspecialidades();
-        if (montado) {
+        if (montado && Array.isArray(data) && data.length > 0) {
           setCatalogo(data);
-          // Si no hay especialidad preseleccionada, asignar la primera
-          if (!especialidadSeleccionada && data.length > 0) {
+          // Si no hay especialidad preseleccionada, preconfigurar con la primera
+          if (!especialidadSeleccionada) {
             const primerItem = data[0];
-            const medicoTurno = primerItem.medico_de_guardia || (primerItem.medicos_disponibles && primerItem.medicos_disponibles[0]);
+            const nombreEsp = primerItem.nombre || primerItem.name || 'Medicina General';
+            const medicoTurno = primerItem.medico_de_guardia || primerItem.on_duty_doctor || (primerItem.medicos_disponibles && primerItem.medicos_disponibles[0]);
             onSeleccionarEspecialidad(
-              primerItem.nombre,
+              nombreEsp,
               medicoTurno?.id || 'doc-med-general-01',
               medicoTurno?.nombre_completo || medicoTurno?.name || 'Dr. Carlos Menacho'
             );
@@ -79,33 +81,37 @@ export const PasoSelectorEspecialidad = ({
     };
   }, []);
 
-  const manejarSeleccion = (esp) => {
-    const medicoTurno = esp.medico_de_guardia || (esp.medicos_disponibles && esp.medicos_disponibles[0]);
+  // Al hacer clic en una especialidad: selecciona y avanza inmediatamente al formulario
+  const manejarClickEspecialidad = (esp) => {
+    const nombreEsp = esp.nombre || esp.name || 'Medicina General';
+    const medicoTurno =
+      esp.medico_de_guardia ||
+      esp.on_duty_doctor ||
+      (esp.medicos_disponibles && esp.medicos_disponibles[0]) ||
+      (esp.available_doctors && esp.available_doctors[0]);
+
     const medicoId = medicoTurno?.id || 'doc-med-general-01';
     const medicoNombre = medicoTurno?.nombre_completo || medicoTurno?.name || 'Dr. Carlos Menacho';
 
-    onSeleccionarEspecialidad(esp.nombre, medicoId, medicoNombre);
-  };
-
-  const itemSeleccionado = catalogo.find((e) => e.nombre === especialidadSeleccionada);
-  const medicoTurnoActual = itemSeleccionado?.medico_de_guardia || {
-    nombre_completo: medicoAsignadoNombre || 'Dr. Carlos Menacho',
-    especialidad: especialidadSeleccionada || 'Medicina General'
+    onSeleccionarEspecialidad(nombreEsp, medicoId, medicoNombre);
+    if (onContinuar) {
+      onContinuar();
+    }
   };
 
   return (
     <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl animate-fade-in">
       {/* Encabezado del Paso */}
-      <div className="mb-8">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-400 text-xs font-semibold uppercase tracking-wider mb-3">
+      <div className="mb-8 text-center sm:text-left">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-400 text-xs font-bold uppercase tracking-wider mb-3">
           <Activity className="w-3.5 h-3.5" />
-          <span>Paso 0 de 3 · Selección de Especialidad y Médico</span>
+          <span>Paso 0 de 3 · Elige tu Especialidad</span>
         </div>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+        <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
           ¿Qué tipo de atención médica necesitas hoy?
         </h2>
         <p className="text-slate-400 text-sm mt-2 leading-relaxed">
-          Selecciona la especialidad de consulta. Un médico de guardia evaluará tu pre-triaje de forma personalizada.
+          Haz clic en la especialidad para asignarte con el médico de turno y pasar al formulario de ingreso.
         </p>
       </div>
 
@@ -113,133 +119,102 @@ export const PasoSelectorEspecialidad = ({
       {cargando ? (
         <div className="py-16 flex flex-col items-center justify-center text-slate-400 gap-3">
           <Loader2 className="w-8 h-8 text-teal-400 animate-spin" />
-          <p className="text-sm font-medium">Consultando especialistas de guardia...</p>
+          <p className="text-sm font-medium">Consultando especialistas de guardia activos...</p>
         </div>
       ) : errorCarga ? (
         <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm flex items-center gap-3">
           <AlertCircle className="w-5 h-5 flex-shrink-0 text-amber-400" />
-          <span>{errorCarga} Mostrando opciones básicas de contingencia.</span>
+          <span>{errorCarga} Mostrando opciones de contingencia.</span>
         </div>
       ) : (
-        <>
-          {/* Cuadrícula de Tarjetas de Especialidades */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {catalogo.map((esp) => {
-              const IconoComponente = MAPA_ICONOS[esp.icono] || Stethoscope;
-              const esSeleccionado = especialidadSeleccionada === esp.nombre;
-              const tieneEspecialistaActivo = esp.medicos_activos_turno > 0;
-              const medicoTurno = esp.medico_de_guardia;
+        /* Cuadrícula de Tarjetas de Especialidades */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          {catalogo.map((esp) => {
+            const nombreEsp = esp.nombre || esp.name || 'Medicina General';
+            const iconoEsp = esp.icono || esp.icon || 'Stethoscope';
+            const descripcionEsp = esp.descripcion || esp.description || 'Atención médica integral';
+            const medicosActivos = esp.medicos_activos_turno ?? esp.active_doctors ?? 0;
+            const tieneEspecialistaActivo = medicosActivos > 0;
 
-              return (
-                <div
-                  key={esp.id}
-                  onClick={() => manejarSeleccion(esp)}
-                  className={`group relative p-5 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between ${
-                    esSeleccionado
-                      ? 'bg-gradient-to-b from-teal-950/60 to-slate-900/90 border-teal-400/80 shadow-lg shadow-teal-500/10 ring-2 ring-teal-500/30 scale-[1.01]'
-                      : 'bg-slate-950/60 border-slate-800/90 hover:border-slate-700 hover:bg-slate-800/40'
-                  }`}
-                >
-                  <div>
-                    {/* Cabecera de la tarjeta: Icono + Check */}
-                    <div className="flex items-center justify-between mb-3.5">
-                      <div
-                        className={`p-3 rounded-xl transition-colors ${
-                          esSeleccionado
-                            ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/20'
-                            : 'bg-slate-800 text-teal-400 group-hover:bg-slate-700 group-hover:text-teal-300'
-                        }`}
-                      >
-                        <IconoComponente className="w-6 h-6" />
-                      </div>
+            const medicoTurno =
+              esp.medico_de_guardia ||
+              esp.on_duty_doctor ||
+              (esp.medicos_disponibles && esp.medicos_disponibles[0]) ||
+              (esp.available_doctors && esp.available_doctors[0]);
 
-                      {esSeleccionado ? (
-                        <div className="flex items-center gap-1 text-teal-400 font-semibold text-xs bg-teal-500/10 px-2.5 py-1 rounded-full border border-teal-500/30">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-teal-400" />
-                          <span>Elegida</span>
-                        </div>
-                      ) : null}
-                    </div>
+            const nombreMedico = medicoTurno?.nombre_completo || medicoTurno?.name || 'Dr. Carlos Menacho';
+            const esSeleccionado = especialidadSeleccionada === nombreEsp;
+            const IconoComponente = MAPA_ICONOS[iconoEsp] || Stethoscope;
 
-                    {/* Nombre y Descripción */}
-                    <h3
-                      className={`font-bold text-base transition-colors ${
-                        esSeleccionado ? 'text-teal-300' : 'text-slate-100 group-hover:text-white'
+            return (
+              <div
+                key={esp.id || nombreEsp}
+                onClick={() => manejarClickEspecialidad(esp)}
+                className={`group relative p-5 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between hover:scale-[1.02] active:scale-[0.99] ${
+                  esSeleccionado
+                    ? 'bg-gradient-to-b from-teal-950/70 to-slate-900/90 border-teal-400 shadow-xl shadow-teal-500/10 ring-2 ring-teal-500/40'
+                    : 'bg-slate-950/60 border-slate-800 hover:border-teal-500/50 hover:bg-slate-800/40'
+                }`}
+              >
+                <div>
+                  {/* Cabecera de la tarjeta: Icono + Badge */}
+                  <div className="flex items-center justify-between mb-3.5">
+                    <div
+                      className={`p-3 rounded-xl transition-colors ${
+                        esSeleccionado
+                          ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/20'
+                          : 'bg-slate-800 text-teal-400 group-hover:bg-teal-500/20 group-hover:text-teal-300'
                       }`}
                     >
-                      {esp.nombre}
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                      {esp.descripcion}
-                    </p>
+                      <IconoComponente className="w-6 h-6" />
+                    </div>
+
+                    <div className="flex items-center gap-1 text-teal-400 font-bold text-xs bg-teal-500/10 px-2.5 py-1 rounded-full border border-teal-500/30 group-hover:bg-teal-500 group-hover:text-slate-950 transition-colors">
+                      <span>Elegir</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
                   </div>
 
-                  {/* Pie de Tarjeta: Disponibilidad y Médico de Turno */}
-                  <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
+                  {/* Nombre y Descripción */}
+                  <h3 className="font-extrabold text-base text-white group-hover:text-teal-300 transition-colors">
+                    {nombreEsp}
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1.5 leading-relaxed line-clamp-2">
+                    {descripcionEsp}
+                  </p>
+                </div>
+
+                {/* Pie de Tarjeta: Médico de Turno */}
+                <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400 font-medium">Médico de Guardia:</span>
                     {tieneEspecialistaActivo ? (
-                      <span className="inline-flex items-center gap-1.5 text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                      <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                        Especialista en turno
+                        En Turno
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 text-amber-300 font-medium bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                      <span className="inline-flex items-center gap-1 text-[10px] text-amber-300 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
                         Guardia General
                       </span>
                     )}
-
-                    <span className="text-slate-400 font-mono text-[10px]">
-                      {tieneEspecialistaActivo ? `${esp.medicos_activos_turno} médico(s)` : 'Cobertura Activa'}
-                    </span>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Tarjeta Destacada del Médico Asignado */}
-          {especialidadSeleccionada && (
-            <div className="p-4 rounded-2xl bg-teal-950/40 border border-teal-500/30 shadow-md mb-8 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-teal-500/20 border border-teal-500/40 text-teal-300">
-                  <UserCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-teal-400 block">
-                    Médico de Guardia Asignado para tu Atención:
-                  </span>
-                  <p className="text-sm font-bold text-white">
-                    {medicoTurnoActual?.nombre_completo || medicoTurnoActual?.name || 'Dr. Carlos Menacho'}{' '}
-                    <span className="text-xs font-normal text-slate-400">
-                      — {itemSeleccionado?.nombre || 'Medicina General'}
-                    </span>
+                  <p className="font-bold text-teal-300 text-xs truncate">
+                    {nombreMedico}
                   </p>
                 </div>
               </div>
-
-              <span className="hidden sm:inline-flex items-center gap-1 text-xs text-emerald-300 font-semibold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30">
-                <ShieldCheck className="w-3.5 h-3.5" /> En Turno Activo
-              </span>
-            </div>
-          )}
-        </>
+            );
+          })}
+        </div>
       )}
 
-      {/* Botón de Continuar */}
-      <div className="flex items-center justify-between pt-4 border-t border-slate-800">
-        <div className="text-xs text-slate-400 flex items-center gap-1.5">
+      {/* Pie Informativo */}
+      <div className="flex items-center justify-between pt-4 border-t border-slate-800 text-xs text-slate-400">
+        <div className="flex items-center gap-1.5">
           <ShieldCheck className="w-4 h-4 text-teal-400" />
-          <span>Atención confidencial cifrada con estándar médico.</span>
+          <span>Atención confidencial cifrada con estándar médico internacional.</span>
         </div>
-
-        <button
-          type="button"
-          onClick={onContinuar}
-          disabled={!especialidadSeleccionada || cargando}
-          className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black py-3 px-7 rounded-2xl shadow-lg shadow-teal-500/20 transition-all flex items-center gap-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed group cursor-pointer"
-        >
-          <span>Continuar a Mis Datos</span>
-          <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-        </button>
       </div>
     </div>
   );

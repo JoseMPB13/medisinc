@@ -272,12 +272,18 @@ class EsquemaItemCatalogoEspecialidad(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     id: str
-    nombre: str = Field(..., alias="name")
-    icono: str = Field("Stethoscope", alias="icon")
-    descripcion: str = Field(..., alias="description")
-    medicos_activos_turno: int = Field(0, alias="active_doctors", description="Cantidad de médicos activos en guardia")
-    medicos_disponibles: List[Dict[str, Any]] = Field(default_factory=list, alias="available_doctors", description="Lista de médicos activos en turno")
-    medico_de_guardia: Optional[Dict[str, Any]] = Field(default=None, alias="on_duty_doctor", description="Médico asignado predeterminado de guardia")
+    nombre: str
+    name: Optional[str] = None
+    icono: str = "Stethoscope"
+    icon: Optional[str] = "Stethoscope"
+    descripcion: str
+    description: Optional[str] = None
+    medicos_activos_turno: int = 0
+    active_doctors: Optional[int] = 0
+    medicos_disponibles: List[Dict[str, Any]] = Field(default_factory=list)
+    available_doctors: List[Dict[str, Any]] = Field(default_factory=list)
+    medico_de_guardia: Optional[Dict[str, Any]] = None
+    on_duty_doctor: Optional[Dict[str, Any]] = None
 
 
 class EsquemaAsignacionPacienteEntrada(BaseModel):

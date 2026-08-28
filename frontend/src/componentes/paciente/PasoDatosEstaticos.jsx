@@ -63,32 +63,46 @@ export const PasoDatosEstaticos = ({ datos, alCambiar, alSiguiente, alAtras }) =
 
   return (
     <form onSubmit={manejarContinuar} className="space-y-6 animate-fade-in text-slate-100">
-      {/* Encabezado del Paso con Badge de Especialidad */}
-      <div className="border-b border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-400 text-xs font-semibold uppercase tracking-wider mb-1.5">
-            <Activity className="w-3.5 h-3.5" />
-            <span>Paso 1 de 3 · Datos Personales y Motivo de Consulta</span>
-          </div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            Identificación y Síntoma Actual
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Atención en <span className="text-teal-300 font-semibold">{especialidad}</span> con{' '}
-            <span className="text-white font-medium">{medicoNombre}</span>
-          </p>
+      {/* Encabezado del Paso con Banner Destacado de Médico de Guardia */}
+      <div className="space-y-3">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-400 text-xs font-semibold uppercase tracking-wider">
+          <Activity className="w-3.5 h-3.5" />
+          <span>Paso 1 de 3 · Formulario de Ingreso</span>
         </div>
 
-        {alAtras && (
-          <button
-            type="button"
-            onClick={alAtras}
-            className="self-start sm:self-auto text-xs text-slate-400 hover:text-teal-400 border border-slate-700/80 px-3 py-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 transition flex items-center gap-1.5 cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Cambiar especialidad</span>
-          </button>
-        )}
+        {/* Tarjeta Visual Destacada de Asignación Médica */}
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-teal-950/80 via-slate-900 to-slate-900 border border-teal-500/40 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="p-3 bg-teal-500 text-slate-950 rounded-2xl shadow-md shadow-teal-500/20 font-black">
+              <User className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-teal-400 block">
+                Médico de Guardia que te Atenderá:
+              </span>
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                {medicoNombre}
+                <span className="text-xs font-medium text-teal-300 bg-teal-950 px-2.5 py-0.5 rounded-full border border-teal-500/30">
+                  {especialidad}
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Tu pre-triaje y expediente se vincularán directamente a la consulta del doctor.
+              </p>
+            </div>
+          </div>
+
+          {alAtras && (
+            <button
+              type="button"
+              onClick={alAtras}
+              className="self-start sm:self-auto text-xs font-bold text-teal-300 hover:text-white border border-teal-500/30 px-3.5 py-2 rounded-xl bg-teal-950/60 hover:bg-teal-900/60 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0 shadow-sm"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Cambiar Especialidad</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Grid 1: Nombre y CI */}
