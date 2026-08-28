@@ -37,7 +37,12 @@ class ProveedorGroq(ProveedorIABase):
         edad: int,
         genero: str,
         datos_estaticos: Optional[Dict[str, Any]] = None,
-        respuestas_dinamicas: Optional[Dict[str, Any]] = None
+        respuestas_dinamicas: Optional[Dict[str, Any]] = None,
+        especialidad_solicitada: Optional[str] = "Medicina General",
+        alergias_medicamentosas: Optional[str] = "Ninguna conocida",
+        medicacion_actual: Optional[str] = "Ninguna",
+        enfermedades_base: Optional[List[str]] = None,
+        **kwargs
     ) -> EsquemaSalidaEstructuradaIA:
         """
         Procesa el resumen clínico enviando el prompt estructurado a Groq Cloud con JSON Mode.
@@ -49,6 +54,14 @@ class ProveedorGroq(ProveedorIABase):
             "age": edad,
             "genero": genero,
             "gender": genero,
+            "especialidad_solicitada": especialidad_solicitada or "Medicina General",
+            "requested_specialty": especialidad_solicitada or "Medicina General",
+            "alergias_medicamentosas": alergias_medicamentosas or "Ninguna conocida",
+            "drug_allergies": alergias_medicamentosas or "Ninguna conocida",
+            "medicacion_actual": medicacion_actual or "Ninguna",
+            "current_medication": medicacion_actual or "Ninguna",
+            "enfermedades_base": enfermedades_base or [],
+            "base_diseases": enfermedades_base or [],
             "datos_estaticos": datos_estaticos or {},
             "static_data": datos_estaticos or {},
             "respuestas_dinamicas": respuestas_dinamicas or {},
@@ -86,43 +99,58 @@ class ProveedorGroq(ProveedorIABase):
         self,
         sintomas: str,
         edad: int,
-        genero: str
+        genero: str,
+        especialidad_solicitada: str = "Medicina General",
+        alergias_medicamentosas: str = "Ninguna conocida",
+        medicacion_actual: str = "Ninguna",
+        enfermedades_base: Optional[List[str]] = None,
+        **kwargs
     ) -> List[Dict[str, Any]]:
         """
         Genera 2 a 3 preguntas adaptativas usando Groq Llama 3 con fallback semiológico.
         """
         if self.cliente:
             try:
-                prompt = self.construir_prompt_preguntas_dinamicas(sintomas, edad, genero)
+                prompt = self.construir_prompt_preguntas_dinamicas(
+                    sintomas=sintomas,
+                    edad=edad,
+                    genero=genero,
+                    especialidad_solicitada=especialidad_solicitada,
+                    alergias_medicamentosas=alergias_medicamentosas,
+                    medicacion_actual=medicacion_actual,
+                    enfermedades_base=enfermedades_base
+                )
                 chat_completion = self.cliente.chat.completions.create(
                     messages=[
                         {
                             "role": "system",
-                            "content": "Eres un médico de triaje. Responde estrictamente con un JSON array de 2 a 3 preguntas."
+                            "content": "Eres un asistente médico en triaje. Genera un array JSON de 2 a 3 preguntas estructuradas."
                         },
                         {
                             "role": "user",
                             "content": prompt
                         }
                     ],
-                    model="llama3-70b-8192"
+                    model="llama3-70b-8192",
+                    response_format={"type": "json_object"}
                 )
                 raw_json = chat_completion.choices[0].message.content.strip()
-                # Limpieza de posibles bloques markdown
-                if "```json" in raw_json:
-                    raw_json = raw_json.split("```json")[1].split("```")[0].strip()
-                elif "```" in raw_json:
-                    raw_json = raw_json.split("```")[1].split("```")[0].strip()
-
                 parsed = json.loads(raw_json)
-                if isinstance(parsed, list) and len(parsed) >= 2:
-                    return parsed
-                elif isinstance(parsed, dict) and "preguntas" in parsed:
-                    return parsed["preguntas"]
+                lista = parsed if isinstance(parsed, list) else parsed.get("preguntas") or parsed.get("questions") or []
+                if isinstance(lista, list) and len(lista) >= 2:
+                    return lista
             except Exception as e:
-                logger.warning(f"[ProveedorGroq] Error generando preguntas dinámicas con Groq ({e}). Usando fallback.")
+                logger.warning(f"[ProveedorGroq] Error generando preguntas en Groq ({e}). Activando fallback.")
 
-        return self.generar_preguntas_dinamicas_fallback(sintomas, edad, genero)
+        return self.generar_preguntas_dinamicas_fallback(
+            sintomas=sintomas,
+            edad=edad,
+            genero=genero,
+            especialidad_solicitada=especialidad_solicitada,
+            alergias_medicamentosas=alergias_medicamentosas,
+            medicacion_actual=medicacion_actual,
+            enfermedades_base=enfermedades_base
+        )
 
 
 # -----------------------------------------------------------------------------

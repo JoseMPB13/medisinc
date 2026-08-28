@@ -95,6 +95,8 @@ def sanitizar_objeto_expediente(registro: Dict[str, Any]) -> Dict[str, Any]:
 async def obtener_panel_medico(
     solo_disponibles: bool = Query(False, description="Filtrar únicamente pacientes sin médico asignado"),
     only_available: Optional[bool] = Query(None, include_in_schema=False),
+    especialidad: Optional[str] = Query(None, description="Filtrar pacientes por especialidad médica"),
+    specialty: Optional[str] = Query(None, include_in_schema=False),
     usuario_actual: Dict[str, Any] = Depends(obtener_medico_actual)
 ):
     """
@@ -103,10 +105,15 @@ async def obtener_panel_medico(
     1. ROJO / RED (🔴 Urgente)
     2. AMARILLO / YELLOW (🟡 Prioritario)
     3. VERDE / GREEN (🟢 No Urgente)
+    Soporta filtrado opcional por especialidad médica.
     """
     try:
         filtrar_disponibles = only_available if only_available is not None else solo_disponibles
-        registros_ordenados = servicio_supabase.obtener_cola_guardia(solo_disponibles=filtrar_disponibles)
+        esp_filtro = specialty or especialidad
+        registros_ordenados = servicio_supabase.obtener_cola_guardia(
+            solo_disponibles=filtrar_disponibles,
+            especialidad=esp_filtro
+        )
 
         registros_limpios = [sanitizar_objeto_expediente(r) for r in registros_ordenados]
 

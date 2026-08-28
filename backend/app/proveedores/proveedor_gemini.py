@@ -55,7 +55,12 @@ class ProveedorGemini(ProveedorIABase):
         edad: int,
         genero: str,
         datos_estaticos: Optional[Dict[str, Any]] = None,
-        respuestas_dinamicas: Optional[Dict[str, Any]] = None
+        respuestas_dinamicas: Optional[Dict[str, Any]] = None,
+        especialidad_solicitada: Optional[str] = "Medicina General",
+        alergias_medicamentosas: Optional[str] = "Ninguna conocida",
+        medicacion_actual: Optional[str] = "Ninguna",
+        enfermedades_base: Optional[List[str]] = None,
+        **kwargs
     ) -> EsquemaSalidaEstructuradaIA:
         """
         Procesa los datos clínicos del paciente. Si la API de Gemini falla o no responde,
@@ -68,6 +73,14 @@ class ProveedorGemini(ProveedorIABase):
             "age": edad,
             "genero": genero,
             "gender": genero,
+            "especialidad_solicitada": especialidad_solicitada or "Medicina General",
+            "requested_specialty": especialidad_solicitada or "Medicina General",
+            "alergias_medicamentosas": alergias_medicamentosas or "Ninguna conocida",
+            "drug_allergies": alergias_medicamentosas or "Ninguna conocida",
+            "medicacion_actual": medicacion_actual or "Ninguna",
+            "current_medication": medicacion_actual or "Ninguna",
+            "enfermedades_base": enfermedades_base or [],
+            "base_diseases": enfermedades_base or [],
             "datos_estaticos": datos_estaticos or {},
             "static_data": datos_estaticos or {},
             "respuestas_dinamicas": respuestas_dinamicas or {},
@@ -92,14 +105,27 @@ class ProveedorGemini(ProveedorIABase):
         self,
         sintomas: str,
         edad: int,
-        genero: str
+        genero: str,
+        especialidad_solicitada: str = "Medicina General",
+        alergias_medicamentosas: str = "Ninguna conocida",
+        medicacion_actual: str = "Ninguna",
+        enfermedades_base: Optional[List[str]] = None,
+        **kwargs
     ) -> List[Dict[str, Any]]:
         """
         Genera 2 a 3 preguntas dinámicas adaptativas aplicando semiología PQRST con fallback clínico.
         """
         if self.modelo:
             try:
-                prompt = self.construir_prompt_preguntas_dinamicas(sintomas, edad, genero)
+                prompt = self.construir_prompt_preguntas_dinamicas(
+                    sintomas=sintomas,
+                    edad=edad,
+                    genero=genero,
+                    especialidad_solicitada=especialidad_solicitada,
+                    alergias_medicamentosas=alergias_medicamentosas,
+                    medicacion_actual=medicacion_actual,
+                    enfermedades_base=enfermedades_base
+                )
                 respuesta = self.modelo.generate_content(prompt)
                 parsed = json.loads(respuesta.text.strip())
                 if isinstance(parsed, list) and len(parsed) >= 2:
@@ -107,7 +133,15 @@ class ProveedorGemini(ProveedorIABase):
             except Exception as e:
                 logger.warning(f"[ProveedorGemini] Error generando preguntas dinámicas ({e}). Activando fallback.")
 
-        return self.generar_preguntas_dinamicas_fallback(sintomas, edad, genero)
+        return self.generar_preguntas_dinamicas_fallback(
+            sintomas=sintomas,
+            edad=edad,
+            genero=genero,
+            especialidad_solicitada=especialidad_solicitada,
+            alergias_medicamentosas=alergias_medicamentosas,
+            medicacion_actual=medicacion_actual,
+            enfermedades_base=enfermedades_base
+        )
 
 
 # -----------------------------------------------------------------------------

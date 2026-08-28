@@ -1,16 +1,17 @@
 """
 Esquemas de Validación Pydantic v2 para el Proceso de Pre-Triaje Clínico.
-Define la estructura de entrada del paciente, preguntas dinámicas adaptativas,
+Define la estructura de entrada del paciente, selección de especialidad médica,
+antecedentes clínicos ampliados, preguntas dinámicas adaptativas,
 el formato estricto de salida del resumen de IA y la respuesta consolidada entregada al Frontend.
 """
 
 from typing import List, Dict, Any, Optional, Literal, Union
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 class EsquemaEntradaPaciente(BaseModel):
     """
-    Datos de entrada capturados en el formulario público del paciente.
+    Datos de entrada capturados en el formulario público del paciente (Pasos 0 y 1).
     """
     model_config = ConfigDict(populate_by_name=True, extra="allow")
 
@@ -19,6 +20,33 @@ class EsquemaEntradaPaciente(BaseModel):
     edad: int = Field(..., ge=0, le=120, alias="age", description="Edad del paciente en años", example=35)
     genero: str = Field(..., alias="gender", description="Género del paciente", example="Masculino")
     sintomas_brutos: str = Field(..., alias="raw_symptoms", description="Síntoma principal en texto libre", example="Me duele fuerte el pecho y tengo opresión")
+    
+    # Especialidad médica seleccionada y antecedentes clínicos ampliados
+    especialidad_solicitada: str = Field(
+        default="Medicina General",
+        alias="requested_specialty",
+        description="Especialidad médica seleccionada por el paciente en el Paso 0",
+        example="Medicina General"
+    )
+    alergias_medicamentosas: str = Field(
+        default="Ninguna conocida",
+        alias="drug_allergies",
+        description="Alergias a medicamentos declaradas",
+        example="Penicilina, AINEs"
+    )
+    medicacion_actual: str = Field(
+        default="Ninguna",
+        alias="current_medication",
+        description="Fármacos o tratamientos que consume regularmente",
+        example="Losartán 50mg, Metformina 850mg"
+    )
+    enfermedades_base: List[str] = Field(
+        default_factory=list,
+        alias="base_diseases",
+        description="Comorbilidades o enfermedades crónicas diagnosticadas",
+        example=["Hipertensión arterial", "Diabetes mellitus tipo 2"]
+    )
+
     datos_estaticos: Dict[str, Any] = Field(
         default_factory=dict,
         alias="static_data",
@@ -56,6 +84,22 @@ class EsquemaEntradaPaciente(BaseModel):
     def dynamic_answers(self) -> Optional[Dict[str, Any]]:
         return self.respuestas_dinamicas
 
+    @property
+    def requested_specialty(self) -> str:
+        return self.especialidad_solicitada
+
+    @property
+    def drug_allergies(self) -> str:
+        return self.alergias_medicamentosas
+
+    @property
+    def current_medication(self) -> str:
+        return self.medicacion_actual
+
+    @property
+    def base_diseases(self) -> List[str]:
+        return self.enfermedades_base
+
 
 class EsquemaSalidaEstructuradaIA(BaseModel):
     """
@@ -75,8 +119,8 @@ class EsquemaSalidaEstructuradaIA(BaseModel):
     )
     factores_agravantes_antecedentes: List[str] = Field(
         default_factory=list,
-        description="Factores gatillantes, comorbilidades o antecedentes mencionados",
-        example=["Hipertensión arterial"]
+        description="Factores gatillantes, comorbilidades, alergias o medicación mencionada",
+        example=["Hipertensión arterial", "Alergia a Penicilina"]
     )
     senales_alerta_identificadas: List[str] = Field(
         default_factory=list,
@@ -98,6 +142,23 @@ class EsquemaSalidaEstructuradaIA(BaseModel):
         description="Preguntas o datos clave no especificados que el facultativo debe interrogar",
         example=["Irradiación a extremidad superior izquierda", "Antecedentes coronarios familiares"]
     )
+
+    @field_validator(
+        "sintomas_principales",
+        "factores_agravantes_antecedentes",
+        "senales_alerta_identificadas",
+        "informacion_faltante_critica",
+        mode="before"
+    )
+    @classmethod
+    def normalizar_listas(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, str):
+            return [v] if v.strip() else []
+        if isinstance(v, list):
+            return [str(item) for item in v]
+        return [str(v)]
 
 
 class EsquemaRespuestaInmediataTriaje(BaseModel):
@@ -137,7 +198,7 @@ class EsquemaRespuestaTriaje(BaseModel):
     """
     Respuesta consolidada completa con resultado de IA y Safety Overrides.
     """
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     codigo_acceso: str = Field(..., alias="access_code", description="Código alfanumérico único para el paciente")
     estado: str = Field(..., alias="status", description="Estado del registro (RECIBIDO, LISTO, EN_CONSULTA, REVISADO)")
@@ -145,6 +206,10 @@ class EsquemaRespuestaTriaje(BaseModel):
     sobreescritura_aplicada: bool = Field(False, alias="override_applied")
     motivo_sobreescritura: Optional[str] = Field(None, alias="override_reason")
     resultado_ia: Optional[EsquemaSalidaEstructuradaIA] = Field(None, alias="ai_result")
+    especialidad_solicitada: Optional[str] = Field("Medicina General", alias="requested_specialty")
+    alergias_medicamentosas: Optional[str] = Field("Ninguna conocida", alias="drug_allergies")
+    medicacion_actual: Optional[str] = Field("Ninguna", alias="current_medication")
+    enfermedades_base: Optional[List[str]] = Field(default_factory=list, alias="base_diseases")
     medico_asignado_id: Optional[str] = Field(None, alias="assigned_doctor_id")
     asignado_en: Optional[str] = Field(None, alias="assigned_at")
     creado_en: str = Field(..., alias="created_at")
@@ -157,6 +222,7 @@ class EsquemaOpcionPregunta(BaseModel):
     valor: Optional[str] = Field(None, alias="value")
     etiqueta: str = Field(..., alias="label")
     texto: Optional[str] = Field(None, alias="label")
+    es_alerta_roja: Optional[bool] = Field(False, alias="is_red_flag")
 
 
 class EsquemaItemPreguntaDinamica(BaseModel):
@@ -170,13 +236,17 @@ class EsquemaItemPreguntaDinamica(BaseModel):
 
 
 class EsquemaEntradaPreguntasDinamicas(BaseModel):
-    """Entrada para solicitar 2 a 3 preguntas adaptativas de clarificación."""
-    model_config = ConfigDict(populate_by_name=True)
+    """Entrada para solicitar 2 a 3 preguntas adaptativas de clarificación por especialidad."""
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     sintomas_brutos: Optional[str] = Field(None, alias="symptom")
     sintoma: Optional[str] = Field(None, alias="symptom")
     edad: int = Field(..., ge=0, le=120, alias="age")
     genero: Optional[str] = Field("No especificado", alias="gender")
+    especialidad_solicitada: Optional[str] = Field("Medicina General", alias="requested_specialty")
+    alergias_medicamentosas: Optional[str] = Field("Ninguna conocida", alias="drug_allergies")
+    medicacion_actual: Optional[str] = Field("Ninguna", alias="current_medication")
+    enfermedades_base: Optional[List[str]] = Field(default_factory=list, alias="base_diseases")
 
 
 class EsquemaRespuestaPreguntasDinamicas(BaseModel):
@@ -185,6 +255,17 @@ class EsquemaRespuestaPreguntasDinamicas(BaseModel):
 
     sintoma_evaluado: Optional[str] = Field("", alias="symptom_evaluated")
     preguntas: List[Dict[str, Any]] = Field(default_factory=list, alias="questions")
+
+
+class EsquemaItemCatalogoEspecialidad(BaseModel):
+    """Ítem individual del catálogo de especialidades médicas."""
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str
+    nombre: str
+    icono: str
+    descripcion: str
+    medicos_activos_turno: int = Field(0, description="Cantidad de médicos activos en guardia")
 
 
 class EsquemaAsignacionPacienteEntrada(BaseModel):
@@ -209,7 +290,7 @@ class EsquemaRevisionMedicaEntrada(BaseModel):
 
 class EsquemaDetalleExpedienteMedico(BaseModel):
     """Detalle completo del expediente para visualización en el portal médico."""
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     id: str
     codigo_acceso: str = Field(..., alias="access_code")
@@ -218,6 +299,10 @@ class EsquemaDetalleExpedienteMedico(BaseModel):
     edad: int = Field(..., alias="age")
     genero: str = Field(..., alias="gender")
     sintomas_brutos: str = Field(..., alias="raw_symptoms")
+    especialidad_solicitada: Optional[str] = Field("Medicina General", alias="requested_specialty")
+    alergias_medicamentosas: Optional[str] = Field("Ninguna conocida", alias="drug_allergies")
+    medicacion_actual: Optional[str] = Field("Ninguna", alias="current_medication")
+    enfermedades_base: Optional[List[str]] = Field(default_factory=list, alias="base_diseases")
     datos_estaticos: Dict[str, Any] = Field(default_factory=dict, alias="static_data")
     respuestas_dinamicas: Dict[str, Any] = Field(default_factory=dict, alias="dynamic_answers")
     estado: str = Field(..., alias="status")
@@ -241,3 +326,4 @@ DynamicQuestionsResponseSchema = EsquemaRespuestaPreguntasDinamicas
 DynamicQuestion = EsquemaItemPreguntaDinamica
 QuestionOption = EsquemaOpcionPregunta
 MedicalReviewSchema = EsquemaRevisionMedicaEntrada
+SpecialtyCatalogItemSchema = EsquemaItemCatalogoEspecialidad

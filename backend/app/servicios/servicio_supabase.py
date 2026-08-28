@@ -128,12 +128,17 @@ class ServicioSupabase:
         datos_estaticos: Dict[str, Any],
         respuestas_dinamicas: Optional[Dict[str, Any]] = None,
         estado: str = "RECIBIDO",
-        prioridad_final: Optional[str] = None
+        prioridad_final: Optional[str] = None,
+        especialidad_solicitada: str = "Medicina General",
+        alergias_medicamentosas: str = "Ninguna conocida",
+        medicacion_actual: str = "Ninguna",
+        enfermedades_base: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Inserta el registro de pre-triaje capturado en el portal del paciente.
         """
         ahora_iso = datetime.now(timezone.utc).isoformat()
+        comorbilidades = enfermedades_base or []
 
         # Payload en español
         registro_es = {
@@ -145,6 +150,10 @@ class ServicioSupabase:
             "edad": edad,
             "genero": genero,
             "sintomas_brutos": sintomas_brutos,
+            "especialidad_solicitada": especialidad_solicitada or "Medicina General",
+            "alergias_medicamentosas": alergias_medicamentosas or "Ninguna conocida",
+            "medicacion_actual": medicacion_actual or "Ninguna",
+            "enfermedades_base": comorbilidades,
             "datos_estaticos": datos_estaticos or {},
             "respuestas_dinamicas": respuestas_dinamicas or {},
             "estado": estado,
@@ -162,6 +171,10 @@ class ServicioSupabase:
             "age": edad,
             "gender": genero,
             "raw_symptoms": sintomas_brutos,
+            "requested_specialty": especialidad_solicitada or "Medicina General",
+            "drug_allergies": alergias_medicamentosas or "Ninguna conocida",
+            "current_medication": medicacion_actual or "Ninguna",
+            "base_diseases": comorbilidades,
             "static_data": datos_estaticos or {},
             "dynamic_answers": respuestas_dinamicas or {},
             "status": "RECEIVED" if estado == "RECIBIDO" else estado,
@@ -202,7 +215,11 @@ class ServicioSupabase:
             datos_estaticos=datos_registro.get("datos_estaticos") or datos_registro.get("static_data"),
             respuestas_dinamicas=datos_registro.get("respuestas_dinamicas") or datos_registro.get("dynamic_answers"),
             estado=datos_registro.get("estado") or datos_registro.get("status", "RECIBIDO"),
-            prioridad_final=datos_registro.get("prioridad_final") or datos_registro.get("final_priority")
+            prioridad_final=datos_registro.get("prioridad_final") or datos_registro.get("final_priority"),
+            especialidad_solicitada=datos_registro.get("especialidad_solicitada") or datos_registro.get("requested_specialty", "Medicina General"),
+            alergias_medicamentosas=datos_registro.get("alergias_medicamentosas") or datos_registro.get("drug_allergies", "Ninguna conocida"),
+            medicacion_actual=datos_registro.get("medicacion_actual") or datos_registro.get("current_medication", "Ninguna"),
+            enfermedades_base=datos_registro.get("enfermedades_base") or datos_registro.get("base_diseases", [])
         )
 
     def create_triage_record(self, record_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -415,11 +432,16 @@ class ServicioSupabase:
         """Alias para compatibilidad con código existente."""
         return self.obtener_triaje_por_criterio(codigo_acceso=access_code, ci_hash=ci_hash)
 
-    def obtener_cola_guardia(self, solo_disponibles: bool = False) -> List[Dict[str, Any]]:
+    def obtener_cola_guardia(
+        self,
+        solo_disponibles: bool = False,
+        especialidad: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """
         Retorna la lista de espera de pacientes para el panel médico, ordenada estrictamente por:
         1. Urgencia clínica: ROJO / RED primero, AMARILLO / YELLOW después, VERDE / GREEN al final.
         2. Hora de llegada (creado_en / created_at).
+        Soporta filtrado opcional por especialidad médica solicitada.
         """
         todos_los_registros = []
         cliente = self.obtener_cliente()
@@ -430,6 +452,8 @@ class ServicioSupabase:
                     consulta = cliente.table("registros_triaje").select("*, resultados_ia(*)")
                     if solo_disponibles:
                         consulta = consulta.in_("estado", ["RECIBIDO", "LISTO", "RECEIVED", "READY"]).is_("medico_asignado_id", "null")
+                    if especialidad and especialidad.upper() not in ["TODAS", "ALL", ""]:
+                        consulta = consulta.eq("especialidad_solicitada", especialidad)
                     resp = consulta.execute()
                     if resp.data:
                         todos_los_registros = resp.data
@@ -437,6 +461,8 @@ class ServicioSupabase:
                     consulta = cliente.table("triage_record").select("*, ai_result(*)")
                     if solo_disponibles:
                         consulta = consulta.in_("status", ["RECEIVED", "READY"]).is_("assigned_doctor_id", "null")
+                    if especialidad and especialidad.upper() not in ["TODAS", "ALL", ""]:
+                        consulta = consulta.eq("requested_specialty", especialidad)
                     resp = consulta.execute()
                     if resp.data:
                         todos_los_registros = resp.data
@@ -455,6 +481,11 @@ class ServicioSupabase:
                 copia = dict(r)
                 copia["resultados_ia"] = _BD_LOCAL_RESULTADOS_IA.get(r_id)
                 copia["ai_result"] = _BD_LOCAL_RESULTADOS_IA.get(r_id)
+
+                # Filtrar por especialidad si aplica
+                esp_doc = copia.get("especialidad_solicitada") or copia.get("requested_specialty")
+                if especialidad and especialidad.upper() not in ["TODAS", "ALL", ""] and esp_doc != especialidad:
+                    continue
 
                 if solo_disponibles:
                     estado = str(copia.get("estado") or copia.get("status") or "").upper()
@@ -481,6 +512,44 @@ class ServicioSupabase:
             )
         )
         return registros_ordenados
+
+    def obtener_conteo_especialistas_activos(self) -> Dict[str, int]:
+        """
+        Retorna la cantidad de médicos en turno activo agrupados por su especialidad médica.
+        """
+        conteos = {
+            "Medicina General": 1,
+            "Pediatría": 1,
+            "Ginecología y Obstetricia": 0,
+            "Traumatología y Urgencias": 0,
+            "Cardiología y Medicina Interna": 0,
+            "Odontología": 0
+        }
+
+        cliente = self.obtener_cliente()
+        if cliente:
+            try:
+                try:
+                    res = cliente.table("perfiles").select("especialidad").eq("esta_activo", True).execute()
+                except Exception:
+                    res = cliente.table("profiles").select("specialty").eq("is_active", True).execute()
+
+                if res.data:
+                    conteos_db: Dict[str, int] = {}
+                    for p in res.data:
+                        esp = p.get("especialidad") or p.get("specialty") or "Medicina General"
+                        conteos_db[esp] = conteos_db.get(esp, 0) + 1
+                    return {**conteos, **conteos_db}
+            except Exception as e:
+                logger.warning(f"Error consultando conteo de especialistas en Supabase: {e}")
+
+        # Fallback local
+        for p in _BD_LOCAL_PERFILES.values():
+            if p.get("esta_activo") or p.get("is_active"):
+                esp = p.get("especialidad") or p.get("specialty") or "Medicina General"
+                conteos[esp] = conteos.get(esp, 0) + 1
+
+        return conteos
 
     def asignar_paciente_a_medico(self, triaje_id: str, medico_id: str) -> Dict[str, Any]:
         """

@@ -16,7 +16,8 @@ from app.esquemas.triaje import (
     EsquemaRespuestaInmediataTriaje,
     EsquemaEntradaPreguntasDinamicas,
     EsquemaRespuestaPreguntasDinamicas,
-    EsquemaItemPreguntaDinamica
+    EsquemaItemPreguntaDinamica,
+    EsquemaItemCatalogoEspecialidad
 )
 from app.servicios.servicio_supabase import servicio_supabase
 from app.services.queue_service import queue_service
@@ -25,6 +26,72 @@ from app.proveedores.fabrica_ia import FabricaIA
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/triaje", tags=["Triaje Clínico"])
+
+# =============================================================================
+# 0. GET /especialidades (y /specialties): Catálogo de Especialidades y Médicos Activos
+# =============================================================================
+@router.get(
+    "/especialidades",
+    response_model=List[EsquemaItemCatalogoEspecialidad],
+    summary="Catálogo de Especialidades Médicas Disponibles"
+)
+@router.get(
+    "/specialties",
+    response_model=List[EsquemaItemCatalogoEspecialidad],
+    include_in_schema=False
+)
+async def obtener_catalogo_especialidades():
+    """
+    Retorna la lista de especialidades clínicas disponibles en el centro de salud
+    e indica la cantidad de médicos en guardia activa para cada una de ellas.
+    """
+    conteos = servicio_supabase.obtener_conteo_especialistas_activos()
+    
+    catalogo = [
+        EsquemaItemCatalogoEspecialidad(
+            id="medicina_general",
+            nombre="Medicina General",
+            icono="Stethoscope",
+            descripcion="Atención primaria integral, evaluación clínica general y derivación oportuna.",
+            medicos_activos_turno=conteos.get("Medicina General", 1)
+        ),
+        EsquemaItemCatalogoEspecialidad(
+            id="pediatria",
+            nombre="Pediatría",
+            icono="Baby",
+            descripcion="Atención médica especializada para lactantes, niños y adolescentes.",
+            medicos_activos_turno=conteos.get("Pediatría", 1)
+        ),
+        EsquemaItemCatalogoEspecialidad(
+            id="ginecologia",
+            nombre="Ginecología y Obstetricia",
+            icono="HeartHandshake",
+            descripcion="Salud femenina integral, control prenatal, dolor pélvico y urgencias ginecológicas.",
+            medicos_activos_turno=conteos.get("Ginecología y Obstetricia", 0)
+        ),
+        EsquemaItemCatalogoEspecialidad(
+            id="traumatologia",
+            nombre="Traumatología y Urgencias",
+            icono="Bone",
+            descripcion="Lesiones óseas y articulares, caídas, contusiones y traumatismos agudos.",
+            medicos_activos_turno=conteos.get("Traumatología y Urgencias", 0)
+        ),
+        EsquemaItemCatalogoEspecialidad(
+            id="cardiologia",
+            nombre="Cardiología y Medicina Interna",
+            icono="HeartPulse",
+            descripcion="Dolor torácico, hipertensión, arritmias y patologías médicas complejas.",
+            medicos_activos_turno=conteos.get("Cardiología y Medicina Interna", 0)
+        ),
+        EsquemaItemCatalogoEspecialidad(
+            id="odontologia",
+            nombre="Odontología",
+            icono="Smile",
+            descripcion="Dolor dental agudo, infecciones maxilofaciales y urgencias bucales.",
+            medicos_activos_turno=conteos.get("Odontología", 0)
+        )
+    ]
+    return catalogo
 
 
 # =============================================================================
@@ -53,7 +120,7 @@ async def procesar_triaje(
     1. Aplica Rate Limiting (5 solicitudes cada 5 minutos por IP).
     2. Genera código único alfanumérico (ej. MS-8X92K).
     3. Cifra el CI con AES-256 (Fernet) y calcula el hash ciego HMAC-SHA256 con Pepper.
-    4. Persiste en registros_triaje con estado 'RECIBIDO' ('RECEIVED').
+    4. Persiste en registros_triaje con especialidad y antecedentes clínicos.
     5. Encola la tarea asíncrona para evaluación del modelo de IA y Safety Overrides.
     6. Retorna respuesta inmediata en < 15ms para renderizado del Código QR interactivo.
     """
@@ -80,6 +147,14 @@ async def procesar_triaje(
             "gender": entrada_paciente.genero,
             "sintomas_brutos": entrada_paciente.sintomas_brutos,
             "raw_symptoms": entrada_paciente.sintomas_brutos,
+            "especialidad_solicitada": entrada_paciente.especialidad_solicitada,
+            "requested_specialty": entrada_paciente.especialidad_solicitada,
+            "alergias_medicamentosas": entrada_paciente.alergias_medicamentosas,
+            "drug_allergies": entrada_paciente.alergias_medicamentosas,
+            "medicacion_actual": entrada_paciente.medicacion_actual,
+            "current_medication": entrada_paciente.medicacion_actual,
+            "enfermedades_base": entrada_paciente.enfermedades_base,
+            "base_diseases": entrada_paciente.enfermedades_base,
             "datos_estaticos": entrada_paciente.datos_estaticos,
             "static_data": entrada_paciente.datos_estaticos,
             "respuestas_dinamicas": entrada_paciente.respuestas_dinamicas,
@@ -143,18 +218,26 @@ async def generar_preguntas_dinamicas_api(entrada: EsquemaEntradaPreguntasDinami
     """
     Genera de 2 a 3 preguntas dinámicas adaptativas mediante IA / PQRST orientadas a:
     1. Descartar banderas rojas y características específicas del padecimiento.
-    2. Identificar antecedentes y enfermedades preexistentes (diabetes, hipertensión, asma, etc.).
-    3. Conocer medicamentos habituales y tratamientos recientes.
+    2. Contextualizar según la especialidad médica solicitada.
+    3. Profundizar en alergias medicamentosas y enfermedades de base reportadas.
     """
     try:
         sintoma_texto = (entrada.sintomas_brutos or entrada.sintoma or "").strip()
         genero_texto = entrada.genero or "No especificado"
+        especialidad = entrada.especialidad_solicitada or "Medicina General"
+        alergias = entrada.alergias_medicamentosas or "Ninguna conocida"
+        medicacion = entrada.medicacion_actual or "Ninguna"
+        enfermedades = entrada.enfermedades_base or []
 
         proveedor = FabricaIA.obtener_proveedor()
         preguntas_generadas = await proveedor.generar_preguntas_dinamicas(
             sintomas=sintoma_texto,
             edad=entrada.edad,
-            genero=genero_texto
+            genero=genero_texto,
+            especialidad_solicitada=especialidad,
+            alergias_medicamentosas=alergias,
+            medicacion_actual=medicacion,
+            enfermedades_base=enfermedades
         )
 
         # Normalización bilingüe de claves
