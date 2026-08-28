@@ -59,12 +59,62 @@ _BD_LOCAL_PERFILES: Dict[str, Dict[str, Any]] = {
         "esta_activo": True,
         "creado_en": "2026-08-01T08:00:00Z"
     },
-    "medico-01": {
-        "id": "medico-01",
+    "doc-med-general-01": {
+        "id": "doc-med-general-01",
         "usuario_id": "auth-doc-01",
+        "nombre_completo": "Dr. Carlos Menacho",
+        "correo": "carlos.menacho@medisinc.bo",
+        "especialidad": "Medicina General",
+        "rol": "MEDICO",
+        "esta_activo": True,
+        "creado_en": "2026-08-05T09:30:00Z"
+    },
+    "doc-pediatria-02": {
+        "id": "doc-pediatria-02",
+        "usuario_id": "auth-doc-02",
         "nombre_completo": "Dra. Mariana Vaca",
-        "correo": "medico@medisinc.bo",
-        "especialidad": "Medicina General y Triaje",
+        "correo": "mariana.vaca@medisinc.bo",
+        "especialidad": "Pediatría",
+        "rol": "MEDICO",
+        "esta_activo": True,
+        "creado_en": "2026-08-05T09:30:00Z"
+    },
+    "doc-ginecologia-03": {
+        "id": "doc-ginecologia-03",
+        "usuario_id": "auth-doc-03",
+        "nombre_completo": "Dra. Sofía Justiniano",
+        "correo": "sofia.justiniano@medisinc.bo",
+        "especialidad": "Ginecología y Obstetricia",
+        "rol": "MEDICO",
+        "esta_activo": True,
+        "creado_en": "2026-08-05T09:30:00Z"
+    },
+    "doc-trauma-04": {
+        "id": "doc-trauma-04",
+        "usuario_id": "auth-doc-04",
+        "nombre_completo": "Dr. Luis Fernando Aguilera",
+        "correo": "luis.aguilera@medisinc.bo",
+        "especialidad": "Traumatología y Urgencias",
+        "rol": "MEDICO",
+        "esta_activo": True,
+        "creado_en": "2026-08-05T09:30:00Z"
+    },
+    "doc-cardio-05": {
+        "id": "doc-cardio-05",
+        "usuario_id": "auth-doc-05",
+        "nombre_completo": "Dr. Roberto Antelo",
+        "correo": "roberto.antelo@medisinc.bo",
+        "especialidad": "Cardiología y Medicina Interna",
+        "rol": "MEDICO",
+        "esta_activo": True,
+        "creado_en": "2026-08-05T09:30:00Z"
+    },
+    "doc-odontologia-06": {
+        "id": "doc-odontologia-06",
+        "usuario_id": "auth-doc-06",
+        "nombre_completo": "Dra. Valeria Cuéllar",
+        "correo": "valeria.cuellar@medisinc.bo",
+        "especialidad": "Odontología",
         "rol": "MEDICO",
         "esta_activo": True,
         "creado_en": "2026-08-05T09:30:00Z"
@@ -132,13 +182,15 @@ class ServicioSupabase:
         especialidad_solicitada: str = "Medicina General",
         alergias_medicamentosas: str = "Ninguna conocida",
         medicacion_actual: str = "Ninguna",
-        enfermedades_base: Optional[List[str]] = None
+        enfermedades_base: Optional[List[str]] = None,
+        medico_asignado_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Inserta el registro de pre-triaje capturado en el portal del paciente.
         """
         ahora_iso = datetime.now(timezone.utc).isoformat()
         comorbilidades = enfermedades_base or []
+        doc_id = medico_asignado_id or None
 
         # Payload en español
         registro_es = {
@@ -154,6 +206,8 @@ class ServicioSupabase:
             "alergias_medicamentosas": alergias_medicamentosas or "Ninguna conocida",
             "medicacion_actual": medicacion_actual or "Ninguna",
             "enfermedades_base": comorbilidades,
+            "medico_asignado_id": doc_id,
+            "asignado_en": ahora_iso if doc_id else None,
             "datos_estaticos": datos_estaticos or {},
             "respuestas_dinamicas": respuestas_dinamicas or {},
             "estado": estado,
@@ -175,6 +229,8 @@ class ServicioSupabase:
             "drug_allergies": alergias_medicamentosas or "Ninguna conocida",
             "current_medication": medicacion_actual or "Ninguna",
             "base_diseases": comorbilidades,
+            "assigned_doctor_id": doc_id,
+            "assigned_at": ahora_iso if doc_id else None,
             "static_data": datos_estaticos or {},
             "dynamic_answers": respuestas_dinamicas or {},
             "status": "RECEIVED" if estado == "RECIBIDO" else estado,
@@ -219,7 +275,8 @@ class ServicioSupabase:
             especialidad_solicitada=datos_registro.get("especialidad_solicitada") or datos_registro.get("requested_specialty", "Medicina General"),
             alergias_medicamentosas=datos_registro.get("alergias_medicamentosas") or datos_registro.get("drug_allergies", "Ninguna conocida"),
             medicacion_actual=datos_registro.get("medicacion_actual") or datos_registro.get("current_medication", "Ninguna"),
-            enfermedades_base=datos_registro.get("enfermedades_base") or datos_registro.get("base_diseases", [])
+            enfermedades_base=datos_registro.get("enfermedades_base") or datos_registro.get("base_diseases", []),
+            medico_asignado_id=datos_registro.get("medico_asignado_id") or datos_registro.get("assigned_doctor_id")
         )
 
     def create_triage_record(self, record_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -513,43 +570,71 @@ class ServicioSupabase:
         )
         return registros_ordenados
 
-    def obtener_conteo_especialistas_activos(self) -> Dict[str, int]:
+    def obtener_medicos_activos_por_especialidad(self) -> Dict[str, List[Dict[str, Any]]]:
         """
-        Retorna la cantidad de médicos en turno activo agrupados por su especialidad médica.
+        Retorna la lista de médicos en turno activo agrupados por especialidad médica.
         """
-        conteos = {
-            "Medicina General": 1,
-            "Pediatría": 1,
-            "Ginecología y Obstetricia": 0,
-            "Traumatología y Urgencias": 0,
-            "Cardiología y Medicina Interna": 0,
-            "Odontología": 0
+        medicos_por_esp: Dict[str, List[Dict[str, Any]]] = {
+            "Medicina General": [],
+            "Pediatría": [],
+            "Ginecología y Obstetricia": [],
+            "Traumatología y Urgencias": [],
+            "Cardiología y Medicina Interna": [],
+            "Odontología": []
         }
 
         cliente = self.obtener_cliente()
         if cliente:
             try:
                 try:
-                    res = cliente.table("perfiles").select("especialidad").eq("esta_activo", True).execute()
+                    res = cliente.table("perfiles").select("id, nombre_completo, especialidad, esta_activo").eq("esta_activo", True).execute()
                 except Exception:
-                    res = cliente.table("profiles").select("specialty").eq("is_active", True).execute()
+                    res = cliente.table("profiles").select("id, full_name, specialty, is_active").eq("is_active", True).execute()
 
                 if res.data:
-                    conteos_db: Dict[str, int] = {}
                     for p in res.data:
                         esp = p.get("especialidad") or p.get("specialty") or "Medicina General"
-                        conteos_db[esp] = conteos_db.get(esp, 0) + 1
-                    return {**conteos, **conteos_db}
+                        nombre = p.get("nombre_completo") or p.get("full_name") or "Médico de Guardia"
+                        doc_item = {
+                            "id": p.get("id"),
+                            "nombre_completo": nombre,
+                            "name": nombre,
+                            "especialidad": esp,
+                            "specialty": esp,
+                            "esta_activo": True
+                        }
+                        if esp not in medicos_por_esp:
+                            medicos_por_esp[esp] = []
+                        medicos_por_esp[esp].append(doc_item)
+                    return medicos_por_esp
             except Exception as e:
-                logger.warning(f"Error consultando conteo de especialistas en Supabase: {e}")
+                logger.warning(f"Error consultando médicos en Supabase: {e}")
 
         # Fallback local
         for p in _BD_LOCAL_PERFILES.values():
-            if p.get("esta_activo") or p.get("is_active"):
+            if (p.get("esta_activo") or p.get("is_active")) and p.get("rol") != "ADMIN":
                 esp = p.get("especialidad") or p.get("specialty") or "Medicina General"
-                conteos[esp] = conteos.get(esp, 0) + 1
+                nombre = p.get("nombre_completo") or p.get("full_name") or "Médico de Guardia"
+                doc_item = {
+                    "id": p.get("id"),
+                    "nombre_completo": nombre,
+                    "name": nombre,
+                    "especialidad": esp,
+                    "specialty": esp,
+                    "esta_activo": True
+                }
+                if esp not in medicos_por_esp:
+                    medicos_por_esp[esp] = []
+                medicos_por_esp[esp].append(doc_item)
 
-        return conteos
+        return medicos_por_esp
+
+    def obtener_conteo_especialistas_activos(self) -> Dict[str, int]:
+        """
+        Retorna la cantidad de médicos en turno activo agrupados por su especialidad médica.
+        """
+        medicos_dict = self.obtener_medicos_activos_por_especialidad()
+        return {esp: len(docs) for esp, docs in medicos_dict.items()}
 
     def asignar_paciente_a_medico(self, triaje_id: str, medico_id: str) -> Dict[str, Any]:
         """

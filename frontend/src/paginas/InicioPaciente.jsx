@@ -1,10 +1,10 @@
 /**
  * Página Principal del Asistente de Paciente (MediSinc-IA).
  * Implementa el flujo Wizard de 4 pasos para la captura y estructuración del pre-triaje:
- * - Paso 0: Selección interactiva de especialidad médica y turno de guardia.
- * - Paso 1: Datos demográficos, motivo de consulta, antecedentes clínicos y alergias.
- * - Paso 2: Preguntas de clarificación adaptativas (PQRST) contextualizadas por IA.
- * - Paso 3: Confirmación y generación del código de acceso alfanumérico y QR.
+ * - Paso 0: Selección de especialidad médica y médico de guardia en turno.
+ * - Paso 1: Datos de filiación, carnet cifrado y motivo de consulta agudo actual.
+ * - Paso 2: Preguntas semiológicas (PQRST) de IA y antecedentes clínicos multiselección.
+ * - Paso 3: Confirmación y generación del código de acceso alfanumérico y QR interactivo.
  */
 
 import React, { useState } from 'react';
@@ -25,8 +25,10 @@ export const InicioPaciente = () => {
     genero: '',
     sintomas_brutos: '',
     especialidad_solicitada: 'Medicina General',
+    medico_asignado_id: 'doc-med-general-01',
+    medico_asignado_nombre: 'Dr. Carlos Menacho',
     alergias_medicamentosas: 'Ninguna conocida',
-    medicacion_actual: 'Ninguna',
+    medicacion_actual: 'No toma medicación',
     enfermedades_base: [],
     datos_estaticos: {
       duracion: '2 a 6 horas',
@@ -73,8 +75,10 @@ export const InicioPaciente = () => {
       genero: '',
       sintomas_brutos: '',
       especialidad_solicitada: 'Medicina General',
+      medico_asignado_id: 'doc-med-general-01',
+      medico_asignado_nombre: 'Dr. Carlos Menacho',
       alergias_medicamentosas: 'Ninguna conocida',
-      medicacion_actual: 'Ninguna',
+      medicacion_actual: 'No toma medicación',
       enfermedades_base: [],
       datos_estaticos: {
         duracion: '2 a 6 horas',
@@ -138,7 +142,7 @@ export const InicioPaciente = () => {
           <div className="flex items-center justify-between relative max-w-lg mx-auto">
             <div className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-slate-800 w-full -z-0"></div>
             <div
-              className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-teal-500 transition-all duration-300 -z-0"
+              className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-gradient-to-r from-teal-500 to-emerald-400 transition-all duration-300 -z-0"
               style={{ width: calcularAnchoProgreso() }}
             ></div>
 
@@ -148,9 +152,7 @@ export const InicioPaciente = () => {
                 className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition shadow-md ${
                   pasoActual > 0
                     ? 'bg-teal-500 text-slate-950 shadow-teal-500/30'
-                    : pasoActual === 0
-                    ? 'bg-teal-500 text-slate-950 ring-4 ring-teal-500/20'
-                    : 'bg-slate-800 text-slate-400'
+                    : 'bg-teal-500 text-slate-950 ring-4 ring-teal-500/20'
                 }`}
               >
                 {pasoActual > 0 ? <Check className="w-4 h-4" /> : '0'}
@@ -158,7 +160,7 @@ export const InicioPaciente = () => {
               <span className="text-[11px] font-semibold text-slate-300 mt-1.5">Especialidad</span>
             </div>
 
-            {/* Paso 1: Datos y Antecedentes */}
+            {/* Paso 1: Filiación */}
             <div className="flex flex-col items-center relative z-10">
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition shadow-md ${
@@ -171,10 +173,10 @@ export const InicioPaciente = () => {
               >
                 {pasoActual > 1 ? <Check className="w-4 h-4" /> : '1'}
               </div>
-              <span className="text-[11px] font-semibold text-slate-300 mt-1.5">Datos</span>
+              <span className="text-[11px] font-semibold text-slate-300 mt-1.5">Filiación</span>
             </div>
 
-            {/* Paso 2: Preguntas PQRST */}
+            {/* Paso 2: Preguntas y Antecedentes */}
             <div className="flex flex-col items-center relative z-10">
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition shadow-md ${
@@ -217,7 +219,16 @@ export const InicioPaciente = () => {
         {pasoActual === 0 && (
           <PasoSelectorEspecialidad
             especialidadSeleccionada={datosFormulario.especialidad_solicitada}
-            onSeleccionarEspecialidad={(esp) => actualizarCampo('especialidad_solicitada', esp)}
+            medicoAsignadoId={datosFormulario.medico_asignado_id}
+            medicoAsignadoNombre={datosFormulario.medico_asignado_nombre}
+            onSeleccionarEspecialidad={(esp, docId, docNombre) => {
+              setDatosFormulario((prev) => ({
+                ...prev,
+                especialidad_solicitada: esp,
+                medico_asignado_id: docId,
+                medico_asignado_nombre: docNombre,
+              }));
+            }}
             onContinuar={() => setPasoActual(1)}
           />
         )}

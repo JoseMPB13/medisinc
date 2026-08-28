@@ -43,54 +43,76 @@ router = APIRouter(prefix="/triaje", tags=["Triaje Clínico"])
 async def obtener_catalogo_especialidades():
     """
     Retorna la lista de especialidades clínicas disponibles en el centro de salud
-    e indica la cantidad de médicos en guardia activa para cada una de ellas.
+    e incluye los médicos en guardia activa para cada una de ellas y el especialista de turno.
     """
-    conteos = servicio_supabase.obtener_conteo_especialistas_activos()
-    
-    catalogo = [
-        EsquemaItemCatalogoEspecialidad(
-            id="medicina_general",
-            nombre="Medicina General",
-            icono="Stethoscope",
-            descripcion="Atención primaria integral, evaluación clínica general y derivación oportuna.",
-            medicos_activos_turno=conteos.get("Medicina General", 1)
-        ),
-        EsquemaItemCatalogoEspecialidad(
-            id="pediatria",
-            nombre="Pediatría",
-            icono="Baby",
-            descripcion="Atención médica especializada para lactantes, niños y adolescentes.",
-            medicos_activos_turno=conteos.get("Pediatría", 1)
-        ),
-        EsquemaItemCatalogoEspecialidad(
-            id="ginecologia",
-            nombre="Ginecología y Obstetricia",
-            icono="HeartHandshake",
-            descripcion="Salud femenina integral, control prenatal, dolor pélvico y urgencias ginecológicas.",
-            medicos_activos_turno=conteos.get("Ginecología y Obstetricia", 0)
-        ),
-        EsquemaItemCatalogoEspecialidad(
-            id="traumatologia",
-            nombre="Traumatología y Urgencias",
-            icono="Bone",
-            descripcion="Lesiones óseas y articulares, caídas, contusiones y traumatismos agudos.",
-            medicos_activos_turno=conteos.get("Traumatología y Urgencias", 0)
-        ),
-        EsquemaItemCatalogoEspecialidad(
-            id="cardiologia",
-            nombre="Cardiología y Medicina Interna",
-            icono="HeartPulse",
-            descripcion="Dolor torácico, hipertensión, arritmias y patologías médicas complejas.",
-            medicos_activos_turno=conteos.get("Cardiología y Medicina Interna", 0)
-        ),
-        EsquemaItemCatalogoEspecialidad(
-            id="odontologia",
-            nombre="Odontología",
-            icono="Smile",
-            descripcion="Dolor dental agudo, infecciones maxilofaciales y urgencias bucales.",
-            medicos_activos_turno=conteos.get("Odontología", 0)
-        )
+    medicos_por_esp = servicio_supabase.obtener_medicos_activos_por_especialidad()
+    medicos_general = medicos_por_esp.get("Medicina General", [])
+    medico_general_defecto = medicos_general[0] if medicos_general else {
+        "id": "doc-med-general-01",
+        "nombre_completo": "Dr. Carlos Menacho",
+        "name": "Dr. Carlos Menacho",
+        "especialidad": "Medicina General",
+        "esta_activo": True
+    }
+
+    especialidades_config = [
+        {
+            "id": "medicina_general",
+            "nombre": "Medicina General",
+            "icono": "Stethoscope",
+            "descripcion": "Atención primaria integral, evaluación clínica general y derivación oportuna."
+        },
+        {
+            "id": "pediatria",
+            "nombre": "Pediatría",
+            "icono": "Baby",
+            "descripcion": "Atención médica especializada para lactantes, niños y adolescentes."
+        },
+        {
+            "id": "ginecologia",
+            "nombre": "Ginecología y Obstetricia",
+            "icono": "HeartHandshake",
+            "descripcion": "Salud femenina integral, control prenatal, dolor pélvico y urgencias ginecológicas."
+        },
+        {
+            "id": "traumatologia",
+            "nombre": "Traumatología y Urgencias",
+            "icono": "Bone",
+            "descripcion": "Lesiones óseas y articulares, caídas, contusiones y traumatismos agudos."
+        },
+        {
+            "id": "cardiologia",
+            "nombre": "Cardiología y Medicina Interna",
+            "icono": "HeartPulse",
+            "descripcion": "Dolor torácico, hipertensión, arritmias y patologías médicas complejas."
+        },
+        {
+            "id": "odontologia",
+            "nombre": "Odontología",
+            "icono": "Smile",
+            "descripcion": "Dolor dental agudo, infecciones maxilofaciales y urgencias bucales."
+        }
     ]
+
+    catalogo: List[EsquemaItemCatalogoEspecialidad] = []
+    for item in especialidades_config:
+        nombre_esp = item["nombre"]
+        docs = medicos_por_esp.get(nombre_esp, [])
+        # Si no hay especialista activo, el médico de turno predeterminado es el de guardia general
+        medico_turno = docs[0] if docs else medico_general_defecto
+
+        catalogo.append(
+            EsquemaItemCatalogoEspecialidad(
+                id=item["id"],
+                nombre=nombre_esp,
+                icono=item["icono"],
+                descripcion=item["descripcion"],
+                medicos_activos_turno=len(docs),
+                medicos_disponibles=docs,
+                medico_de_guardia=medico_turno
+            )
+        )
+
     return catalogo
 
 
@@ -120,7 +142,7 @@ async def procesar_triaje(
     1. Aplica Rate Limiting (5 solicitudes cada 5 minutos por IP).
     2. Genera código único alfanumérico (ej. MS-8X92K).
     3. Cifra el CI con AES-256 (Fernet) y calcula el hash ciego HMAC-SHA256 con Pepper.
-    4. Persiste en registros_triaje con especialidad y antecedentes clínicos.
+    4. Persiste en registros_triaje con especialidad, médico asignado y antecedentes.
     5. Encola la tarea asíncrona para evaluación del modelo de IA y Safety Overrides.
     6. Retorna respuesta inmediata en < 15ms para renderizado del Código QR interactivo.
     """
@@ -131,6 +153,7 @@ async def procesar_triaje(
         codigo_acceso = generar_codigo_acceso()
 
         triaje_id = f"tr-{codigo_acceso.lower()}"
+        medico_asig = entrada_paciente.medico_asignado_id or entrada_paciente.assigned_doctor_id
 
         datos_registro = {
             "id": triaje_id,
@@ -155,12 +178,14 @@ async def procesar_triaje(
             "current_medication": entrada_paciente.medicacion_actual,
             "enfermedades_base": entrada_paciente.enfermedades_base,
             "base_diseases": entrada_paciente.enfermedades_base,
+            "medico_asignado_id": medico_asig,
+            "assigned_doctor_id": medico_asig,
             "datos_estaticos": entrada_paciente.datos_estaticos,
             "static_data": entrada_paciente.datos_estaticos,
             "respuestas_dinamicas": entrada_paciente.respuestas_dinamicas,
             "dynamic_answers": entrada_paciente.respuestas_dinamicas,
-            "estado": "RECIBIDO",
-            "status": "RECEIVED",
+            "estado": "LISTO" if medico_asig else "RECIBIDO",
+            "status": "READY" if medico_asig else "RECEIVED",
             "prioridad_final": None
         }
 

@@ -46,6 +46,12 @@ class EsquemaEntradaPaciente(BaseModel):
         description="Comorbilidades o enfermedades crónicas diagnosticadas",
         example=["Hipertensión arterial", "Diabetes mellitus tipo 2"]
     )
+    medico_asignado_id: Optional[str] = Field(
+        default=None,
+        alias="assigned_doctor_id",
+        description="ID del médico de turno asignado para la atención",
+        example="doc-med-general-01"
+    )
 
     datos_estaticos: Dict[str, Any] = Field(
         default_factory=dict,
@@ -59,6 +65,10 @@ class EsquemaEntradaPaciente(BaseModel):
         description="Respuestas a preguntas adaptativas de opción múltiple",
         example={"ubicacion": "centro del pecho", "sudoracion": "sí"}
     )
+
+    @property
+    def assigned_doctor_id(self) -> Optional[str]:
+        return self.medico_asignado_id
 
     @property
     def patient_name(self) -> str:
@@ -259,13 +269,15 @@ class EsquemaRespuestaPreguntasDinamicas(BaseModel):
 
 class EsquemaItemCatalogoEspecialidad(BaseModel):
     """Ítem individual del catálogo de especialidades médicas."""
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     id: str
-    nombre: str
-    icono: str
-    descripcion: str
-    medicos_activos_turno: int = Field(0, description="Cantidad de médicos activos en guardia")
+    nombre: str = Field(..., alias="name")
+    icono: str = Field("Stethoscope", alias="icon")
+    descripcion: str = Field(..., alias="description")
+    medicos_activos_turno: int = Field(0, alias="active_doctors", description="Cantidad de médicos activos en guardia")
+    medicos_disponibles: List[Dict[str, Any]] = Field(default_factory=list, alias="available_doctors", description="Lista de médicos activos en turno")
+    medico_de_guardia: Optional[Dict[str, Any]] = Field(default=None, alias="on_duty_doctor", description="Médico asignado predeterminado de guardia")
 
 
 class EsquemaAsignacionPacienteEntrada(BaseModel):
