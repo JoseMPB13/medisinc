@@ -1,6 +1,7 @@
 """
 Esquemas de Validación Pydantic v2 para el Portal de Administración y Auditoría.
 Define los modelos de creación/edición de personal médico, métricas globales y bitácora de auditoría.
+Soporte bilingüe dual completo para blindar el consumo del frontend.
 """
 
 from typing import Optional, List, Literal
@@ -11,12 +12,12 @@ class EsquemaCrearMedico(BaseModel):
     """
     Datos requeridos para dar de alta a un profesional médico o administrador en la plataforma.
     """
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
 
-    nombre_completo: str = Field(..., alias="full_name", description="Nombre y apellido completo del profesional", example="Dra. Andrea Gutiérrez")
-    correo: EmailStr = Field(..., alias="email", description="Correo electrónico institucional", example="andrea.gutierrez@medisinc.bo")
-    password: str = Field(..., description="Contraseña temporal de acceso seguro", min_length=6, example="ClaveMedica2026!")
-    especialidad: str = Field(default="Medicina General", alias="specialty", description="Especialidad o área de atención", example="Triaje de Emergencias")
+    nombre_completo: str = Field(..., alias="full_name", description="Nombre y apellido completo del profesional")
+    correo: EmailStr = Field(..., alias="email", description="Correo electrónico institucional")
+    password: str = Field(..., description="Contraseña temporal de acceso seguro", min_length=6)
+    especialidad: str = Field(default="Medicina General", alias="specialty", description="Especialidad o área de atención")
     rol: Literal["MEDICO", "ADMIN", "DOCTOR"] = Field(default="MEDICO", alias="role", description="Rol del usuario en el sistema")
 
 
@@ -24,7 +25,7 @@ class EsquemaActualizarMedico(BaseModel):
     """
     Datos permitidos para modificar el perfil de un profesional de salud.
     """
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     nombre_completo: Optional[str] = Field(None, alias="full_name")
     especialidad: Optional[str] = Field(None, alias="specialty")
@@ -36,7 +37,7 @@ class EsquemaRespuestaMedico(BaseModel):
     """
     Respuesta devuelta al consultar la lista o perfil de profesionales médicos.
     """
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     id: str = Field(..., description="ID del registro de perfil")
     usuario_id: Optional[str] = Field(None, alias="user_id", description="ID de usuario en Supabase Auth")
@@ -51,16 +52,25 @@ class EsquemaRespuestaMedico(BaseModel):
 class EsquemaEstadisticasAdmin(BaseModel):
     """
     Métricas cuantitativas consolidadas del centro de salud en tiempo real.
+    Soporta propiedades bilingües duales simultáneas para frontend.
     """
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
 
-    total_triajes: int = Field(0, alias="total_triajes", description="Total histórico de pre-triajes capturados")
-    casos_rojo_urgente: int = Field(0, alias="urgent_red_cases", description="Total de casos críticos catalogados en Rojo")
-    casos_revisados: int = Field(0, alias="reviewed_cases", description="Total de pacientes atendidos y dados de alta por el médico")
-    medicos_activos: int = Field(0, alias="active_doctors", description="Cantidad de facultativos médicos activos")
-    tiempo_promedio_atencion_min: float = Field(0.0, alias="average_attention_time_min", description="Tiempo medio de consulta en minutos")
+    # Claves en español
+    total_triajes: int = Field(0, description="Total histórico de pre-triajes capturados")
+    casos_rojo_urgente: int = Field(0, description="Total de casos críticos catalogados en Rojo")
+    casos_revisados: int = Field(0, description="Total de pacientes atendidos y dados de alta por el médico")
+    medicos_activos: int = Field(0, description="Cantidad de facultativos médicos activos")
+    tiempo_promedio_atencion_min: float = Field(0.0, description="Tiempo medio de consulta en minutos")
 
-    # Campos adicionales para vistas extendidas
+    # Claves en inglés simultáneas
+    total_patients: Optional[int] = Field(0, description="Total de pacientes registrados")
+    urgent_red_cases: Optional[int] = Field(0, description="Casos rojos urgentes")
+    reviewed_cases: Optional[int] = Field(0, description="Casos revisados")
+    active_doctors: Optional[int] = Field(0, description="Médicos activos")
+    average_attention_time_min: Optional[float] = Field(0.0, description="Tiempo medio de atención")
+
+    # Campos complementarios para vistas extendidas
     total_pacientes: Optional[int] = Field(0, description="Total de pacientes registrados")
     pacientes_hoy: Optional[int] = Field(0, description="Pacientes recibidos hoy")
     en_espera: Optional[int] = Field(0, description="Pacientes en espera de atención")
@@ -75,14 +85,19 @@ class EsquemaRegistroAuditoria(BaseModel):
     """
     Entrada individual de la bitácora inalterable de auditoría para trazabilidad médica.
     """
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     id: Optional[str] = None
     usuario_id: Optional[str] = Field(None, alias="user_id", description="ID del usuario que ejecutó la acción")
+    user_id: Optional[str] = Field(None, description="ID del usuario (alias inglés)")
     accion: str = Field(..., alias="action", description="Descripción de la acción efectuada")
+    action: Optional[str] = Field(None, description="Descripción de la acción (alias inglés)")
     recurso_id: Optional[str] = Field(None, alias="resource_id", description="ID del recurso afectado")
+    resource_id: Optional[str] = Field(None, description="ID del recurso (alias inglés)")
     direccion_ip: Optional[str] = Field(None, alias="ip_address", description="Dirección IP de origen")
+    ip_address: Optional[str] = Field(None, description="Dirección IP (alias inglés)")
     fecha_hora: str = Field(..., alias="timestamp", description="Estampa de tiempo ISO 8601")
+    timestamp: Optional[str] = Field(None, description="Estampa de tiempo (alias inglés)")
 
 
 # -----------------------------------------------------------------------------

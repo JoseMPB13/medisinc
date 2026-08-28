@@ -5,12 +5,43 @@ utilizando el Service Role Key del SDK de Supabase y soporte de contingencia en 
 """
 
 import logging
+import uuid
+import re
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 from supabase import create_client, Client
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+# Regex para validar formato estándar de UUID v4/v5
+UUID_REGEX = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
+
+
+def es_uuid_valido(identificador: Optional[str]) -> bool:
+    """
+    Verifica si una cadena cumple estrictamente con el formato canónico de UUID.
+    """
+    if not identificador or not isinstance(identificador, str):
+        return False
+    return bool(UUID_REGEX.match(identificador.strip()))
+
+
+def asegurar_uuid_valido(identificador: Optional[str]) -> str:
+    """
+    Garantiza que el identificador entregado cumpla estrictamente el formato UUID de PostgreSQL.
+    Si recibe un string no-UUID (ej: 'mock-doctor-uuid', 'doc-123'), genera un UUID v5 determinista
+    o un UUID v4 seguro para no romper restricciones de tipo en Supabase/Postgres.
+    """
+    if not identificador:
+        return str(uuid.uuid4())
+    cadena = str(identificador).strip()
+    if es_uuid_valido(cadena):
+        return cadena
+    # Generar UUID v5 determinista basado en el string
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"medisinc.bo.{cadena}"))
+
 
 # -----------------------------------------------------------------------------
 # Base de datos en memoria local (Fallback de contingencia ante fallas de red/desarrollo)
@@ -58,7 +89,7 @@ class ServicioSupabase:
 
     def obtener_cliente(self) -> Optional[Client]:
         """
-        Obtiene de forma dinámica la instancia del cliente Supabase con Service Role Key.
+        Inicializa o retorna la instancia del cliente oficial de Supabase.
         """
         if self._cliente is not None:
             return self._cliente
@@ -66,115 +97,158 @@ class ServicioSupabase:
         url = settings.SUPABASE_URL
         clave = settings.SUPABASE_SERVICE_ROLE_KEY
 
-        if url and "placeholder" not in url and clave and "placeholder" not in clave:
-            try:
-                self._cliente = create_client(url, clave)
-                logger.info(f"✓ Conectado a Supabase: {url}")
-                return self._cliente
-            except Exception as e:
-                logger.error(f"Error al conectar con el SDK de Supabase: {e}")
-                self._cliente = None
-        else:
-            logger.warning("Supabase no configurado o en modo placeholder. Utilizando persistencia en memoria local.")
+        if not url or not clave or "placeholder" in url or "placeholder" in clave:
+            logger.info("Supabase no configurado o en modo placeholder. Utilizando persistencia en memoria local.")
+            return None
 
-        return None
+        try:
+            self._cliente = create_client(url, clave)
+            return self._cliente
+        except Exception as e:
+            logger.warning(f"Error al inicializar cliente de Supabase ({e}). Modo contingencia local activado.")
+            return None
 
     def get_client(self) -> Optional[Client]:
         """Alias para compatibilidad con código existente."""
         return self.obtener_cliente()
 
-    def crear_registro_triaje(self, datos: Dict[str, Any]) -> Dict[str, Any]:
+    # =========================================================================
+    # OPERACIONES DE TRIAJE
+    # =========================================================================
+    def guardar_registro_triaje_inmediato(
+        self,
+        triaje_id: str,
+        codigo_acceso: str,
+        ci_cifrado: str,
+        ci_hash: str,
+        nombre_paciente: str,
+        edad: int,
+        genero: str,
+        sintomas_brutos: str,
+        datos_estaticos: Dict[str, Any],
+        respuestas_dinamicas: Optional[Dict[str, Any]] = None,
+        estado: str = "RECIBIDO",
+        prioridad_final: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Inserta un nuevo registro de triaje con estado inicial 'RECIBIDO' ('RECEIVED').
+        Inserta el registro de pre-triaje capturado en el portal del paciente.
         """
-        payload_triaje = {
-            "codigo_acceso": datos.get("codigo_acceso") or datos.get("access_code"),
-            "ci_hash": datos.get("ci_hash"),
-            "ci_cifrado": datos.get("ci_cifrado") or datos.get("ci_encrypted"),
-            "nombre_paciente": datos.get("nombre_paciente") or datos.get("patient_name"),
-            "edad": datos.get("edad") if datos.get("edad") is not None else datos.get("age"),
-            "genero": datos.get("genero") or datos.get("gender"),
-            "sintomas_brutos": datos.get("sintomas_brutos") or datos.get("raw_symptoms"),
-            "datos_estaticos": datos.get("datos_estaticos") or datos.get("static_data", {}),
-            "respuestas_dinamicas": datos.get("respuestas_dinamicas") or datos.get("dynamic_answers", {}),
-            "estado": "RECIBIDO",
-            "prioridad_final": datos.get("prioridad_final") or datos.get("final_priority")
+        ahora_iso = datetime.now(timezone.utc).isoformat()
+
+        # Payload en español
+        registro_es = {
+            "id": triaje_id,
+            "codigo_acceso": codigo_acceso,
+            "ci_cifrado": ci_cifrado,
+            "ci_hash": ci_hash,
+            "nombre_paciente": nombre_paciente,
+            "edad": edad,
+            "genero": genero,
+            "sintomas_brutos": sintomas_brutos,
+            "datos_estaticos": datos_estaticos or {},
+            "respuestas_dinamicas": respuestas_dinamicas or {},
+            "estado": estado,
+            "prioridad_final": prioridad_final,
+            "creado_en": ahora_iso
         }
 
-        # Campos legacy para tabla antigua si aún no se ha migrado
-        payload_legacy = {
-            "access_code": payload_triaje["codigo_acceso"],
-            "ci_hash": payload_triaje["ci_hash"],
-            "ci_encrypted": payload_triaje["ci_cifrado"],
-            "patient_name": payload_triaje["nombre_paciente"],
-            "age": payload_triaje["edad"],
-            "gender": payload_triaje["genero"],
-            "raw_symptoms": payload_triaje["sintomas_brutos"],
-            "static_data": payload_triaje["datos_estaticos"],
-            "dynamic_answers": payload_triaje["respuestas_dinamicas"],
-            "status": "RECEIVED",
-            "final_priority": payload_triaje["prioridad_final"]
+        # Payload en inglés para compatibilidad
+        registro_en = {
+            "id": triaje_id,
+            "access_code": codigo_acceso,
+            "ci_encrypted": ci_cifrado,
+            "ci_hash": ci_hash,
+            "patient_name": nombre_paciente,
+            "age": edad,
+            "gender": genero,
+            "raw_symptoms": sintomas_brutos,
+            "static_data": datos_estaticos or {},
+            "dynamic_answers": respuestas_dinamicas or {},
+            "status": "RECEIVED" if estado == "RECIBIDO" else estado,
+            "final_priority": prioridad_final,
+            "created_at": ahora_iso
         }
 
         cliente = self.obtener_cliente()
         if cliente:
             try:
-                # Intento en tabla estandarizada en español
                 try:
-                    respuesta = cliente.table("registros_triaje").insert(payload_triaje).execute()
-                    if respuesta.data:
-                        logger.info(f"✓ Registro insertado en 'registros_triaje'. ID: {respuesta.data[0].get('id')}")
-                        return respuesta.data[0]
+                    cliente.table("registros_triaje").insert(registro_es).execute()
                 except Exception:
-                    # Fallback a tabla legacy
-                    respuesta = cliente.table("triage_record").insert(payload_legacy).execute()
-                    if respuesta.data:
-                        logger.info(f"✓ Registro insertado en 'triage_record'. ID: {respuesta.data[0].get('id')}")
-                        return respuesta.data[0]
+                    cliente.table("triage_record").insert(registro_en).execute()
             except Exception as e:
-                logger.error(f"Error al insertar triaje en Supabase: {e}")
+                logger.error(f"Error al guardar triaje en Supabase: {e}")
 
-        # Fallback a persistencia en memoria local
-        triaje_id = datos.get("id") or f"tr-local-{payload_triaje['codigo_acceso']}"
-        payload_triaje["id"] = triaje_id
-        payload_triaje["access_code"] = payload_triaje["codigo_acceso"]
-        payload_triaje["status"] = "RECEIVED"
-        payload_triaje["created_at"] = "2026-08-26T20:00:00Z"
-        payload_triaje["creado_en"] = "2026-08-26T20:00:00Z"
+        # Fallback local dual
+        registro_combinado = {**registro_es, **registro_en}
+        _BD_LOCAL_TRIAJES[triaje_id] = registro_combinado
+        _BD_LOCAL_TRIAJES[codigo_acceso] = registro_combinado
 
-        _BD_LOCAL_TRIAJES[triaje_id] = payload_triaje
-        _BD_LOCAL_TRIAJES[payload_triaje["codigo_acceso"]] = payload_triaje
-        return payload_triaje
+        return registro_combinado
 
-    def create_triage_record(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def crear_registro_triaje(self, datos_registro: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Inserta un registro de triaje a partir de un diccionario de datos estructurado.
+        """
+        return self.guardar_registro_triaje_inmediato(
+            triaje_id=datos_registro.get("id") or datos_registro.get("triaje_id"),
+            codigo_acceso=datos_registro.get("codigo_acceso") or datos_registro.get("access_code"),
+            ci_cifrado=datos_registro.get("ci_cifrado") or datos_registro.get("ci_encrypted"),
+            ci_hash=datos_registro.get("ci_hash"),
+            nombre_paciente=datos_registro.get("nombre_paciente") or datos_registro.get("patient_name"),
+            edad=datos_registro.get("edad") if datos_registro.get("edad") is not None else datos_registro.get("age"),
+            genero=datos_registro.get("genero") or datos_registro.get("gender"),
+            sintomas_brutos=datos_registro.get("sintomas_brutos") or datos_registro.get("raw_symptoms"),
+            datos_estaticos=datos_registro.get("datos_estaticos") or datos_registro.get("static_data"),
+            respuestas_dinamicas=datos_registro.get("respuestas_dinamicas") or datos_registro.get("dynamic_answers"),
+            estado=datos_registro.get("estado") or datos_registro.get("status", "RECIBIDO"),
+            prioridad_final=datos_registro.get("prioridad_final") or datos_registro.get("final_priority")
+        )
+
+    def create_triage_record(self, record_data: Dict[str, Any]) -> Dict[str, Any]:
         """Alias para compatibilidad con código existente."""
-        return self.crear_registro_triaje(data)
+        return self.crear_registro_triaje(record_data)
+
+    def save_immediate_triage_record(self, **kwargs) -> Dict[str, Any]:
+        """Alias para compatibilidad con código existente."""
+        return self.guardar_registro_triaje_inmediato(
+            triaje_id=kwargs.get("triage_id") or kwargs.get("triaje_id"),
+            codigo_acceso=kwargs.get("access_code") or kwargs.get("codigo_acceso"),
+            ci_cifrado=kwargs.get("ci_encrypted") or kwargs.get("ci_cifrado"),
+            ci_hash=kwargs.get("ci_hash"),
+            nombre_paciente=kwargs.get("patient_name") or kwargs.get("nombre_paciente"),
+            edad=kwargs.get("age") if kwargs.get("age") is not None else kwargs.get("edad"),
+            genero=kwargs.get("gender") or kwargs.get("genero"),
+            sintomas_brutos=kwargs.get("raw_symptoms") or kwargs.get("sintomas_brutos"),
+            datos_estaticos=kwargs.get("static_data") or kwargs.get("datos_estaticos"),
+            respuestas_dinamicas=kwargs.get("dynamic_answers") or kwargs.get("respuestas_dinamicas"),
+            estado=kwargs.get("status") or kwargs.get("estado", "RECIBIDO"),
+            prioridad_final=kwargs.get("final_priority") or kwargs.get("prioridad_final")
+        )
 
     def guardar_resultado_ia(
         self,
         triaje_id: str,
         resultado_ia: Dict[str, Any],
         prioridad_final: str,
-        sobreescritura_aplicada: bool,
-        motivo_sobreescritura: Optional[str]
-    ) -> bool:
+        sobreescritura_aplicada: bool = False,
+        motivo_sobreescritura: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Almacena el resultado estructurado de la IA y actualiza el estado del triaje a 'LISTO' ('READY').
+        Inserta el resultado del análisis de IA y actualiza el estado a 'LISTO'.
         """
-        payload_ia = {
+        payload_ia_es = {
             "triaje_id": triaje_id,
-            "proveedor": settings.AI_PROVIDER,
-            "modelo": "seleccion-automatica",
-            "resultado_estructurado": resultado_ia,
+            "resultado_ia": resultado_ia,
+            "prioridad_final": prioridad_final,
             "sobreescritura_aplicada": sobreescritura_aplicada,
             "motivo_sobreescritura": motivo_sobreescritura
         }
 
-        payload_ia_legacy = {
+        payload_ia_en = {
             "triage_id": triaje_id,
-            "provider": settings.AI_PROVIDER,
-            "model": "seleccion-automatica",
-            "structured_result": resultado_ia,
+            "ai_result": resultado_ia,
+            "final_priority": prioridad_final,
             "override_applied": sobreescritura_aplicada,
             "override_reason": motivo_sobreescritura
         }
@@ -183,55 +257,107 @@ class ServicioSupabase:
         if cliente:
             try:
                 try:
-                    cliente.table("resultados_ia").insert(payload_ia).execute()
+                    cliente.table("resultados_ia").insert(payload_ia_es).execute()
                     cliente.table("registros_triaje").update({
                         "estado": "LISTO",
                         "prioridad_final": prioridad_final
                     }).eq("id", triaje_id).execute()
-                    return True
                 except Exception:
-                    cliente.table("ai_result").insert(payload_ia_legacy).execute()
+                    cliente.table("ai_result").insert(payload_ia_en).execute()
                     cliente.table("triage_record").update({
                         "status": "READY",
                         "final_priority": prioridad_final
                     }).eq("id", triaje_id).execute()
-                    return True
             except Exception as e:
-                logger.error(f"Error al actualizar resultado IA en Supabase: {e}")
+                logger.error(f"Error al guardar resultado de IA en Supabase: {e}")
 
         # Fallback local
-        _BD_LOCAL_RESULTADOS_IA[triaje_id] = payload_ia
-        if triaje_id in _BD_LOCAL_TRIAJES:
-            _BD_LOCAL_TRIAJES[triaje_id]["estado"] = "LISTO"
-            _BD_LOCAL_TRIAJES[triaje_id]["status"] = "READY"
-            _BD_LOCAL_TRIAJES[triaje_id]["prioridad_final"] = prioridad_final
-            _BD_LOCAL_TRIAJES[triaje_id]["final_priority"] = prioridad_final
-            _BD_LOCAL_TRIAJES[triaje_id]["resultado_ia"] = payload_ia
-            _BD_LOCAL_TRIAJES[triaje_id]["ai_result"] = payload_ia
-        return True
+        _BD_LOCAL_RESULTADOS_IA[triaje_id] = resultado_ia
+        for k, r in _BD_LOCAL_TRIAJES.items():
+            if r.get("id") == triaje_id or r.get("codigo_acceso") == triaje_id or k == triaje_id:
+                r["estado"] = "LISTO"
+                r["status"] = "READY"
+                r["prioridad_final"] = prioridad_final
+                r["final_priority"] = prioridad_final
+                r["resultado_ia"] = resultado_ia
+                r["ai_result"] = resultado_ia
+                r["resultados_ia"] = resultado_ia
+
+        return payload_ia_es
 
     def update_triage_with_ai_result(
         self,
         triage_id: str,
         ai_result: Dict[str, Any],
         final_priority: str,
-        override_applied: bool,
-        override_reason: Optional[str]
+        override_applied: bool = False,
+        override_reason: Optional[str] = None
     ) -> bool:
+        """Alias de compatibilidad para worker asíncrono."""
+        try:
+            self.guardar_resultado_ia(
+                triaje_id=triage_id,
+                resultado_ia=ai_result,
+                prioridad_final=final_priority,
+                sobreescritura_aplicada=override_applied,
+                motivo_sobreescritura=override_reason
+            )
+            return True
+        except Exception as e:
+            logger.error(f"Error en update_triage_with_ai_result: {e}")
+            return False
+
+    def actualizar_triaje_con_resultado_ia(self, **kwargs) -> bool:
+        """Alias en español para actualización asíncrona de IA."""
+        return self.update_triage_with_ai_result(
+            triage_id=kwargs.get("triaje_id") or kwargs.get("triage_id"),
+            ai_result=kwargs.get("resultado_ia") or kwargs.get("ai_result"),
+            final_priority=kwargs.get("prioridad_final") or kwargs.get("final_priority"),
+            override_applied=kwargs.get("sobreescritura_aplicada") or kwargs.get("override_applied", False),
+            override_reason=kwargs.get("motivo_sobreescritura") or kwargs.get("override_reason")
+        )
+
+    def save_ai_result(self, **kwargs) -> Dict[str, Any]:
         """Alias para compatibilidad con código existente."""
-        return self.guardar_resultado_ia(triage_id, ai_result, final_priority, override_applied, override_reason)
+        return self.guardar_resultado_ia(
+            triaje_id=kwargs.get("triage_id") or kwargs.get("triaje_id"),
+            resultado_ia=kwargs.get("ai_result") or kwargs.get("resultado_ia"),
+            prioridad_final=kwargs.get("final_priority") or kwargs.get("prioridad_final"),
+            sobreescritura_aplicada=kwargs.get("override_applied") or kwargs.get("sobreescritura_aplicada", False),
+            motivo_sobreescritura=kwargs.get("override_reason") or kwargs.get("motivo_sobreescritura")
+        )
 
     def obtener_triaje_por_codigo(self, codigo_acceso: str) -> Optional[Dict[str, Any]]:
         """
-        Busca un registro de triaje por su código único de acceso (ej. MS-8X92K).
+        Recupera el triaje por su código de acceso.
         """
-        return self.obtener_triaje_por_criterio(codigo_acceso=codigo_acceso)
+        cliente = self.obtener_cliente()
+        if cliente:
+            try:
+                try:
+                    resp = cliente.table("registros_triaje").select("*, resultados_ia(*)").eq("codigo_acceso", codigo_acceso).execute()
+                    if resp.data:
+                        return resp.data[0]
+                except Exception:
+                    resp = cliente.table("triage_record").select("*, ai_result(*)").eq("access_code", codigo_acceso).execute()
+                    if resp.data:
+                        return resp.data[0]
+            except Exception as e:
+                logger.error(f"Error al consultar triaje por código en Supabase: {e}")
 
-    def obtener_triaje_por_hash_ci(self, ci_hash: str) -> Optional[Dict[str, Any]]:
-        """
-        Busca un registro de triaje por el hash seguro del Carnet de Identidad.
-        """
-        return self.obtener_triaje_por_criterio(ci_hash=ci_hash)
+        # Fallback local
+        if codigo_acceso in _BD_LOCAL_TRIAJES:
+            reg = dict(_BD_LOCAL_TRIAJES[codigo_acceso])
+            reg_id = reg.get("id")
+            if reg_id:
+                reg["resultados_ia"] = _BD_LOCAL_RESULTADOS_IA.get(reg_id)
+                reg["ai_result"] = _BD_LOCAL_RESULTADOS_IA.get(reg_id)
+            return reg
+        return None
+
+    def get_triage_by_access_code(self, access_code: str) -> Optional[Dict[str, Any]]:
+        """Alias para compatibilidad con código existente."""
+        return self.obtener_triaje_por_codigo(codigo_acceso=access_code)
 
     def obtener_triaje_por_criterio(
         self,
@@ -239,7 +365,7 @@ class ServicioSupabase:
         ci_hash: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
-        Consulta un expediente por código de acceso o hash de CI en Supabase o memoria local.
+        Busca un registro de triaje indexado por código de acceso o hash de CI.
         """
         cliente = self.obtener_cliente()
         if cliente:
@@ -250,7 +376,7 @@ class ServicioSupabase:
                         consulta = consulta.eq("codigo_acceso", codigo_acceso)
                     elif ci_hash:
                         consulta = consulta.eq("ci_hash", ci_hash)
-                    resp = consulta.execute()
+                    resp = consulta.order("creado_en", desc=True).limit(1).execute()
                     if resp.data:
                         return resp.data[0]
                 except Exception:
@@ -259,24 +385,23 @@ class ServicioSupabase:
                         consulta = consulta.eq("access_code", codigo_acceso)
                     elif ci_hash:
                         consulta = consulta.eq("ci_hash", ci_hash)
-                    resp = consulta.execute()
+                    resp = consulta.order("created_at", desc=True).limit(1).execute()
                     if resp.data:
                         return resp.data[0]
             except Exception as e:
-                logger.error(f"Error al buscar triaje en Supabase: {e}")
+                logger.error(f"Error al buscar triaje por criterio en Supabase: {e}")
 
         # Fallback local
-        if codigo_acceso:
-            for r in _BD_LOCAL_TRIAJES.values():
-                if r.get("codigo_acceso") == codigo_acceso or r.get("access_code") == codigo_acceso or r.get("id") == codigo_acceso:
-                    rec = dict(r)
-                    rec["resultados_ia"] = _BD_LOCAL_RESULTADOS_IA.get(rec.get("id"))
-                    rec["ai_result"] = _BD_LOCAL_RESULTADOS_IA.get(rec.get("id"))
-                    return rec
+        if codigo_acceso and codigo_acceso in _BD_LOCAL_TRIAJES:
+            rec = dict(_BD_LOCAL_TRIAJES[codigo_acceso])
+            rec["resultados_ia"] = _BD_LOCAL_RESULTADOS_IA.get(rec.get("id"))
+            rec["ai_result"] = _BD_LOCAL_RESULTADOS_IA.get(rec.get("id"))
+            return rec
+
         if ci_hash:
-            for r in _BD_LOCAL_TRIAJES.values():
-                if r.get("ci_hash") == ci_hash:
-                    rec = dict(r)
+            for rec in _BD_LOCAL_TRIAJES.values():
+                if rec.get("ci_hash") == ci_hash:
+                    rec = dict(rec)
                     rec["resultados_ia"] = _BD_LOCAL_RESULTADOS_IA.get(rec.get("id"))
                     rec["ai_result"] = _BD_LOCAL_RESULTADOS_IA.get(rec.get("id"))
                     return rec
@@ -295,9 +420,6 @@ class ServicioSupabase:
         Retorna la lista de espera de pacientes para el panel médico, ordenada estrictamente por:
         1. Urgencia clínica: ROJO / RED primero, AMARILLO / YELLOW después, VERDE / GREEN al final.
         2. Hora de llegada (creado_en / created_at).
-
-        Si solo_disponibles=True, filtra únicamente pacientes en espera ('RECIBIDO', 'LISTO')
-        que aún no han sido tomados por ningún médico de guardia.
         """
         todos_los_registros = []
         cliente = self.obtener_cliente()
@@ -330,7 +452,6 @@ class ServicioSupabase:
         for k, r in _BD_LOCAL_TRIAJES.items():
             r_id = r.get("id")
             if r_id and r_id not in ids_vistos:
-                ids_vistos.add(r_id)
                 copia = dict(r)
                 copia["resultados_ia"] = _BD_LOCAL_RESULTADOS_IA.get(r_id)
                 copia["ai_result"] = _BD_LOCAL_RESULTADOS_IA.get(r_id)
@@ -339,11 +460,12 @@ class ServicioSupabase:
                     estado = str(copia.get("estado") or copia.get("status") or "").upper()
                     medico_asig = copia.get("medico_asignado_id") or copia.get("assigned_doctor_id")
                     if estado in ["RECIBIDO", "LISTO", "RECEIVED", "READY"] and not medico_asig:
+                        ids_vistos.add(r_id)
                         todos_los_registros.append(copia)
                 else:
+                    ids_vistos.add(r_id)
                     todos_los_registros.append(copia)
 
-        # Mapa de pesos clínicos para ordenamiento por severidad
         peso_prioridad = {
             "ROJO": 1, "RED": 1,
             "AMARILLO": 2, "YELLOW": 2,
@@ -351,7 +473,6 @@ class ServicioSupabase:
             None: 4, "": 4
         }
 
-        # Ordenamiento homogéneo por prioridad y hora de llegada
         registros_ordenados = sorted(
             todos_los_registros,
             key=lambda r: (
@@ -365,48 +486,57 @@ class ServicioSupabase:
         """
         Asigna la atención activa de un paciente a un médico de guardia transicionando su estado a 'EN_CONSULTA'.
         Control de concurrencia: Evita que dos médicos atiendan al mismo paciente simultáneamente.
+        Manejo defensivo de UUIDs y soporte de búsqueda polimórfica (id / codigo_acceso).
         """
         ahora_iso = datetime.now(timezone.utc).isoformat()
+        medico_uuid = asegurar_uuid_valido(medico_id)
         cliente = self.obtener_cliente()
 
         if cliente:
             try:
-                # 1. Verificar estado y asignación actual
+                # 1. Búsqueda polimórfica (por ID o por código de acceso)
+                res_actual = None
                 try:
-                    res_actual = cliente.table("registros_triaje").select("id, estado, medico_asignado_id").eq("id", triaje_id).execute()
-                    if res_actual.data:
-                        actual = res_actual.data[0]
-                        asig = actual.get("medico_asignado_id")
-                        estado = actual.get("estado")
-                        if asig and asig != medico_id and estado == "EN_CONSULTA":
-                            raise ValueError("El paciente ya se encuentra en atención con otro profesional médico")
-
-                    # 2. Actualizar a EN_CONSULTA
-                    cliente.table("registros_triaje").update({
-                        "medico_asignado_id": medico_id,
-                        "asignado_en": ahora_iso,
-                        "estado": "EN_CONSULTA"
-                    }).eq("id", triaje_id).execute()
-                except ValueError:
-                    raise
+                    if es_uuid_valido(triaje_id):
+                        res_actual = cliente.table("registros_triaje").select("id, estado, medico_asignado_id").eq("id", triaje_id).execute()
+                    else:
+                        res_actual = cliente.table("registros_triaje").select("id, estado, medico_asignado_id").eq("codigo_acceso", triaje_id).execute()
                 except Exception:
-                    cliente.table("triage_record").update({
-                        "assigned_doctor_id": medico_id,
-                        "assigned_at": ahora_iso,
-                        "status": "IN_CONSULTATION"
-                    }).eq("id", triaje_id).execute()
+                    pass
+
+                if res_actual and res_actual.data:
+                    actual = res_actual.data[0]
+                    asig = actual.get("medico_asignado_id")
+                    estado = actual.get("estado")
+                    if asig and asig not in [medico_id, medico_uuid] and estado == "EN_CONSULTA":
+                        raise ValueError("El paciente ya se encuentra en atención con otro profesional médico")
+
+                # 2. Actualizar estado a EN_CONSULTA en Supabase
+                payload_update = {
+                    "medico_asignado_id": medico_uuid,
+                    "asignado_en": ahora_iso,
+                    "estado": "EN_CONSULTA"
+                }
+
+                try:
+                    if es_uuid_valido(triaje_id):
+                        cliente.table("registros_triaje").update(payload_update).eq("id", triaje_id).execute()
+                    else:
+                        cliente.table("registros_triaje").update(payload_update).eq("codigo_acceso", triaje_id).execute()
+                except Exception as e_up:
+                    logger.warning(f"Aviso al actualizar en Supabase ({e_up}). Aplicando persistencia en contingencia local.")
             except ValueError:
                 raise
             except Exception as e:
                 logger.error(f"Error al asignar paciente en Supabase: {e}")
 
-        # Fallback local
+        # Fallback y actualización en almacén local
         encontrado = None
         for k, r in _BD_LOCAL_TRIAJES.items():
             if r.get("id") == triaje_id or r.get("codigo_acceso") == triaje_id or k == triaje_id:
                 asig_local = r.get("medico_asignado_id") or r.get("assigned_doctor_id")
                 est_local = r.get("estado") or r.get("status")
-                if asig_local and asig_local != medico_id and est_local in ["EN_CONSULTA", "IN_CONSULTATION"]:
+                if asig_local and asig_local not in [medico_id, medico_uuid] and est_local in ["EN_CONSULTA", "IN_CONSULTATION"]:
                     raise ValueError("El paciente ya se encuentra en atención con otro profesional médico")
 
                 r["medico_asignado_id"] = medico_id
@@ -436,18 +566,18 @@ class ServicioSupabase:
         cliente = self.obtener_cliente()
         if cliente:
             try:
+                payload_liberar = {
+                    "medico_asignado_id": None,
+                    "asignado_en": None,
+                    "estado": "LISTO"
+                }
                 try:
-                    cliente.table("registros_triaje").update({
-                        "medico_asignado_id": None,
-                        "asignado_en": None,
-                        "estado": "LISTO"
-                    }).eq("id", triaje_id).execute()
+                    if es_uuid_valido(triaje_id):
+                        cliente.table("registros_triaje").update(payload_liberar).eq("id", triaje_id).execute()
+                    else:
+                        cliente.table("registros_triaje").update(payload_liberar).eq("codigo_acceso", triaje_id).execute()
                 except Exception:
-                    cliente.table("triage_record").update({
-                        "assigned_doctor_id": None,
-                        "assigned_at": None,
-                        "status": "READY"
-                    }).eq("id", triaje_id).execute()
+                    pass
             except Exception as e:
                 logger.error(f"Error al liberar paciente en Supabase: {e}")
 
@@ -473,24 +603,20 @@ class ServicioSupabase:
         Retorna la lista de pacientes asignados a un facultativo médico específico.
         """
         pacientes_medico = []
+        medico_uuid = asegurar_uuid_valido(medico_id)
         cliente = self.obtener_cliente()
 
         if cliente:
             try:
                 try:
-                    consulta = cliente.table("registros_triaje").select("*, resultados_ia(*)").eq("medico_asignado_id", medico_id)
+                    consulta = cliente.table("registros_triaje").select("*, resultados_ia(*)").or_(f"medico_asignado_id.eq.{medico_id},medico_asignado_id.eq.{medico_uuid}")
                     if not incluir_revisados:
                         consulta = consulta.in_("estado", ["EN_CONSULTA", "IN_CONSULTATION"])
                     resp = consulta.order("asignado_en", desc=True).execute()
                     if resp.data:
                         pacientes_medico = resp.data
                 except Exception:
-                    consulta = cliente.table("triage_record").select("*, ai_result(*)").eq("assigned_doctor_id", medico_id)
-                    if not incluir_revisados:
-                        consulta = consulta.in_("status", ["IN_CONSULTATION"])
-                    resp = consulta.order("assigned_at", desc=True).execute()
-                    if resp.data:
-                        pacientes_medico = resp.data
+                    pass
             except Exception as e:
                 logger.error(f"Error al consultar pacientes por médico en Supabase: {e}")
 
@@ -502,7 +628,7 @@ class ServicioSupabase:
                 asig = r.get("medico_asignado_id") or r.get("assigned_doctor_id")
                 est = str(r.get("estado") or r.get("status") or "").upper()
 
-                if asig == medico_id:
+                if asig in [medico_id, medico_uuid]:
                     if incluir_revisados or est in ["EN_CONSULTA", "IN_CONSULTATION"]:
                         ids_vistos.add(r_id)
                         copia = dict(r)
@@ -522,9 +648,10 @@ class ServicioSupabase:
         """
         Registra la evaluación y diagnóstico realizado por el médico y pasa el estado a 'REVISADO'.
         """
+        medico_uuid = asegurar_uuid_valido(medico_id)
         payload_revision = {
             "triaje_id": triaje_id,
-            "medico_id": medico_id,
+            "medico_id": medico_uuid,
             "notas_medico": notas_medico,
             "prioridad_ajustada": prioridad_ajustada
         }
@@ -534,21 +661,18 @@ class ServicioSupabase:
             try:
                 try:
                     cliente.table("revisiones_medicas").insert(payload_revision).execute()
-                    cliente.table("registros_triaje").update({
-                        "estado": "REVISADO",
-                        "medico_asignado_id": medico_id
-                    }).eq("id", triaje_id).execute()
+                    if es_uuid_valido(triaje_id):
+                        cliente.table("registros_triaje").update({
+                            "estado": "REVISADO",
+                            "medico_asignado_id": medico_uuid
+                        }).eq("id", triaje_id).execute()
+                    else:
+                        cliente.table("registros_triaje").update({
+                            "estado": "REVISADO",
+                            "medico_asignado_id": medico_uuid
+                        }).eq("codigo_acceso", triaje_id).execute()
                 except Exception:
-                    cliente.table("medical_review").insert({
-                        "triage_id": triaje_id,
-                        "doctor_id": medico_id,
-                        "doctor_notes": notas_medico,
-                        "priority_adjusted": prioridad_ajustada
-                    }).execute()
-                    cliente.table("triage_record").update({
-                        "status": "REVIEWED",
-                        "assigned_doctor_id": medico_id
-                    }).eq("id", triaje_id).execute()
+                    pass
             except Exception as e:
                 logger.error(f"Error al guardar revisión médica en Supabase: {e}")
 
@@ -584,29 +708,45 @@ class ServicioSupabase:
         direccion_ip: Optional[str] = "127.0.0.1"
     ) -> Dict[str, Any]:
         """
-        Inserta un registro inalterable en la bitácora de auditoría.
+        Inserta un registro inalterable en la bitácora de auditoría con soporte bilingüe dual.
         """
+        ahora_iso = datetime.now(timezone.utc).isoformat()
+        usuario_uuid = asegurar_uuid_valido(usuario_id)
+        recurso_uuid = asegurar_uuid_valido(recurso_id) if recurso_id else None
+
         evento = {
-            "usuario_id": usuario_id,
+            "id": str(uuid.uuid4()),
+            "usuario_id": usuario_uuid,
+            "user_id": usuario_uuid,
             "accion": accion,
-            "recurso_id": recurso_id,
-            "direccion_ip": direccion_ip
+            "action": accion,
+            "recurso_id": recurso_uuid,
+            "resource_id": recurso_uuid,
+            "direccion_ip": direccion_ip or "127.0.0.1",
+            "ip_address": direccion_ip or "127.0.0.1",
+            "fecha_hora": ahora_iso,
+            "timestamp": ahora_iso
         }
 
         cliente = self.obtener_cliente()
         if cliente:
             try:
                 try:
-                    cliente.table("registros_auditoria").insert(evento).execute()
+                    cliente.table("registros_auditoria").insert({
+                        "usuario_id": usuario_uuid,
+                        "accion": accion,
+                        "recurso_id": recurso_uuid,
+                        "direccion_ip": direccion_ip
+                    }).execute()
                 except Exception:
                     cliente.table("audit_log").insert({
-                        "user_id": usuario_id,
+                        "user_id": usuario_uuid,
                         "action": accion,
-                        "resource_id": recurso_id,
+                        "resource_id": recurso_uuid,
                         "ip_address": direccion_ip
                     }).execute()
             except Exception as e:
-                logger.error(f"Error al insertar log de auditoría en Supabase: {e}")
+                logger.warning(f"Aviso al guardar auditoría en Supabase: {e}")
 
         _BD_LOCAL_AUDITORIA.append(evento)
         return evento

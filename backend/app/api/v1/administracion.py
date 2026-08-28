@@ -107,6 +107,11 @@ async def obtener_estadisticas_admin():
             casos_revisados=revisados,
             medicos_activos=medicos_activos,
             tiempo_promedio_atencion_min=tiempo_promedio,
+            total_patients=total_triajes,
+            urgent_red_cases=urgente_rojo,
+            reviewed_cases=revisados,
+            active_doctors=medicos_activos,
+            average_attention_time_min=tiempo_promedio,
             total_pacientes=total_triajes,
             pacientes_hoy=total_triajes,
             en_espera=max(0, total_triajes - revisados),
@@ -337,21 +342,28 @@ async def listar_registros_auditoria(
             except Exception as e:
                 logger.error(f"Error consultando bitácora en Supabase: {e}")
 
-        if not registros_auditoria and _BD_LOCAL_AUDITORIA:
-            for log in reversed(_BD_LOCAL_AUDITORIA[-limite:]):
-                item = {
-                    "id": log.get("id", str(uuid.uuid4())),
-                    "usuario_id": log.get("usuario_id") or log.get("user_id"),
-                    "accion": log.get("accion") or log.get("action", "ACCION_GENERAL"),
-                    "action": log.get("accion") or log.get("action", "ACCION_GENERAL"),
-                    "recurso_id": log.get("recurso_id") or log.get("resource_id"),
-                    "direccion_ip": log.get("direccion_ip") or log.get("ip_address", "127.0.0.1"),
-                    "fecha_hora": log.get("fecha_hora") or log.get("timestamp", datetime.now(timezone.utc).isoformat()),
-                    "timestamp": log.get("fecha_hora") or log.get("timestamp", datetime.now(timezone.utc).isoformat())
-                }
-                registros_auditoria.append(item)
+        # Formateo homogéneo y dual para todos los registros (Supabase y Local)
+        registros_formateados = []
+        fuente_registros = registros_auditoria if registros_auditoria else list(reversed(_BD_LOCAL_AUDITORIA[-limite:]))
+        
+        for log in fuente_registros:
+            ts = log.get("fecha_hora") or log.get("timestamp") or log.get("creado_en") or log.get("created_at") or datetime.now(timezone.utc).isoformat()
+            item = {
+                "id": str(log.get("id") or uuid.uuid4()),
+                "usuario_id": log.get("usuario_id") or log.get("user_id") or "SISTEMA",
+                "user_id": log.get("usuario_id") or log.get("user_id") or "SISTEMA",
+                "accion": log.get("accion") or log.get("action", "ACCION_GENERAL"),
+                "action": log.get("accion") or log.get("action", "ACCION_GENERAL"),
+                "recurso_id": log.get("recurso_id") or log.get("resource_id"),
+                "resource_id": log.get("recurso_id") or log.get("resource_id"),
+                "direccion_ip": log.get("direccion_ip") or log.get("ip_address", "127.0.0.1"),
+                "ip_address": log.get("direccion_ip") or log.get("ip_address", "127.0.0.1"),
+                "fecha_hora": ts,
+                "timestamp": ts
+            }
+            registros_formateados.append(EsquemaRegistroAuditoria(**item))
 
-        return registros_auditoria
+        return registros_formateados
 
     except Exception as e:
         logger.error(f"Error al listar auditoría: {e}")

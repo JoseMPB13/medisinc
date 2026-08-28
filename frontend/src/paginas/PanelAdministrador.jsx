@@ -169,25 +169,33 @@ export const PanelAdministrador = () => {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
                 <span className="text-xs font-semibold text-slate-400 uppercase">Total Pre-Triajes</span>
-                <div className="text-3xl font-black text-white mt-2">{estadisticas.total_triajes}</div>
+                <div className="text-3xl font-black text-white mt-2">
+                  {estadisticas.total_triajes ?? estadisticas.total_pacientes ?? estadisticas.total_patients ?? 0}
+                </div>
                 <p className="text-[11px] text-slate-500 mt-1">Pacientes registrados</p>
               </div>
 
               <div className="bg-slate-900 border border-rose-500/30 p-5 rounded-2xl bg-rose-950/10">
                 <span className="text-xs font-semibold text-rose-400 uppercase">Emergencias Críticas</span>
-                <div className="text-3xl font-black text-rose-400 mt-2">{estadisticas.casos_rojo_urgente}</div>
+                <div className="text-3xl font-black text-rose-400 mt-2">
+                  {estadisticas.casos_rojo_urgente ?? estadisticas.urgent_red_cases ?? estadisticas.criticos_rojo ?? 0}
+                </div>
                 <p className="text-[11px] text-rose-300/70 mt-1">Casos clasificados en Rojo</p>
               </div>
 
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
                 <span className="text-xs font-semibold text-emerald-400 uppercase">Atenciones Completadas</span>
-                <div className="text-3xl font-black text-emerald-400 mt-2">{estadisticas.casos_revisados}</div>
+                <div className="text-3xl font-black text-emerald-400 mt-2">
+                  {estadisticas.casos_revisados ?? estadisticas.reviewed_cases ?? estadisticas.atendidos ?? 0}
+                </div>
                 <p className="text-[11px] text-slate-500 mt-1">Dados de alta por médico</p>
               </div>
 
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
                 <span className="text-xs font-semibold text-indigo-400 uppercase">Médicos Activos</span>
-                <div className="text-3xl font-black text-white mt-2">{estadisticas.medicos_activos}</div>
+                <div className="text-3xl font-black text-white mt-2">
+                  {estadisticas.medicos_activos ?? estadisticas.active_doctors ?? estadisticas.total_medicos ?? 0}
+                </div>
                 <p className="text-[11px] text-slate-500 mt-1">Personal en guardia</p>
               </div>
             </div>
@@ -325,7 +333,7 @@ export const PanelAdministrador = () => {
                 <Lock className="w-4 h-4 text-emerald-400" />
                 <span className="font-bold text-xs uppercase text-slate-300">Trazabilidad Inalterable de Auditoría</span>
               </div>
-              <span className="text-[11px] text-slate-500">Últimos 50 eventos</span>
+              <span className="text-[11px] text-slate-500">Últimos {auditorias.length} eventos</span>
             </div>
 
             <div className="overflow-x-auto">
@@ -335,18 +343,40 @@ export const PanelAdministrador = () => {
                     <th className="p-3">Acción Ejecutada</th>
                     <th className="p-3">Recurso Afectado</th>
                     <th className="p-3">IP Origen</th>
-                    <th className="p-3">Fecha y Hora (UTC)</th>
+                    <th className="p-3">Fecha y Hora</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800 font-mono">
-                  {auditorias.map((a, idx) => (
-                    <tr key={a.id || idx} className="hover:bg-slate-800/40">
-                      <td className="p-3 font-semibold text-emerald-400">{a.accion || a.action}</td>
-                      <td className="p-3 text-slate-300">{a.recurso_id || a.resource_id || '-'}</td>
-                      <td className="p-3 text-slate-400">{a.direccion_ip || a.ip_address || '127.0.0.1'}</td>
-                      <td className="p-3 text-slate-500 text-[11px]">{a.fecha_hora || a.timestamp}</td>
+                  {auditorias.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="p-6 text-center text-slate-500">
+                        No hay eventos registrados en la bitácora de auditoría.
+                      </td>
                     </tr>
-                  ))}
+                  ) : (
+                    auditorias.map((a, idx) => {
+                      const fechaStr = a.fecha_hora || a.timestamp;
+                      const fechaFormateada = fechaStr
+                        ? new Date(fechaStr).toLocaleString('es-BO', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                          })
+                        : 'Reciente';
+
+                      return (
+                        <tr key={a.id || idx} className="hover:bg-slate-800/40">
+                          <td className="p-3 font-semibold text-emerald-400">{a.accion || a.action || 'OPERACION'}</td>
+                          <td className="p-3 text-slate-300">{a.recurso_id || a.resource_id || '-'}</td>
+                          <td className="p-3 text-slate-400">{a.direccion_ip || a.ip_address || '127.0.0.1'}</td>
+                          <td className="p-3 text-slate-500 text-[11px]">{fechaFormateada}</td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
