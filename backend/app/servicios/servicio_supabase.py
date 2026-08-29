@@ -154,6 +154,16 @@ def obtener_turno_actual(hora_bolivia: Optional[int] = None) -> str:
     else:
         return "MADRUGADA"
 
+_MAPA_ESPECIALIDADES_IDS: Dict[str, str] = {
+    "Medicina General": "20000000-0000-0000-0000-000000000001",
+    "Pediatría": "20000000-0000-0000-0000-000000000002",
+    "Ginecología y Obstetricia": "20000000-0000-0000-0000-000000000003",
+    "Traumatología y Urgencias": "20000000-0000-0000-0000-000000000004",
+    "Cardiología y Medicina Interna": "20000000-0000-0000-0000-000000000005",
+    "Odontología": "20000000-0000-0000-0000-000000000006",
+}
+_BD_LOCAL_PACIENTES: Dict[str, Dict[str, Any]] = {}
+
 # Aliases de compatibilidad con memoria previa
 _IN_MEMORY_TRIAGE_DB = _BD_LOCAL_TRIAJES
 _IN_MEMORY_AI_DB = _BD_LOCAL_RESULTADOS_IA
@@ -164,6 +174,7 @@ _IN_MEMORY_AUDIT_LOG_DB = _BD_LOCAL_AUDITORIA
 class ServicioSupabase:
     """
     Cliente encapsulado de Supabase para operaciones CRUD de triaje, auditoría y personal médico.
+    Implementa arquitectura 3NF con tabla maestra de pacientes y episodios de triaje.
     """
 
     def __init__(self):
@@ -218,48 +229,73 @@ class ServicioSupabase:
         medico_asignado_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Inserta el registro de pre-triaje capturado en el portal del paciente.
+        Inserta el registro de pre-triaje capturado en el portal del paciente cumpliendo con 3NF.
+        Separa la entidad paciente del episodio clínico de triaje.
         """
         ahora_iso = datetime.now(timezone.utc).isoformat()
         comorbilidades = enfermedades_base or []
         doc_id = medico_asignado_id or None
+        esp_nombre = especialidad_solicitada or "Medicina General"
+        esp_id = _MAPA_ESPECIALIDADES_IDS.get(esp_nombre, "20000000-0000-0000-0000-000000000001")
 
-        # Payload en español
-        registro_es = {
-            "id": triaje_id,
-            "codigo_acceso": codigo_acceso,
-            "ci_cifrado": ci_cifrado,
+        # 1. Resolver Entidad Paciente
+        paciente_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"paciente.{ci_hash}")) if ci_hash else str(uuid.uuid4())
+        paciente_obj = {
+            "id": paciente_id,
             "ci_hash": ci_hash,
-            "nombre_paciente": nombre_paciente,
+            "ci_cifrado": ci_cifrado,
+            "nombre_completo": nombre_paciente,
             "edad": edad,
             "genero": genero,
-            "sintomas_brutos": sintomas_brutos,
-            "especialidad_solicitada": especialidad_solicitada or "Medicina General",
             "alergias_medicamentosas": alergias_medicamentosas or "Ninguna conocida",
-            "medicacion_actual": medicacion_actual or "Ninguna",
             "enfermedades_base": comorbilidades,
+            "medicacion_habitual": medicacion_actual or "No toma medicación",
+            "creado_en": ahora_iso,
+            "actualizado_en": ahora_iso
+        }
+        _BD_LOCAL_PACIENTES[paciente_id] = paciente_obj
+        if ci_hash:
+            _BD_LOCAL_PACIENTES[ci_hash] = paciente_obj
+
+        # 2. Objeto 3NF registros_triaje
+        registro_triaje_3nf = {
+            "id": triaje_id,
+            "codigo_acceso": codigo_acceso,
+            "paciente_id": paciente_id,
+            "especialidad_id": esp_id,
             "medico_asignado_id": doc_id,
             "asignado_en": ahora_iso if doc_id else None,
+            "sintomas_brutos": sintomas_brutos,
             "datos_estaticos": datos_estaticos or {},
             "respuestas_dinamicas": respuestas_dinamicas or {},
             "estado": estado,
             "prioridad_final": prioridad_final,
-            "creado_en": ahora_iso
+            "creado_en": ahora_iso,
+            "actualizado_en": ahora_iso
         }
 
-        # Payload en inglés para compatibilidad
-        registro_en = {
-            "id": triaje_id,
-            "access_code": codigo_acceso,
+        # 3. Payload consolidado para interoperabilidad total
+        registro_combinado = {
+            **paciente_obj,
+            **registro_triaje_3nf,
+            "nombre_paciente": nombre_paciente,
+            "patient_name": nombre_paciente,
+            "ci_cifrado": ci_cifrado,
             "ci_encrypted": ci_cifrado,
             "ci_hash": ci_hash,
-            "patient_name": nombre_paciente,
+            "edad": edad,
             "age": edad,
+            "genero": genero,
             "gender": genero,
+            "sintomas_brutos": sintomas_brutos,
             "raw_symptoms": sintomas_brutos,
-            "requested_specialty": especialidad_solicitada or "Medicina General",
+            "especialidad_solicitada": esp_nombre,
+            "requested_specialty": esp_nombre,
+            "alergias_medicamentosas": alergias_medicamentosas or "Ninguna conocida",
             "drug_allergies": alergias_medicamentosas or "Ninguna conocida",
+            "medicacion_actual": medicacion_actual or "Ninguna",
             "current_medication": medicacion_actual or "Ninguna",
+            "enfermedades_base": comorbilidades,
             "base_diseases": comorbilidades,
             "assigned_doctor_id": doc_id,
             "assigned_at": ahora_iso if doc_id else None,
@@ -270,18 +306,28 @@ class ServicioSupabase:
             "created_at": ahora_iso
         }
 
+        # 4. Persistencia en Supabase
         cliente = self.obtener_cliente()
         if cliente:
             try:
+                # Upsert en pacientes
                 try:
-                    cliente.table("registros_triaje").insert(registro_es).execute()
+                    cliente.table("pacientes").upsert(paciente_obj, on_conflict="ci_hash").execute()
                 except Exception:
-                    cliente.table("triage_record").insert(registro_en).execute()
+                    pass
+
+                # Insert en registros_triaje
+                try:
+                    cliente.table("registros_triaje").insert(registro_triaje_3nf).execute()
+                except Exception:
+                    try:
+                        cliente.table("registros_triaje").insert(registro_combinado).execute()
+                    except Exception:
+                        cliente.table("triage_record").insert(registro_combinado).execute()
             except Exception as e:
                 logger.error(f"Error al guardar triaje en Supabase: {e}")
 
-        # Fallback local dual
-        registro_combinado = {**registro_es, **registro_en}
+        # Fallback local
         _BD_LOCAL_TRIAJES[triaje_id] = registro_combinado
         _BD_LOCAL_TRIAJES[codigo_acceso] = registro_combinado
 
