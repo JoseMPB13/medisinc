@@ -1,6 +1,7 @@
 """
 Esquemas de Validación Pydantic v2 para el Portal de Administración y Auditoría.
-Define los modelos de creación/edición de personal médico, métricas globales y bitácora de auditoría.
+Define los modelos de creación/edición de personal médico, asignación de turnos de guardia,
+métricas globales y bitácora de auditoría.
 Soporte bilingüe dual completo para blindar el consumo del frontend.
 """
 
@@ -19,17 +20,26 @@ class EsquemaCrearMedico(BaseModel):
     password: str = Field(..., description="Contraseña temporal de acceso seguro", min_length=6)
     especialidad: str = Field(default="Medicina General", alias="specialty", description="Especialidad o área de atención")
     rol: Literal["MEDICO", "ADMIN", "DOCTOR"] = Field(default="MEDICO", alias="role", description="Rol del usuario en el sistema")
+    turno_asignado: Optional[Literal["MANANA", "TARDE_NOCHE", "MADRUGADA", "TODOS"]] = Field(
+        default="MANANA", alias="assigned_shift", description="Turno de guardia: MANANA (07:00-15:00), TARDE_NOCHE (15:00-23:00), MADRUGADA (23:00-07:00), TODOS"
+    )
+    dias_guardia: Optional[List[str]] = Field(
+        default_factory=lambda: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
+        alias="duty_days"
+    )
 
 
 class EsquemaActualizarMedico(BaseModel):
     """
-    Datos permitidos para modificar el perfil de un profesional de salud.
+    Datos permitidos para modificar el perfil de un profesional de salud y su turno de guardia.
     """
     model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     nombre_completo: Optional[str] = Field(None, alias="full_name")
     especialidad: Optional[str] = Field(None, alias="specialty")
     rol: Optional[Literal["MEDICO", "ADMIN", "DOCTOR"]] = Field(None, alias="role")
+    turno_asignado: Optional[Literal["MANANA", "TARDE_NOCHE", "MADRUGADA", "TODOS"]] = Field(None, alias="assigned_shift")
+    dias_guardia: Optional[List[str]] = Field(None, alias="duty_days")
     esta_activo: Optional[bool] = Field(None, alias="is_active")
 
 
@@ -45,6 +55,8 @@ class EsquemaRespuestaMedico(BaseModel):
     correo: Optional[str] = Field(None, alias="email", description="Correo electrónico")
     especialidad: Optional[str] = Field("Medicina General", alias="specialty", description="Especialidad médica")
     rol: str = Field(..., alias="role", description="Rol asignado (MEDICO o ADMIN)")
+    turno_asignado: str = Field(default="TODOS", alias="assigned_shift", description="Turno de guardia asignado")
+    dias_guardia: Optional[List[str]] = Field(default_factory=list, alias="duty_days", description="Días de guardia")
     esta_activo: bool = Field(True, alias="is_active", description="Estado de actividad en la plataforma")
     creado_en: str = Field(..., alias="created_at", description="Fecha y hora de creación ISO 8601")
 

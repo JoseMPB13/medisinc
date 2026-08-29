@@ -146,68 +146,69 @@ FORMATO JSON REQUERIDO:
 [SYSTEM PROMPT]
 Eres un médico especialista en triaje de emergencias de MediSinc-IA.
 El paciente solicita atención en la especialidad: {especialidad_solicitada}.
-Tu tarea es generar exactamente entre 2 y 3 preguntas clínicas de opción múltiple para interrogar al paciente antes de su evaluación presencial.
+Tu tarea es formular exactamente entre 2 y 3 preguntas clínicas de opción múltiple enfocadas en SEMIOLOGÍA PQRST para precisar el motivo de consulta antes de su atención presencial.
 
 {MAPEADOR_DIALECTAL_BOLIVIA}
 
-METODOLOGÍA SEMIOLÓGICA PQRST Y ORIENTACIÓN POR ESPECIALIDAD ({especialidad_solicitada}):
-1. PREGUNTA 1 (Semiología Específica / Banderas Rojas): Interroga la irradiación, tipo de dolor (opresivo vs punzante), velocidad de inicio o signos de peligro enfocados en {especialidad_solicitada}.
-   - Pediatría: tolerancia oral, llanto inconsolable o decaimiento.
-   - Cardiología / Medicina Interna: irradiación precordial, disnea paroxística, palpitaciones.
-   - Traumatología / Cirugía: mecanismo del trauma, impotencia funcional, deformidad articular.
-   - Ginecología / Obstetricia: fecha de última menstruación, sangrado o dolor cólico pélvico.
-   - Medicina General: tiempo de instauración, fiebre cuantificada o síntomas sistémicos.
-2. PREGUNTA 2 (Profundización de Antecedentes y Comorbilidades): Profundiza en las enfermedades de base reportadas ({comorb_str}) o descarta condiciones afines.
-3. PREGUNTA 3 (Tratamiento Fármaco / Alergias): Interroga sobre respuesta a medicamentos ({medicacion_actual}), analgésicos tomados o descarte de reacciones a fármacos ({alergias_medicamentosas}).
+[PROHIBICIÓN ESTRICTA Y REGLAS NEGATIVAS]:
+- ESTÁ ESTRICTAMENTE PROHIBIDO preguntar sobre antecedentes médicos generales, enfermedades de base previas, alergias a fármacos o medicamentos diarios, dado que la interfaz del paciente los recopila de forma independiente mediante chips interactivos.
+- NO formules preguntas genéricas de "¿Padece alguna enfermedad?" ni "¿Qué medicamentos toma habitualmente?".
+
+[DIRECTIVA POSITIVA - METODOLOGÍA SEMIOLÓGICA PQRST Y ORIENTACIÓN POR ESPECIALIDAD ({especialidad_solicitada})]:
+1. PREGUNTA 1 (Cualidad y Región/Irradiación): Características del síntoma o dolor principal (opresivo, punzante, urente, cólico) y si irradia hacia alguna zona anatómica.
+2. PREGUNTA 2 (Provocación y Factores Desencadenantes / Alivio): Qué agrava o disminuye el cuadro (al respirar hondo, esfuerzo físico, ingesta de alimentos, cambios de postura o reposo).
+3. PREGUNTA 3 (Severidad y Banderas Rojas de {especialidad_solicitada}): Descarte de signos de cortejo vegetativo o alarma crítica:
+   - Cardiología / Medicina Interna: sensación de falta de aire en reposo, opresión al pecho, sudor frío o mareos.
+   - Pediatría: decaimiento marcado, rechazo total al pecho/líquidos, vómitos repetidos o dificultad para respirar.
+   - Traumatología / Urgencias: chasquido al momento del golpe, deformidad evidente o incapacidad de apoyar el miembro.
+   - Ginecología / Obstetricia: sangrado genital anormal, dolor pélvico punzante o fiebre con flujo.
+   - Odontología: inflamación de la cara/cuello, dificultad para tragar o abrir la boca.
+   - Medicina General: fiebre alta con escalofríos, rigidez o vómitos incoercibles.
 
 REGLAS DE FORMATO JSON:
-- Responde ÚNICAMENTE un array JSON con 2 a 3 objetos.
+- Responde ÚNICAMENTE un array JSON válido con 2 a 3 objetos.
 - Cada objeto debe contener:
-  - "id": identificador único en minúsculas (ej: "q_caracteristica_dolor", "q_enfermedades_previas", "q_medicacion")
-  - "pregunta": texto claro y empático en español dirigido al paciente.
+  - "id": identificador único en minúsculas (ej: "q_cualidad_irradiacion", "q_factores_gatillantes", "q_banderas_rojas")
+  - "pregunta": texto claro, empático y profesional en español dirigido al paciente.
   - "tipo_pregunta": "single_choice" o "multiple_choice"
   - "opciones": lista de 3 a 4 opciones con {{"etiqueta": "...", "valor": "..."}}
 
-DATOS DEL PACIENTE:
+DATOS DEL MOTIVO DE CONSULTA:
 - Especialidad Solicitada: {especialidad_solicitada}
 - Motivo de Consulta: "{sintomas}"
 - Edad: {edad} años | Género: {genero}
-- Alergias Reportadas: {alergias_medicamentosas}
-- Medicación Actual: {medicacion_actual}
-- Comorbilidades: {comorb_str}
 
 EJEMPLO DE SALIDA ESPERADA:
 [
   {{
-    "id": "q_caracteristica",
+    "id": "q_cualidad_irradiacion",
     "pregunta": "¿Cómo describirías la molestia principal y hacia dónde se extiende?",
     "tipo_pregunta": "single_choice",
     "opciones": [
-      {{"etiqueta": "Opresión intensa que irradia a mandíbula o brazo", "valor": "irradiado"}},
-      {{"etiqueta": "Punzante o quemante localizado", "valor": "localizado"}},
-      {{"etiqueta": "Sensación de pesadez difusa", "valor": "difuso"}}
+      {{"etiqueta": "Opresión intensa que va hacia el cuello, mandíbula o brazo", "valor": "irradiado_toracico"}},
+      {{"etiqueta": "Punzante o quemante en un punto fijo", "valor": "localizado_punzante"}},
+      {{"etiqueta": "Dolor tipo cólico o retortijón intermitente", "valor": "colico_intermitente"}}
     ]
   }},
   {{
-    "id": "q_enfermedades",
-    "pregunta": "¿Padece alguna enfermedad o condición médica diagnosticada?",
-    "tipo_pregunta": "multiple_choice",
+    "id": "q_factores_gatillantes",
+    "pregunta": "¿En qué momento aumenta o empeora esta molestia?",
+    "tipo_pregunta": "single_choice",
     "opciones": [
-      {{"etiqueta": "Hipertensión arterial (presión alta)", "valor": "hipertension"}},
-      {{"etiqueta": "Diabetes mellitus (azúcar alta)", "valor": "diabetes"}},
-      {{"etiqueta": "Problemas cardíacos o respiratorios crónicos", "valor": "cardio_resp"}},
-      {{"etiqueta": "Ninguna enfermedad diagnosticada", "valor": "ninguna"}}
+      {{"etiqueta": "Aumenta al hacer esfuerzo físico o caminar", "valor": "empeora_esfuerzo"}},
+      {{"etiqueta": "Empeora al respirar hondo, toser o cambiar de posición", "valor": "empeora_respiracion_postura"}},
+      {{"etiqueta": "Es continuo y no cambia con el reposo", "valor": "continuo_fijo"}}
     ]
   }},
   {{
-    "id": "q_medicamentos",
-    "pregunta": "¿Toma medicamentos habitualmente o ha tomado algo hoy para este malestar?",
+    "id": "q_banderas_rojas",
+    "pregunta": "¿Presentas alguno de estos signos de alarma en este momento?",
     "tipo_pregunta": "multiple_choice",
     "opciones": [
-      {{"etiqueta": "Medicamentos para la presión o anticoagulantes", "valor": "cardiovasculares"}},
-      {{"etiqueta": "Medicación para la diabetes", "valor": "antidiabeticos"}},
-      {{"etiqueta": "Tomé analgésicos o antiinflamatorios recientemente", "valor": "analgesicos"}},
-      {{"etiqueta": "No tomo ningún medicamento", "valor": "ninguno"}}
+      {{"etiqueta": "Falta de aire o dificultad para respirar en reposo", "valor": "disnea_reposo"}},
+      {{"etiqueta": "Sudoración fría, sensación de desmayo o mareo fuerte", "valor": "diaforesis_lipotimia"}},
+      {{"etiqueta": "Vómitos continuos o fiebre muy alta", "valor": "vomitos_fiebre"}},
+      {{"etiqueta": "Ninguno de los anteriores", "valor": "ninguno"}}
     ]
   }}
 ]
@@ -336,28 +337,26 @@ EJEMPLO DE SALIDA ESPERADA:
             }
 
         p2 = {
-            "id": "q_enfermedades_comorbilidades",
-            "pregunta": f"Para su consulta en {especialidad_solicitada}, ¿padece alguna de estas condiciones?",
-            "tipo_pregunta": "multiple_choice",
+            "id": "q_factores_gatillantes",
+            "pregunta": "¿Qué factores agravan o calman tu malestar en este momento?",
+            "tipo_pregunta": "single_choice",
             "opciones": [
-                {"etiqueta": "Hipertensión arterial (presión alta)", "valor": "hipertension"},
-                {"etiqueta": "Diabetes mellitus (azúcar en sangre)", "valor": "diabetes"},
-                {"etiqueta": "Problemas cardíacos o infarto previo", "valor": "cardiopatia"},
-                {"etiqueta": "Asma, bronquitis crónica o EPOC", "valor": "asma_epoc"},
-                {"etiqueta": "Ninguna enfermedad diagnosticada", "valor": "ninguna"}
+                {"etiqueta": "Empeora notablemente con el movimiento físico o esfuerzo", "valor": "empeora_esfuerzo"},
+                {"etiqueta": "Aumenta con la respiración profunda o al toser", "valor": "empeora_respiracion"},
+                {"etiqueta": "Se mantiene constante y no cede con el reposo", "valor": "constante_sin_alivio"},
+                {"etiqueta": "Disminuye parcialmente al descansar o cambiar de posición", "valor": "calma_reposo"}
             ]
         }
 
         p3 = {
-            "id": "q_medicamentos_tratamientos",
-            "pregunta": "¿Toma medicamentos habitualmente o ha tomado fármacos para este malestar?",
+            "id": "q_signos_alarma_vegetativos",
+            "pregunta": "¿Presentas alguno de estos signos de alarma en este momento?",
             "tipo_pregunta": "multiple_choice",
             "opciones": [
-                {"etiqueta": "Medicamentos para la presión arterial o el corazón", "valor": "antihipertensivos"},
-                {"etiqueta": "Anticoagulantes o aspirina diariamente", "valor": "anticoagulantes"},
-                {"etiqueta": "Insulina o pastillas para la diabetes", "valor": "antidiabeticos"},
-                {"etiqueta": "Tomé analgésicos o antibióticos en las últimas horas", "valor": "analgesicos"},
-                {"etiqueta": "No tomo ningún medicamento de forma regular", "valor": "ninguno"}
+                {"etiqueta": "Dificultad o sensación de falta de aire al estar sentado(a)", "valor": "disnea_reposo", "es_alerta_roja": True},
+                {"etiqueta": "Sudoración fría, sensación de desvanecimiento o mareo intenso", "valor": "diaforesis_lipotimia", "es_alerta_roja": True},
+                {"etiqueta": "Fiebre alta con escalofríos intensos o vómitos continuos", "valor": "fiebre_vomitos", "es_alerta_roja": False},
+                {"etiqueta": "Ninguno de los signos anteriores", "valor": "ninguno", "es_alerta_roja": False}
             ]
         }
 

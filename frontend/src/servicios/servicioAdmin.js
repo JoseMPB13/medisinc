@@ -82,6 +82,30 @@ export const servicioAdmin = {
   },
 
   /**
+   * Actualiza el perfil, especialidad, turno de guardia y estado de un médico.
+   * @param {string} medicoId - ID del facultativo.
+   * @param {Object} datosMedico - { nombre_completo, especialidad, rol, turno_asignado, dias_guardia, esta_activo }
+   * @returns {Promise<Object>} Registro actualizado.
+   */
+  async actualizarMedico(medicoId, datosMedico) {
+    try {
+      const payload = {
+        nombre_completo: datosMedico.nombre_completo || datosMedico.full_name,
+        especialidad: datosMedico.especialidad || datosMedico.specialty,
+        rol: datosMedico.rol || datosMedico.role,
+        turno_asignado: datosMedico.turno_asignado || datosMedico.assigned_shift,
+        dias_guardia: datosMedico.dias_guardia || datosMedico.duty_days,
+        esta_activo: datosMedico.esta_activo !== undefined ? datosMedico.esta_activo : datosMedico.is_active,
+      };
+      const respuesta = await clienteApiAdmin.put(`/api/v1/admin/medicos/${medicoId}`, payload);
+      return respuesta.data;
+    } catch (error) {
+      console.error('[servicioAdmin] Error al actualizar médico:', error);
+      throw error.response?.data || error;
+    }
+  },
+
+  /**
    * Consulta la bitácora inalterable de auditoría.
    * @param {number} limite - Cantidad de registros (por defecto 50).
    * @param {string} accion - Filtro opcional por tipo de acción.

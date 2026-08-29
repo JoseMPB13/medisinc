@@ -1,7 +1,7 @@
 /**
  * Portal del Administrador y Gobernanza del Centro de Salud (MediSinc-IA).
  * Proporciona métricas cuantitativas consolidadas, gestión de profesionales médicos
- * y visor de la bitácora inalterable de auditoría (registros_auditoria).
+ * con asignación de turnos de guardia y especialidades, y visor de auditoría.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -19,9 +19,33 @@ import {
   Lock,
   CheckCircle2,
   Stethoscope,
+  Edit2,
+  Check,
+  X,
+  Power,
+  Sun,
+  Sunset,
+  Moon,
+  ShieldAlert,
 } from 'lucide-react';
 import { servicioAutenticacion } from '../servicios/servicioAutenticacion';
 import { servicioAdmin } from '../servicios/servicioAdmin';
+
+const ESPECIALIDADES_DISPONIBLES = [
+  'Medicina General',
+  'Pediatría',
+  'Ginecología y Obstetricia',
+  'Traumatología y Urgencias',
+  'Cardiología y Medicina Interna',
+  'Odontología',
+];
+
+const TURNOS_DISPONIBLES = [
+  { valor: 'MANANA', etiqueta: 'Mañana (07:00 - 15:00)', icono: Sun, color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' },
+  { valor: 'TARDE_NOCHE', etiqueta: 'Tarde/Noche (15:00 - 23:00)', icono: Sunset, color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/30' },
+  { valor: 'MADRUGADA', etiqueta: 'Madrugada (23:00 - 07:00)', icono: Moon, color: 'text-purple-400 bg-purple-500/10 border-purple-500/30' },
+  { valor: 'TODOS', etiqueta: 'Guardia Completa / 24h', icono: Clock, color: 'text-teal-400 bg-teal-500/10 border-teal-500/30' },
+];
 
 export const PanelAdministrador = () => {
   const [estadisticas, setEstadisticas] = useState({
@@ -43,9 +67,14 @@ export const PanelAdministrador = () => {
     password: '',
     especialidad: 'Medicina General',
     rol: 'MEDICO',
+    turno_asignado: 'MANANA',
   });
   const [creandoMedico, setCreandoMedico] = useState(false);
   const [mensajeExito, setMensajeExito] = useState(null);
+
+  // Edición rápida de médico
+  const [medicoEnEdicion, setMedicoEnEdicion] = useState(null);
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
   const usuarioActual = servicioAutenticacion.obtenerUsuarioActual();
 
@@ -77,19 +106,47 @@ export const PanelAdministrador = () => {
     setMensajeExito(null);
     try {
       await servicioAdmin.crearMedico(nuevoMedico);
-      setMensajeExito('Médico registrado exitosamente.');
+      setMensajeExito('Médico registrado exitosamente con turno asignado.');
       setNuevoMedico({
         nombre_completo: '',
         correo: '',
         password: '',
         especialidad: 'Medicina General',
         rol: 'MEDICO',
+        turno_asignado: 'MANANA',
       });
       cargarDatosAdmin();
     } catch (err) {
       alert('Error al registrar médico: ' + (err.detail || err.message));
     } finally {
       setCreandoMedico(false);
+    }
+  };
+
+  const guardarCambiosMedico = async (medicoId) => {
+    if (!medicoEnEdicion) return;
+    setGuardandoEdicion(true);
+    try {
+      await servicioAdmin.actualizarMedico(medicoId, medicoEnEdicion);
+      setMedicoEnEdicion(null);
+      setMensajeExito('Datos de guardia y especialidad actualizados.');
+      cargarDatosAdmin();
+    } catch (err) {
+      alert('Error al actualizar médico: ' + (err.detail || err.message));
+    } finally {
+      setGuardandoEdicion(false);
+    }
+  };
+
+  const toggleEstadoActivo = async (medico) => {
+    try {
+      const nuevoEstado = !(medico.esta_activo ?? medico.is_active);
+      await servicioAdmin.actualizarMedico(medico.id, {
+        esta_activo: nuevoEstado,
+      });
+      cargarDatosAdmin();
+    } catch (err) {
+      alert('Error al cambiar estado del médico: ' + (err.detail || err.message));
     }
   };
 
@@ -118,98 +175,109 @@ export const PanelAdministrador = () => {
                 servicioAutenticacion.cerrarSesion();
                 window.location.href = '/iniciar-sesion';
               }}
-              className="p-2 text-slate-400 hover:text-rose-400 rounded-xl bg-slate-800 transition"
-              title="Cerrar Sesión"
+              className="text-xs text-rose-400 hover:text-rose-300 border border-rose-500/30 bg-rose-500/10 px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
+              <span>Cerrar Sesión</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Contenedor Principal */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full flex-1 space-y-6">
-        {/* Pestañas de Navegación */}
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+      {/* Menú de Pestañas */}
+      <div className="border-b border-slate-800 bg-slate-900/40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex space-x-4">
           <button
             onClick={() => setPestanaActiva('resumen')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+            className={`py-3.5 text-xs font-bold border-b-2 flex items-center gap-2 transition cursor-pointer ${
               pestanaActiva === 'resumen'
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/30'
-                : 'bg-slate-900 text-slate-400 hover:text-white'
+                ? 'border-indigo-500 text-indigo-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            Métricas Globales
+            <Activity className="w-4 h-4" />
+            <span>Métricas Clínicas</span>
           </button>
+
           <button
             onClick={() => setPestanaActiva('medicos')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+            className={`py-3.5 text-xs font-bold border-b-2 flex items-center gap-2 transition cursor-pointer ${
               pestanaActiva === 'medicos'
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/30'
-                : 'bg-slate-900 text-slate-400 hover:text-white'
+                ? 'border-indigo-500 text-indigo-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            Personal Médico
+            <Users className="w-4 h-4" />
+            <span>Gestión de Médicos y Turnos ({medicos.length})</span>
           </button>
+
           <button
             onClick={() => setPestanaActiva('auditoria')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+            className={`py-3.5 text-xs font-bold border-b-2 flex items-center gap-2 transition cursor-pointer ${
               pestanaActiva === 'auditoria'
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/30'
-                : 'bg-slate-900 text-slate-400 hover:text-white'
+                ? 'border-indigo-500 text-indigo-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            Bitácora de Auditoría
+            <FileText className="w-4 h-4" />
+            <span>Bitácora de Auditoría</span>
           </button>
         </div>
+      </div>
 
-        {/* CONTENIDO DE PESTAÑA: MÉTRICAS GLOBALES */}
+      {/* Contenedor Principal */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full flex-1">
+        {/* CONTENIDO DE PESTAÑA: RESUMEN / MÉTRICAS */}
         {pestanaActiva === 'resumen' && (
           <div className="space-y-6 animate-fade-in">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <span className="text-xs font-semibold text-slate-400 uppercase">Total Pre-Triajes</span>
-                <div className="text-3xl font-black text-white mt-2">
-                  {estadisticas.total_triajes ?? estadisticas.total_pacientes ?? estadisticas.total_patients ?? 0}
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">Pacientes registrados</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl">
+                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">
+                  Total Pre-Triajes
+                </span>
+                <p className="text-3xl font-black text-white">
+                  {estadisticas.total_triajes ?? estadisticas.total_patients ?? 0}
+                </p>
               </div>
 
-              <div className="bg-slate-900 border border-rose-500/30 p-5 rounded-2xl bg-rose-950/10">
-                <span className="text-xs font-semibold text-rose-400 uppercase">Emergencias Críticas</span>
-                <div className="text-3xl font-black text-rose-400 mt-2">
-                  {estadisticas.casos_rojo_urgente ?? estadisticas.urgent_red_cases ?? estadisticas.criticos_rojo ?? 0}
-                </div>
-                <p className="text-[11px] text-rose-300/70 mt-1">Casos clasificados en Rojo</p>
+              <div className="bg-slate-900 border border-rose-500/30 p-5 rounded-3xl">
+                <span className="text-xs text-rose-400 font-bold uppercase tracking-wider block mb-1">
+                  Casos Rojos (Urgentes)
+                </span>
+                <p className="text-3xl font-black text-rose-400">
+                  {estadisticas.casos_rojo_urgente ?? estadisticas.urgent_red_cases ?? 0}
+                </p>
               </div>
 
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <span className="text-xs font-semibold text-emerald-400 uppercase">Atenciones Completadas</span>
-                <div className="text-3xl font-black text-emerald-400 mt-2">
-                  {estadisticas.casos_revisados ?? estadisticas.reviewed_cases ?? estadisticas.atendidos ?? 0}
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">Dados de alta por médico</p>
+              <div className="bg-slate-900 border border-emerald-500/30 p-5 rounded-3xl">
+                <span className="text-xs text-emerald-400 font-bold uppercase tracking-wider block mb-1">
+                  Pacientes Revisados
+                </span>
+                <p className="text-3xl font-black text-emerald-400">
+                  {estadisticas.casos_revisados ?? estadisticas.reviewed_cases ?? 0}
+                </p>
               </div>
 
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <span className="text-xs font-semibold text-indigo-400 uppercase">Médicos Activos</span>
-                <div className="text-3xl font-black text-white mt-2">
-                  {estadisticas.medicos_activos ?? estadisticas.active_doctors ?? estadisticas.total_medicos ?? 0}
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">Personal en guardia</p>
+              <div className="bg-slate-900 border border-indigo-500/30 p-5 rounded-3xl">
+                <span className="text-xs text-indigo-400 font-bold uppercase tracking-wider block mb-1">
+                  Médicos en Guardia
+                </span>
+                <p className="text-3xl font-black text-indigo-400">
+                  {estadisticas.medicos_activos ?? estadisticas.active_doctors ?? 0}
+                </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* CONTENIDO DE PESTAÑA: GESTIÓN DE PERSONAL MÉDICO */}
+        {/* CONTENIDO DE PESTAÑA: GESTIÓN DE PERSONAL MÉDICO Y TURNOS */}
         {pestanaActiva === 'medicos' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fade-in">
             {/* Formulario de Alta */}
-            <div className="lg:col-span-5 bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4">
+            <div className="lg:col-span-4 bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <UserPlus className="w-5 h-5 text-indigo-400" />
-                Registrar Nuevo Profesional
+                Registrar Profesional y Asignar Turno
               </h3>
 
               {mensajeExito && (
@@ -256,15 +324,34 @@ export const PanelAdministrador = () => {
                   />
                 </div>
 
+                <div>
+                  <label className="block text-slate-300 mb-1 font-semibold">Especialidad Asignada</label>
+                  <select
+                    value={nuevoMedico.especialidad}
+                    onChange={(e) => setNuevoMedico({ ...nuevoMedico, especialidad: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    {ESPECIALIDADES_DISPONIBLES.map((esp) => (
+                      <option key={esp} value={esp}>
+                        {esp}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-300 mb-1 font-semibold">Especialidad</label>
-                    <input
-                      type="text"
-                      value={nuevoMedico.especialidad}
-                      onChange={(e) => setNuevoMedico({ ...nuevoMedico, especialidad: e.target.value })}
+                    <label className="block text-slate-300 mb-1 font-semibold">Turno de Guardia</label>
+                    <select
+                      value={nuevoMedico.turno_asignado}
+                      onChange={(e) => setNuevoMedico({ ...nuevoMedico, turno_asignado: e.target.value })}
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
-                    />
+                    >
+                      <option value="MANANA">Mañana (07-15h)</option>
+                      <option value="TARDE_NOCHE">Tarde/Noche (15-23h)</option>
+                      <option value="MADRUGADA">Madrugada (23-07h)</option>
+                      <option value="TODOS">Guardia Completa 24h</option>
+                    </select>
                   </div>
 
                   <div>
@@ -283,41 +370,155 @@ export const PanelAdministrador = () => {
                 <button
                   type="submit"
                   disabled={creandoMedico}
-                  className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl transition shadow-lg shadow-indigo-900/30"
+                  className="w-full mt-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl transition shadow-lg shadow-indigo-900/30 cursor-pointer"
                 >
                   {creandoMedico ? 'Guardando...' : 'Crear Cuenta Médica'}
                 </button>
               </form>
             </div>
 
-            {/* Tabla de Médicos */}
-            <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
-              <div className="p-4 border-b border-slate-800 font-bold text-xs uppercase text-slate-400">
-                Personal Registrado en el Sistema
+            {/* Tabla de Médicos con Edición de Turnos y Especialidad */}
+            <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
+              <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                <span className="font-bold text-xs uppercase text-slate-400">
+                  Róster de Facultativos y Turnos de Guardia
+                </span>
+                <button
+                  onClick={cargarDatosAdmin}
+                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Actualizar</span>
+                </button>
               </div>
+
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
                     <tr>
-                      <th className="p-3">Nombre</th>
-                      <th className="p-3">Correo</th>
+                      <th className="p-3">Profesional</th>
                       <th className="p-3">Especialidad</th>
-                      <th className="p-3">Rol</th>
+                      <th className="p-3">Turno de Guardia</th>
+                      <th className="p-3">Estado</th>
+                      <th className="p-3 text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
-                    {medicos.map((m) => (
-                      <tr key={m.id} className="hover:bg-slate-800/40">
-                        <td className="p-3 font-semibold text-white">{m.nombre_completo || m.full_name}</td>
-                        <td className="p-3 text-slate-300">{m.correo || m.email}</td>
-                        <td className="p-3 text-slate-400">{m.especialidad || m.specialty}</td>
-                        <td className="p-3">
-                          <span className="bg-slate-800 px-2 py-0.5 rounded text-[10px] font-bold text-teal-400">
-                            {m.rol || m.role}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {medicos.map((m) => {
+                      const estaEditando = medicoEnEdicion?.id === m.id;
+                      const turnoInfo = TURNOS_DISPONIBLES.find(
+                        (t) => t.valor === (m.turno_asignado || m.assigned_shift || 'TODOS')
+                      ) || TURNOS_DISPONIBLES[3];
+
+                      const esActivo = m.esta_activo !== false && m.is_active !== false;
+
+                      return (
+                        <tr key={m.id} className="hover:bg-slate-800/40 transition">
+                          <td className="p-3">
+                            <p className="font-bold text-white">{m.nombre_completo || m.full_name}</p>
+                            <p className="text-[11px] text-slate-400">{m.correo || m.email}</p>
+                          </td>
+
+                          <td className="p-3">
+                            {estaEditando ? (
+                              <select
+                                value={medicoEnEdicion.especialidad}
+                                onChange={(e) =>
+                                  setMedicoEnEdicion({ ...medicoEnEdicion, especialidad: e.target.value })
+                                }
+                                className="bg-slate-950 border border-indigo-500 rounded-lg p-1.5 text-xs text-white"
+                              >
+                                {ESPECIALIDADES_DISPONIBLES.map((esp) => (
+                                  <option key={esp} value={esp}>
+                                    {esp}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span className="font-medium text-slate-200">
+                                {m.especialidad || m.specialty || 'Medicina General'}
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="p-3">
+                            {estaEditando ? (
+                              <select
+                                value={medicoEnEdicion.turno_asignado}
+                                onChange={(e) =>
+                                  setMedicoEnEdicion({ ...medicoEnEdicion, turno_asignado: e.target.value })
+                                }
+                                className="bg-slate-950 border border-indigo-500 rounded-lg p-1.5 text-xs text-white"
+                              >
+                                <option value="MANANA">Mañana (07-15h)</option>
+                                <option value="TARDE_NOCHE">Tarde/Noche (15-23h)</option>
+                                <option value="MADRUGADA">Madrugada (23-07h)</option>
+                                <option value="TODOS">Guardia Completa 24h</option>
+                              </select>
+                            ) : (
+                              <span
+                                className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${turnoInfo.color}`}
+                              >
+                                <span>{turnoInfo.etiqueta}</span>
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="p-3">
+                            <button
+                              onClick={() => toggleEstadoActivo(m)}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition cursor-pointer ${
+                                esActivo
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                  : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${esActivo ? 'bg-emerald-400' : 'bg-rose-400'}`}></span>
+                              <span>{esActivo ? 'Activo' : 'Inactivo'}</span>
+                            </button>
+                          </td>
+
+                          <td className="p-3 text-right">
+                            {estaEditando ? (
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => guardarCambiosMedico(m.id)}
+                                  disabled={guardandoEdicion}
+                                  className="p-1.5 bg-emerald-500 text-slate-950 rounded-lg hover:bg-emerald-400 transition cursor-pointer"
+                                  title="Guardar cambios"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => setMedicoEnEdicion(null)}
+                                  className="p-1.5 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition cursor-pointer"
+                                  title="Cancelar"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() =>
+                                  setMedicoEnEdicion({
+                                    id: m.id,
+                                    nombre_completo: m.nombre_completo || m.full_name,
+                                    especialidad: m.especialidad || m.specialty || 'Medicina General',
+                                    turno_asignado: m.turno_asignado || m.assigned_shift || 'TODOS',
+                                    rol: m.rol || m.role || 'MEDICO',
+                                    esta_activo: esActivo,
+                                  })
+                                }
+                                className="p-1.5 bg-slate-800 text-slate-300 hover:text-white rounded-lg hover:bg-slate-700 transition cursor-pointer"
+                                title="Editar turno y especialidad"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -328,55 +529,28 @@ export const PanelAdministrador = () => {
         {/* CONTENIDO DE PESTAÑA: BITÁCORA DE AUDITORÍA */}
         {pestanaActiva === 'auditoria' && (
           <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl animate-fade-in">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-emerald-400" />
-                <span className="font-bold text-xs uppercase text-slate-300">Trazabilidad Inalterable de Auditoría</span>
-              </div>
-              <span className="text-[11px] text-slate-500">Últimos {auditorias.length} eventos</span>
+            <div className="p-4 border-b border-slate-800 font-bold text-xs uppercase text-slate-400">
+              Registros Inalterables de Auditoría Médica
             </div>
-
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
                   <tr>
-                    <th className="p-3">Acción Ejecutada</th>
-                    <th className="p-3">Recurso Afectado</th>
-                    <th className="p-3">IP Origen</th>
                     <th className="p-3">Fecha y Hora</th>
+                    <th className="p-3">Acción Registrada</th>
+                    <th className="p-3">Usuario / Médico</th>
+                    <th className="p-3">IP Origen</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800 font-mono">
-                  {auditorias.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="p-6 text-center text-slate-500">
-                        No hay eventos registrados en la bitácora de auditoría.
-                      </td>
+                <tbody className="divide-y divide-slate-800">
+                  {auditorias.map((a, idx) => (
+                    <tr key={a.id || idx} className="hover:bg-slate-800/40">
+                      <td className="p-3 text-slate-400">{new Date(a.fecha_hora || a.timestamp).toLocaleString()}</td>
+                      <td className="p-3 font-semibold text-teal-400">{a.accion || a.action}</td>
+                      <td className="p-3 text-slate-300 font-mono">{a.usuario_id || a.user_id}</td>
+                      <td className="p-3 text-slate-400 font-mono">{a.direccion_ip || a.ip_address}</td>
                     </tr>
-                  ) : (
-                    auditorias.map((a, idx) => {
-                      const fechaStr = a.fecha_hora || a.timestamp;
-                      const fechaFormateada = fechaStr
-                        ? new Date(fechaStr).toLocaleString('es-BO', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit',
-                          })
-                        : 'Reciente';
-
-                      return (
-                        <tr key={a.id || idx} className="hover:bg-slate-800/40">
-                          <td className="p-3 font-semibold text-emerald-400">{a.accion || a.action || 'OPERACION'}</td>
-                          <td className="p-3 text-slate-300">{a.recurso_id || a.resource_id || '-'}</td>
-                          <td className="p-3 text-slate-400">{a.direccion_ip || a.ip_address || '127.0.0.1'}</td>
-                          <td className="p-3 text-slate-500 text-[11px]">{fechaFormateada}</td>
-                        </tr>
-                      );
-                    })
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -387,5 +561,4 @@ export const PanelAdministrador = () => {
   );
 };
 
-export const AdminDashboard = PanelAdministrador;
 export default PanelAdministrador;

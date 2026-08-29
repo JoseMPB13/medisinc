@@ -248,6 +248,11 @@ async def crear_medico(payload: EsquemaCrearMedico, request: Request):
             "created_at": fecha_creacion
         }
 
+        nuevo_perfil["turno_asignado"] = payload.turno_asignado or "TODOS"
+        nuevo_perfil["assigned_shift"] = payload.turno_asignado or "TODOS"
+        nuevo_perfil["dias_guardia"] = payload.dias_guardia or ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+        nuevo_perfil["duty_days"] = nuevo_perfil["dias_guardia"]
+
         cliente = servicio_supabase.obtener_cliente()
         if cliente:
             try:
@@ -281,6 +286,110 @@ async def crear_medico(payload: EsquemaCrearMedico, request: Request):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error creando la cuenta médica: {str(e)}"
+        )
+
+
+# =============================================================================
+# 4. PUT /medicos/{medico_id} (y /doctors/{medico_id}): Actualizar Perfil y Turno
+# =============================================================================
+@router.put(
+    "/medicos/{medico_id}",
+    response_model=EsquemaRespuestaMedico,
+    summary="Actualizar Perfil, Especialidad y Turno de Guardia del Médico"
+)
+@router.put(
+    "/doctors/{medico_id}",
+    response_model=EsquemaRespuestaMedico,
+    include_in_schema=False
+)
+async def actualizar_medico(medico_id: str, payload: EsquemaActualizarMedico, request: Request):
+    """
+    Permite al administrador modificar la especialidad, el turno de guardia (Mañana, Tarde/Noche, Madrugada),
+    días de atención o estado activo de un médico.
+    """
+    try:
+        cliente_ip = request.client.host if request.client else "127.0.0.1"
+        perfil_actual = _BD_LOCAL_PERFILES.get(medico_id)
+
+        cliente = servicio_supabase.obtener_cliente()
+        if cliente and not perfil_actual:
+            try:
+                try:
+                    res = cliente.table("perfiles").select("*").eq("id", medico_id).execute()
+                except Exception:
+                    res = cliente.table("profiles").select("*").eq("id", medico_id).execute()
+                if res.data:
+                    perfil_actual = res.data[0]
+            except Exception as e:
+                logger.error(f"Error buscando médico en Supabase: {e}")
+
+        if not perfil_actual:
+            # Si no existe, crear o simular perfil base
+            perfil_actual = {
+                "id": medico_id,
+                "nombre_completo": payload.nombre_completo or "Médico de Guardia",
+                "correo": "medico@medisinc.com",
+                "especialidad": payload.especialidad or "Medicina General",
+                "rol": payload.rol or "MEDICO",
+                "turno_asignado": payload.turno_asignado or "TODOS",
+                "dias_guardia": payload.dias_guardia or ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
+                "esta_activo": payload.esta_activo if payload.esta_activo is not None else True,
+                "creado_en": datetime.now(timezone.utc).isoformat()
+            }
+
+        # Actualizar campos suministrados
+        if payload.nombre_completo is not None:
+            perfil_actual["nombre_completo"] = payload.nombre_completo
+            perfil_actual["full_name"] = payload.nombre_completo
+        if payload.especialidad is not None:
+            perfil_actual["especialidad"] = payload.especialidad
+            perfil_actual["specialty"] = payload.especialidad
+        if payload.rol is not None:
+            perfil_actual["rol"] = payload.rol
+            perfil_actual["role"] = payload.rol
+        if payload.turno_asignado is not None:
+            perfil_actual["turno_asignado"] = payload.turno_asignado
+            perfil_actual["assigned_shift"] = payload.turno_asignado
+        if payload.dias_guardia is not None:
+            perfil_actual["dias_guardia"] = payload.dias_guardia
+            perfil_actual["duty_days"] = payload.dias_guardia
+        if payload.esta_activo is not None:
+            perfil_actual["esta_activo"] = payload.esta_activo
+            perfil_actual["is_active"] = payload.esta_activo
+
+        # Persistir en Supabase
+        if cliente:
+            try:
+                datos_update = {
+                    "nombre_completo": perfil_actual["nombre_completo"],
+                    "especialidad": perfil_actual["especialidad"],
+                    "rol": perfil_actual["rol"],
+                    "esta_activo": perfil_actual["esta_activo"]
+                }
+                try:
+                    cliente.table("perfiles").update(datos_update).eq("id", medico_id).execute()
+                except Exception:
+                    cliente.table("profiles").update(datos_update).eq("id", medico_id).execute()
+            except Exception as e:
+                logger.error(f"Error actualizando médico en Supabase: {e}")
+
+        # Persistir en memoria local
+        _BD_LOCAL_PERFILES[medico_id] = perfil_actual
+
+        servicio_supabase.registrar_evento_auditoria(
+            usuario_id=medico_id,
+            accion="ACTUALIZAR_MEDICO",
+            recurso_id=medico_id,
+            direccion_ip=cliente_ip
+        )
+
+        return EsquemaRespuestaMedico(**perfil_actual)
+
+    except Exception as e:
+        logger.error(f"Error al actualizar médico {medico_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error actualizando médico: {str(e)}"
         )
 
 

@@ -56,6 +56,8 @@ _BD_LOCAL_PERFILES: Dict[str, Dict[str, Any]] = {
         "correo": "admin@medisinc.bo",
         "especialidad": "Dirección Médica y Emergenciología",
         "rol": "ADMIN",
+        "turno_asignado": "TODOS",
+        "dias_guardia": ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
         "esta_activo": True,
         "creado_en": "2026-08-01T08:00:00Z"
     },
@@ -66,6 +68,8 @@ _BD_LOCAL_PERFILES: Dict[str, Dict[str, Any]] = {
         "correo": "carlos.menacho@medisinc.bo",
         "especialidad": "Medicina General",
         "rol": "MEDICO",
+        "turno_asignado": "MANANA",
+        "dias_guardia": ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"],
         "esta_activo": True,
         "creado_en": "2026-08-05T09:30:00Z"
     },
@@ -76,6 +80,8 @@ _BD_LOCAL_PERFILES: Dict[str, Dict[str, Any]] = {
         "correo": "mariana.vaca@medisinc.bo",
         "especialidad": "Pediatría",
         "rol": "MEDICO",
+        "turno_asignado": "MANANA",
+        "dias_guardia": ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"],
         "esta_activo": True,
         "creado_en": "2026-08-05T09:30:00Z"
     },
@@ -86,6 +92,8 @@ _BD_LOCAL_PERFILES: Dict[str, Dict[str, Any]] = {
         "correo": "sofia.justiniano@medisinc.bo",
         "especialidad": "Ginecología y Obstetricia",
         "rol": "MEDICO",
+        "turno_asignado": "TARDE_NOCHE",
+        "dias_guardia": ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"],
         "esta_activo": True,
         "creado_en": "2026-08-05T09:30:00Z"
     },
@@ -96,6 +104,8 @@ _BD_LOCAL_PERFILES: Dict[str, Dict[str, Any]] = {
         "correo": "luis.aguilera@medisinc.bo",
         "especialidad": "Traumatología y Urgencias",
         "rol": "MEDICO",
+        "turno_asignado": "TODOS",
+        "dias_guardia": ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
         "esta_activo": True,
         "creado_en": "2026-08-05T09:30:00Z"
     },
@@ -106,6 +116,8 @@ _BD_LOCAL_PERFILES: Dict[str, Dict[str, Any]] = {
         "correo": "roberto.antelo@medisinc.bo",
         "especialidad": "Cardiología y Medicina Interna",
         "rol": "MEDICO",
+        "turno_asignado": "MANANA",
+        "dias_guardia": ["Lunes", "Miércoles", "Viernes"],
         "esta_activo": True,
         "creado_en": "2026-08-05T09:30:00Z"
     },
@@ -116,11 +128,31 @@ _BD_LOCAL_PERFILES: Dict[str, Dict[str, Any]] = {
         "correo": "valeria.cuellar@medisinc.bo",
         "especialidad": "Odontología",
         "rol": "MEDICO",
+        "turno_asignado": "TARDE_NOCHE",
+        "dias_guardia": ["Lunes", "Martes", "Jueves", "Sábado"],
         "esta_activo": True,
         "creado_en": "2026-08-05T09:30:00Z"
     }
 }
 _BD_LOCAL_AUDITORIA: List[Dict[str, Any]] = []
+
+def obtener_turno_actual(hora_bolivia: Optional[int] = None) -> str:
+    """
+    Determina el turno de guardia actual según la hora local de Bolivia (UTC-4).
+    - MANANA: 07:00 a 14:59 (7 a 14)
+    - TARDE_NOCHE: 15:00 a 22:59 (15 a 22)
+    - MADRUGADA: 23:00 a 06:59 (23 a 6)
+    """
+    if hora_bolivia is None:
+        hora_utc = datetime.now(timezone.utc)
+        hora_bolivia = (hora_utc.hour - 4) % 24
+
+    if 7 <= hora_bolivia < 15:
+        return "MANANA"
+    elif 15 <= hora_bolivia < 23:
+        return "TARDE_NOCHE"
+    else:
+        return "MADRUGADA"
 
 # Aliases de compatibilidad con memoria previa
 _IN_MEMORY_TRIAGE_DB = _BD_LOCAL_TRIAJES
@@ -904,6 +936,75 @@ class ServicioSupabase:
 
         _BD_LOCAL_AUDITORIA.append(evento)
         return evento
+
+    def obtener_medicos_activos_por_especialidad(self, especialidad: Optional[str] = None) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Retorna un diccionario agrupado por especialidad con la lista de facultativos médicos activos.
+        Ordena a los médicos de forma determinista para que el especialista asignado al turno actual
+        (MANANA, TARDE_NOCHE, MADRUGADA o TODOS) aparezca en la primera posición.
+        """
+        turno_actual = obtener_turno_actual()
+        medicos_agrupados: Dict[str, List[Dict[str, Any]]] = {}
+
+        # 1. Consultar en Supabase
+        cliente = self.obtener_cliente()
+        medicos_supabase = []
+        if cliente:
+            try:
+                try:
+                    res = cliente.table("perfiles").select("*").eq("esta_activo", True).execute()
+                except Exception:
+                    res = cliente.table("profiles").select("*").eq("is_active", True).execute()
+                if res.data:
+                    medicos_supabase = res.data
+            except Exception as e:
+                logger.warning(f"Aviso al consultar médicos activos en Supabase: {e}")
+
+        # 2. Unificar con perfiles locales
+        perfiles_unificados = {}
+        for p in _BD_LOCAL_PERFILES.values():
+            if p.get("esta_activo") or p.get("is_active"):
+                perfiles_unificados[p["id"]] = p
+
+        for p in medicos_supabase:
+            p_id = p.get("id")
+            if p_id:
+                perfiles_unificados[p_id] = {**perfiles_unificados.get(p_id, {}), **p}
+
+        for p in perfiles_unificados.values():
+            if p.get("rol") == "ADMIN" and p.get("especialidad") != "Medicina General":
+                continue
+
+            esp = p.get("especialidad") or p.get("specialty") or "Medicina General"
+            if especialidad and esp.lower() != especialidad.lower():
+                continue
+
+            doc_item = {
+                "id": p.get("id"),
+                "nombre_completo": p.get("nombre_completo") or p.get("full_name") or "Médico de Guardia",
+                "name": p.get("nombre_completo") or p.get("full_name") or "Médico de Guardia",
+                "especialidad": esp,
+                "specialty": esp,
+                "turno_asignado": p.get("turno_asignado") or p.get("assigned_shift") or "TODOS",
+                "dias_guardia": p.get("dias_guardia") or p.get("duty_days") or [],
+                "esta_activo": True
+            }
+
+            if esp not in medicos_agrupados:
+                medicos_agrupados[esp] = []
+            medicos_agrupados[esp].append(doc_item)
+
+        # 3. Ordenar para que el médico en turno activo (o 'TODOS') quede primero
+        for esp, docs in medicos_agrupados.items():
+            docs.sort(
+                key=lambda d: (
+                    0 if d["turno_asignado"] == turno_actual else (
+                        1 if d["turno_asignado"] == "TODOS" else 2
+                    )
+                )
+            )
+
+        return medicos_agrupados
 
 
 # Instancia global del servicio Supabase en español
