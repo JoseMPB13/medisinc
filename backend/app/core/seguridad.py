@@ -90,6 +90,29 @@ def generar_codigo_acceso() -> str:
     return f"MS-{sufijo}"
 
 
+import jwt
+from datetime import datetime, timedelta, timezone
+
+def crear_token_jwt(datos: Dict[str, Any], expira_horas: int = 24) -> str:
+    """
+    Genera un token JWT firmado criptográficamente para la sesión del usuario.
+    """
+    payload = datos.copy()
+    payload["exp"] = datetime.now(timezone.utc) + timedelta(hours=expira_horas)
+    payload["iat"] = datetime.now(timezone.utc)
+    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm="HS256")
+
+
+def decodificar_token_jwt(token: str) -> Optional[Dict[str, Any]]:
+    """
+    Valida y decodifica un token JWT firmado. Retorna el payload si es válido o None si expiró o es inválido.
+    """
+    try:
+        return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=["HS256"])
+    except Exception:
+        return None
+
+
 async def obtener_perfil_usuario_actual(
     authorization: Optional[str] = Header(None, alias="Authorization"),
     x_user_role: Optional[str] = Header(None, alias="X-User-Role")
@@ -116,12 +139,12 @@ async def obtener_perfil_usuario_actual(
     if not authorization:
         if settings.ENVIRONMENT in ["development", "test", "testing", "dev"] or not settings.ENVIRONMENT:
             return {
-                "id": "dev-admin-id",
-                "usuario_id": "dev-user-id",
-                "nombre_completo": "Admin Desarrollo",
-                "correo": "admin@medisinc.bo",
-                "especialidad": "Dirección Médica",
-                "rol": "ADMIN",
+                "id": "doc-med-general-01",
+                "usuario_id": "auth-doc-01",
+                "nombre_completo": "Dr. Carlos Menacho",
+                "correo": "carlos.menacho@medisinc.bo",
+                "especialidad": "Medicina General",
+                "rol": "MEDICO",
                 "esta_activo": True
             }
         raise HTTPException(
@@ -135,6 +158,19 @@ async def obtener_perfil_usuario_actual(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token de autorización inválido o vacío."
         )
+
+    # 3. Intentar decodificar JWT real
+    payload_jwt = decodificar_token_jwt(token)
+    if payload_jwt:
+        return {
+            "id": payload_jwt.get("id") or payload_jwt.get("sub"),
+            "usuario_id": payload_jwt.get("usuario_id") or payload_jwt.get("sub"),
+            "nombre_completo": payload_jwt.get("nombre_completo") or payload_jwt.get("nombre", "Profesional Médico"),
+            "correo": payload_jwt.get("correo") or payload_jwt.get("email"),
+            "especialidad": payload_jwt.get("especialidad", "Medicina General"),
+            "rol": payload_jwt.get("rol", "MEDICO").upper(),
+            "esta_activo": payload_jwt.get("esta_activo", True)
+        }
 
     rol = "ADMIN" if "admin" in token.lower() else "MEDICO"
 

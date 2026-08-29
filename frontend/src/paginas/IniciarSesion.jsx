@@ -41,12 +41,15 @@ export const IniciarSesion = () => {
   };
 
   const rellenarCredencialesDemo = (tipo) => {
-    if (tipo === 'medico') {
-      setCorreo('medico.guardia@medisinc.bo');
-      setPassword('ClaveMedica2026!');
+    setPassword('123456');
+    if (tipo === 'admin') {
+      setCorreo('admin@medisinc.bo');
+    } else if (tipo === 'pediatria') {
+      setCorreo('mariana.vaca@medisinc.bo');
+    } else if (tipo === 'ginecologia') {
+      setCorreo('sofia.justiniano@medisinc.bo');
     } else {
-      setCorreo('admin.centro@medisinc.bo');
-      setPassword('AdminSeguro2026!');
+      setCorreo('carlos.menacho@medisinc.bo');
     }
   };
 
@@ -60,7 +63,7 @@ export const IniciarSesion = () => {
           Portal Clínico MediSinc·IA
         </h2>
         <p className="text-xs text-slate-400">
-          Acceso exclusivo para médicos de guardia y administradores autorizados
+          Acceso para médicos de guardia y administradores autorizados
         </p>
       </div>
 
@@ -92,9 +95,12 @@ export const IniciarSesion = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                Contraseña de Seguridad
-              </label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  Contraseña de Seguridad
+                </label>
+                <span className="text-[10px] text-teal-400 font-mono">Clave demo: 123456</span>
+              </div>
               <div className="relative">
                 <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
                 <input
@@ -102,7 +108,7 @@ export const IniciarSesion = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="123456"
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
                 />
               </div>
@@ -127,25 +133,43 @@ export const IniciarSesion = () => {
             </button>
           </form>
 
-          {/* Accesos Rápidos de Demostración */}
+          {/* Accesos Rápidos de Demostración con perfiles de la DB */}
           <div className="mt-6 pt-6 border-t border-slate-800 text-center">
-            <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider block mb-2">
-              Credenciales de Demostración:
+            <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider block mb-2">
+              Cuentas de Demostración (Contraseña: 123456):
             </span>
-            <div className="flex gap-2 justify-center">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => rellenarCredencialesDemo('medico')}
-                className="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-800 text-teal-400 rounded-lg text-[11px] font-semibold border border-slate-700 transition"
+                onClick={() => rellenarCredencialesDemo('general')}
+                className="px-2.5 py-1.5 bg-slate-800/80 hover:bg-slate-800 text-teal-400 rounded-lg text-[11px] font-semibold border border-slate-700 transition text-left truncate"
+                title="Dr. Carlos Menacho (Medicina General)"
               >
-                Médico de Guardia
+                🩺 Dr. Menacho (Med. General)
+              </button>
+              <button
+                type="button"
+                onClick={() => rellenarCredencialesDemo('pediatria')}
+                className="px-2.5 py-1.5 bg-slate-800/80 hover:bg-slate-800 text-emerald-400 rounded-lg text-[11px] font-semibold border border-slate-700 transition text-left truncate"
+                title="Dra. Mariana Vaca (Pediatría)"
+              >
+                👶 Dra. Vaca (Pediatría)
+              </button>
+              <button
+                type="button"
+                onClick={() => rellenarCredencialesDemo('ginecologia')}
+                className="px-2.5 py-1.5 bg-slate-800/80 hover:bg-slate-800 text-pink-400 rounded-lg text-[11px] font-semibold border border-slate-700 transition text-left truncate"
+                title="Dra. Sofía Justiniano (Ginecología)"
+              >
+                🌸 Dra. Justiniano (Ginecología)
               </button>
               <button
                 type="button"
                 onClick={() => rellenarCredencialesDemo('admin')}
-                className="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-800 text-indigo-400 rounded-lg text-[11px] font-semibold border border-slate-700 transition"
+                className="px-2.5 py-1.5 bg-slate-800/80 hover:bg-slate-800 text-indigo-400 rounded-lg text-[11px] font-semibold border border-slate-700 transition text-left truncate"
+                title="Dr. Fernando Morales (Administrador)"
               >
-                Administrador
+                🛡️ Dr. Morales (Admin)
               </button>
             </div>
           </div>

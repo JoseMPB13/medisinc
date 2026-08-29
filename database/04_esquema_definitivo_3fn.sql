@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS perfiles (
     usuario_id UUID UNIQUE, -- Vinculado opcionalmente a auth.users de Supabase
     nombre_completo VARCHAR(255) NOT NULL,
     correo VARCHAR(255) UNIQUE NOT NULL,
+    clave VARCHAR(255) DEFAULT '123456' NOT NULL, -- Clave de acceso institucional (123456 para demo/desarrollo)
     rol_id UUID REFERENCES roles(id) ON DELETE RESTRICT NOT NULL,
     especialidad_id UUID REFERENCES especialidades(id) ON DELETE SET NULL,
     esta_activo BOOLEAN DEFAULT TRUE NOT NULL,
