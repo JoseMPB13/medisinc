@@ -1,6 +1,6 @@
 """
-Adaptador de Proveedor de IA: Groq Cloud (Llama 3 70B).
-Implementa la interfaz ProveedorIABase utilizando modelos de inferencia ultra-rápida
+Adaptador de Proveedor de IA: Groq Cloud (GPT-OSS 120B / 20B y Qwen 3.8 27B).
+Implementa la interfaz ProveedorIABase utilizando la infraestructura LPUs de ultra-alta velocidad
 de Groq con JSON Mode y ejecución asíncrona no bloqueante.
 """
 
@@ -17,8 +17,15 @@ logger = logging.getLogger(__name__)
 
 class ProveedorGroq(ProveedorIABase):
     """
-    Implementación del proveedor Groq Cloud con Llama 3 70B y modo JSON.
+    Implementación del proveedor Groq Cloud con modelos oficiales activos en JSON Mode.
     """
+
+    MODELOS_GROQ = [
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
+        "qwen/qwen3.8-27b",
+        "groq/compound-mini"
+    ]
 
     def __init__(self):
         self.api_key = settings.GROQ_API_KEY
@@ -72,34 +79,36 @@ class ProveedorGroq(ProveedorIABase):
         prompt = self.construir_prompt_triaje(datos_paciente)
 
         if self.cliente:
-            try:
-                def llamar_groq():
-                    return self.cliente.chat.completions.create(
-                        messages=[
-                            {
-                                "role": "system",
-                                "content": "Eres un asistente médico experto en triaje clínico. Responde estrictamente en formato JSON."
-                            },
-                            {
-                                "role": "user",
-                                "content": prompt
-                            }
-                        ],
-                        model="llama3-70b-8192",
-                        response_format={"type": "json_object"}
+            for modelo in self.MODELOS_GROQ:
+                try:
+                    def llamar_groq(m=modelo):
+                        return self.cliente.chat.completions.create(
+                            messages=[
+                                {
+                                    "role": "system",
+                                    "content": "Eres un médico especialista en medicina de emergencias y triaje clínico en Bolivia. Responde estrictamente un JSON válido cumpliendo el esquema solicitado."
+                                },
+                                {
+                                    "role": "user",
+                                    "content": prompt
+                                }
+                            ],
+                            model=m,
+                            response_format={"type": "json_object"}
+                        )
+
+                    chat_completion = await asyncio.wait_for(
+                        asyncio.to_thread(llamar_groq),
+                        timeout=15.0
                     )
+                    raw_json = chat_completion.choices[0].message.content.strip()
+                    parsed = json.loads(raw_json)
+                    return EsquemaSalidaEstructuradaIA(**parsed)
+                except Exception as e:
+                    logger.warning(f"[ProveedorGroq] Modelo {modelo} falló ({type(e).__name__}: {str(e)[:100]}). Probando siguiente...")
+                    continue
 
-                chat_completion = await asyncio.wait_for(
-                    asyncio.to_thread(llamar_groq),
-                    timeout=6.0
-                )
-                raw_json = chat_completion.choices[0].message.content.strip()
-                parsed = json.loads(raw_json)
-                return EsquemaSalidaEstructuradaIA(**parsed)
-            except Exception as e:
-                logger.warning(f"[ProveedorGroq] Error o timeout en llamada a Groq API ({e}). Activando fallback clínico.")
-
-        # Fallback de contingencia
+        # Fallback de contingencia inmediato si fallaron o no hay cliente
         return self.generar_salida_contingencia(datos_paciente)
 
     async def generar_preguntas_dinamicas(
@@ -114,47 +123,49 @@ class ProveedorGroq(ProveedorIABase):
         **kwargs
     ) -> List[Dict[str, Any]]:
         """
-        Genera 2 a 3 preguntas adaptativas usando Groq Llama 3 con fallback semiológico no bloqueante.
+        Genera 2 a 3 preguntas adaptativas usando Groq con fallback semiológico no bloqueante.
         """
+        prompt = self.construir_prompt_preguntas_dinamicas(
+            sintomas=sintomas,
+            edad=edad,
+            genero=genero,
+            especialidad_solicitada=especialidad_solicitada,
+            alergias_medicamentosas=alergias_medicamentosas,
+            medicacion_actual=medicacion_actual,
+            enfermedades_base=enfermedades_base
+        )
+
         if self.cliente:
-            try:
-                prompt = self.construir_prompt_preguntas_dinamicas(
-                    sintomas=sintomas,
-                    edad=edad,
-                    genero=genero,
-                    especialidad_solicitada=especialidad_solicitada,
-                    alergias_medicamentosas=alergias_medicamentosas,
-                    medicacion_actual=medicacion_actual,
-                    enfermedades_base=enfermedades_base
-                )
+            for modelo in self.MODELOS_GROQ:
+                try:
+                    def llamar_groq_preguntas(m=modelo):
+                        return self.cliente.chat.completions.create(
+                            messages=[
+                                {
+                                    "role": "system",
+                                    "content": "Eres un asistente médico experto en triaje clínico y semiología PQRST. Genera un objeto JSON con la clave 'preguntas' conteniendo un array de 2 a 3 preguntas estructuradas."
+                                },
+                                {
+                                    "role": "user",
+                                    "content": prompt
+                                }
+                            ],
+                            model=m,
+                            response_format={"type": "json_object"}
+                        )
 
-                def llamar_groq_preguntas():
-                    return self.cliente.chat.completions.create(
-                        messages=[
-                            {
-                                "role": "system",
-                                "content": "Eres un asistente médico en triaje. Genera un array JSON de 2 a 3 preguntas estructuradas."
-                            },
-                            {
-                                "role": "user",
-                                "content": prompt
-                            }
-                        ],
-                        model="llama3-70b-8192",
-                        response_format={"type": "json_object"}
+                    chat_completion = await asyncio.wait_for(
+                        asyncio.to_thread(llamar_groq_preguntas),
+                        timeout=15.0
                     )
-
-                chat_completion = await asyncio.wait_for(
-                    asyncio.to_thread(llamar_groq_preguntas),
-                    timeout=5.5
-                )
-                raw_json = chat_completion.choices[0].message.content.strip()
-                parsed = json.loads(raw_json)
-                lista = parsed if isinstance(parsed, list) else parsed.get("preguntas") or parsed.get("questions") or []
-                if isinstance(lista, list) and len(lista) >= 2:
-                    return lista
-            except Exception as e:
-                logger.warning(f"[ProveedorGroq] Error o timeout generando preguntas en Groq ({e}). Activando fallback.")
+                    raw_content = chat_completion.choices[0].message.content.strip()
+                    parsed = json.loads(raw_content)
+                    lista = parsed if isinstance(parsed, list) else parsed.get("preguntas") or parsed.get("questions") or []
+                    if isinstance(lista, list) and len(lista) >= 2:
+                        return lista
+                except Exception as e:
+                    logger.warning(f"[ProveedorGroq] Modelo {modelo} falló en preguntas dinámicas ({type(e).__name__}: {str(e)[:100]}). Probando siguiente...")
+                    continue
 
         return self.generar_preguntas_dinamicas_fallback(
             sintomas=sintomas,
