@@ -1,7 +1,7 @@
 """
 Adaptador de Proveedor de IA: Google Gemini.
 Procesa las peticiones de triaje mediante la API de Google Generative AI con
-manejo asíncrono no bloqueante (asyncio.to_thread), timeout estricto y fallback clínico inmediato (< 10ms).
+rotación resiliente de modelos ante cuotas 429 de Free Tier y fallback clínico inmediato (< 10ms).
 """
 
 import json
@@ -17,11 +17,21 @@ logger = logging.getLogger(__name__)
 
 class ProveedorGemini(ProveedorIABase):
     """
-    Implementación del proveedor Google Gemini con modelos optimizados y fallback automático.
+    Implementación del proveedor Google Gemini con rotación automática de modelos
+    y fallback clínico determinista ante saturación o agotamiento de cuota (429).
     """
+
+    # Modelos oficiales ordenados por estabilidad, velocidad y alta cuota libre (1500 RPM)
+    NOMBRES_MODELOS = [
+        "gemini-flash-latest",
+        "gemini-pro-latest",
+        "gemini-flash-lite-latest",
+        "gemini-2.5-flash"
+    ]
 
     def __init__(self):
         self.api_key = settings.GEMINI_API_KEY
+        self.modelos_disponibles: Dict[str, Any] = {}
         self.modelo = None
 
         if self.api_key and "coloca_aqui" not in self.api_key:
@@ -29,21 +39,15 @@ class ProveedorGemini(ProveedorIABase):
                 import google.generativeai as genai
                 genai.configure(api_key=self.api_key)
 
-                # Modelos oficiales compatibles con modo JSON en la API activa
-                for nombre_modelo in [
-                    "gemini-2.5-flash",
-                    "gemini-flash-latest",
-                    "gemini-2.5-flash-lite",
-                    "gemini-2.5-pro",
-                    "gemini-1.5-flash",
-                    "gemini-pro-latest"
-                ]:
+                for nombre_modelo in self.NOMBRES_MODELOS:
                     try:
-                        self.modelo = genai.GenerativeModel(
+                        instancia = genai.GenerativeModel(
                             model_name=nombre_modelo,
                             generation_config={"response_mime_type": "application/json"}
                         )
-                        break
+                        self.modelos_disponibles[nombre_modelo] = instancia
+                        if self.modelo is None:
+                            self.modelo = instancia
                     except Exception:
                         continue
             except Exception as e:
@@ -64,8 +68,8 @@ class ProveedorGemini(ProveedorIABase):
         **kwargs
     ) -> EsquemaSalidaEstructuradaIA:
         """
-        Procesa los datos clínicos del paciente. Si la API de Gemini falla, tarda más de 6s o no responde,
-        activa inmediatamente el resumen estructurado de contingencia médica (< 10ms).
+        Procesa los datos clínicos del paciente rotando entre modelos si alguno agota su cuota 429.
+        Si todos los modelos fallan, activa el fallback clínico determinista (< 10ms).
         """
         datos_paciente = {
             "sintomas_brutos": sintomas,
@@ -90,20 +94,21 @@ class ProveedorGemini(ProveedorIABase):
 
         prompt = self.construir_prompt_triaje(datos_paciente)
 
-        if self.modelo:
+        # Iterar sobre los modelos disponibles en caso de 429 ResourceExhausted
+        for nombre_modelo, mod in self.modelos_disponibles.items():
             try:
-                # Ejecutar llamada con timeout calibrado de 25s para inferencia LLM en la nube
                 respuesta = await asyncio.wait_for(
-                    asyncio.to_thread(self.modelo.generate_content, prompt),
+                    asyncio.to_thread(mod.generate_content, prompt),
                     timeout=25.0
                 )
                 raw_json = respuesta.text.strip()
                 parsed = json.loads(raw_json)
                 return EsquemaSalidaEstructuradaIA(**parsed)
             except Exception as e:
-                logger.warning(f"[ProveedorGemini] Fallo o timeout en llamada a Gemini API ({type(e).__name__}: {e}). Activando fallback clínico inmediato.")
+                logger.warning(f"[ProveedorGemini] Modelo {nombre_modelo} no disponible ({type(e).__name__}: {str(e)[:100]}). Intentando siguiente...")
+                continue
 
-        # Fallback de contingencia inmediato
+        logger.warning("[ProveedorGemini] Todos los modelos de Gemini fallaron o agotaron cuota. Activando fallback clínico inmediato.")
         return self.generar_salida_contingencia(datos_paciente)
 
     async def generar_preguntas_dinamicas(
@@ -118,22 +123,22 @@ class ProveedorGemini(ProveedorIABase):
         **kwargs
     ) -> List[Dict[str, Any]]:
         """
-        Genera 2 a 3 preguntas dinámicas adaptativas aplicando semiología PQRST con fallback clínico no bloqueante.
+        Genera 2 a 3 preguntas dinámicas adaptativas rotando entre modelos de Gemini ante cuotas 429.
         """
-        if self.modelo:
+        prompt = self.construir_prompt_preguntas_dinamicas(
+            sintomas=sintomas,
+            edad=edad,
+            genero=genero,
+            especialidad_solicitada=especialidad_solicitada,
+            alergias_medicamentosas=alergias_medicamentosas,
+            medicacion_actual=medicacion_actual,
+            enfermedades_base=enfermedades_base
+        )
+
+        for nombre_modelo, mod in self.modelos_disponibles.items():
             try:
-                prompt = self.construir_prompt_preguntas_dinamicas(
-                    sintomas=sintomas,
-                    edad=edad,
-                    genero=genero,
-                    especialidad_solicitada=especialidad_solicitada,
-                    alergias_medicamentosas=alergias_medicamentosas,
-                    medicacion_actual=medicacion_actual,
-                    enfermedades_base=enfermedades_base
-                )
-                # Ejecutar con timeout de 25.0s para respuesta completa de Google Gemini
                 respuesta = await asyncio.wait_for(
-                    asyncio.to_thread(self.modelo.generate_content, prompt),
+                    asyncio.to_thread(mod.generate_content, prompt),
                     timeout=25.0
                 )
                 parsed = json.loads(respuesta.text.strip())
@@ -141,7 +146,8 @@ class ProveedorGemini(ProveedorIABase):
                 if isinstance(lista, list) and len(lista) >= 2:
                     return lista
             except Exception as e:
-                logger.warning(f"[ProveedorGemini] Error o timeout generando preguntas dinámicas ({type(e).__name__}: {e}). Activando fallback.")
+                logger.warning(f"[ProveedorGemini] Modelo {nombre_modelo} falló en preguntas dinámicas ({type(e).__name__}: {str(e)[:100]}). Intentando siguiente...")
+                continue
 
         return self.generar_preguntas_dinamicas_fallback(
             sintomas=sintomas,
