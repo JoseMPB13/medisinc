@@ -92,10 +92,10 @@ class ProveedorGemini(ProveedorIABase):
 
         if self.modelo:
             try:
-                # Ejecutar llamada con timeout defensivo de 12s
+                # Ejecutar llamada con timeout calibrado de 25s para inferencia LLM en la nube
                 respuesta = await asyncio.wait_for(
                     asyncio.to_thread(self.modelo.generate_content, prompt),
-                    timeout=12.0
+                    timeout=25.0
                 )
                 raw_json = respuesta.text.strip()
                 parsed = json.loads(raw_json)
@@ -131,10 +131,10 @@ class ProveedorGemini(ProveedorIABase):
                     medicacion_actual=medicacion_actual,
                     enfermedades_base=enfermedades_base
                 )
-                # Ejecutar con timeout de 10.0s
+                # Ejecutar con timeout de 25.0s para respuesta completa de Google Gemini
                 respuesta = await asyncio.wait_for(
                     asyncio.to_thread(self.modelo.generate_content, prompt),
-                    timeout=10.0
+                    timeout=25.0
                 )
                 parsed = json.loads(respuesta.text.strip())
                 lista = parsed if isinstance(parsed, list) else parsed.get("preguntas") or parsed.get("questions") or []
