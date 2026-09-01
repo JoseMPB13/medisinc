@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MediSinc-IA | Presentación Ejecutiva y Demostración Integral del Sistema</title>
+  <title>MediSinc-IA | Defensa Ejecutiva del Proyecto y Especificación Técnica Integral</title>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,9 +12,9 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     :root {
-      --bg-dark: #050811;
-      --bg-card: rgba(11, 19, 36, 0.85);
-      --bg-card-hover: rgba(20, 32, 58, 0.95);
+      --bg-dark: #040711;
+      --bg-card: rgba(10, 18, 34, 0.88);
+      --bg-card-hover: rgba(18, 29, 54, 0.96);
       --primary: #0ea5e9;
       --primary-gradient: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
       --accent-cyan: #06b6d4;
@@ -27,7 +27,7 @@
       --text-muted: #94a3b8;
       --text-dim: #64748b;
       --border-color: rgba(255, 255, 255, 0.08);
-      --border-glow: rgba(14, 165, 233, 0.3);
+      --border-glow: rgba(14, 165, 233, 0.32);
       --glass-blur: blur(16px);
       --shadow-subtle: 0 10px 30px -10px rgba(0,0,0,0.7);
     }
@@ -51,7 +51,7 @@
       user-select: none;
     }
 
-    /* Ambient Background Glow */
+    /* Ambient Glow */
     .ambient-bg {
       position: fixed;
       top: 0;
@@ -61,8 +61,8 @@
       z-index: 0;
       pointer-events: none;
       background: 
-        radial-gradient(circle at 10% 15%, rgba(14, 165, 233, 0.13) 0%, transparent 45%),
-        radial-gradient(circle at 90% 85%, rgba(139, 92, 246, 0.11) 0%, transparent 45%),
+        radial-gradient(circle at 10% 12%, rgba(14, 165, 233, 0.14) 0%, transparent 45%),
+        radial-gradient(circle at 90% 88%, rgba(139, 92, 246, 0.12) 0%, transparent 45%),
         radial-gradient(circle at 50% 50%, rgba(20, 184, 166, 0.06) 0%, transparent 60%);
     }
 
@@ -80,45 +80,45 @@
       pointer-events: none;
     }
 
-    /* Header Top Bar */
+    /* Header */
     header {
       position: relative;
       z-index: 100;
-      height: 64px;
+      height: 62px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 2rem;
+      padding: 0 1.8rem;
       border-bottom: 1px solid var(--border-color);
-      background: rgba(5, 8, 17, 0.9);
+      background: rgba(4, 7, 17, 0.92);
       backdrop-filter: var(--glass-blur);
     }
 
     .brand-container {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
 
     .brand-logo {
-      width: 38px;
-      height: 38px;
-      border-radius: 9px;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
       background: var(--primary-gradient);
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
-      box-shadow: 0 0 18px rgba(14, 165, 233, 0.4);
+      box-shadow: 0 0 16px rgba(14, 165, 233, 0.4);
     }
 
     .brand-title {
       font-weight: 800;
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       letter-spacing: -0.5px;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
     }
 
     .brand-title span {
@@ -128,9 +128,9 @@
     }
 
     .brand-badge {
-      font-size: 0.65rem;
+      font-size: 0.64rem;
       font-weight: 700;
-      padding: 3px 8px;
+      padding: 2px 8px;
       background: rgba(14, 165, 233, 0.12);
       border: 1px solid rgba(14, 165, 233, 0.3);
       border-radius: 20px;
@@ -142,16 +142,16 @@
     .nav-controls {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.7rem;
     }
 
     .slide-counter {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       color: var(--text-muted);
       background: rgba(255, 255, 255, 0.05);
       padding: 5px 12px;
-      border-radius: 7px;
+      border-radius: 6px;
       border: 1px solid var(--border-color);
     }
 
@@ -165,13 +165,13 @@
       border: 1px solid var(--border-color);
       color: var(--text-main);
       padding: 6px 12px;
-      border-radius: 7px;
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       transition: all 0.2s ease;
     }
 
@@ -192,7 +192,7 @@
       box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5);
     }
 
-    /* Main Slide Stage */
+    /* Main Stage */
     main {
       flex: 1;
       position: relative;
@@ -206,14 +206,14 @@
       left: 0;
       width: 100%;
       height: 100%;
-      padding: 1.8rem 3.2rem;
+      padding: 1.6rem 3rem;
       display: flex;
       flex-direction: column;
       justify-content: center;
       opacity: 0;
       pointer-events: none;
-      transform: scale(0.97) translateY(16px);
-      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: scale(0.97) translateY(14px);
+      transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
       overflow-y: auto;
     }
 
@@ -223,69 +223,69 @@
       transform: scale(1) translateY(0);
     }
 
-    /* Header in Slides */
+    /* Slide Header */
     .slide-header {
-      margin-bottom: 1.1rem;
+      margin-bottom: 0.95rem;
     }
 
     .slide-tag {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      font-size: 0.7rem;
+      gap: 5px;
+      font-size: 0.68rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 1.1px;
+      letter-spacing: 1px;
       color: var(--accent-cyan);
       background: rgba(6, 182, 212, 0.1);
       border: 1px solid rgba(6, 182, 212, 0.25);
-      padding: 3px 10px;
+      padding: 3px 9px;
       border-radius: 20px;
-      margin-bottom: 0.35rem;
-    }
-
-    .slide-title {
-      font-size: 1.95rem;
-      font-weight: 800;
-      letter-spacing: -0.7px;
-      line-height: 1.18;
       margin-bottom: 0.3rem;
     }
 
+    .slide-title {
+      font-size: 1.85rem;
+      font-weight: 800;
+      letter-spacing: -0.7px;
+      line-height: 1.16;
+      margin-bottom: 0.25rem;
+    }
+
     .slide-subtitle {
-      font-size: 0.92rem;
+      font-size: 0.88rem;
       color: var(--text-muted);
       max-width: 950px;
-      line-height: 1.42;
+      line-height: 1.4;
     }
 
     /* Grid Layouts */
     .grid-2 {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 1rem;
+      gap: 0.95rem;
     }
 
     .grid-3 {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 1rem;
+      gap: 0.9rem;
     }
 
     .grid-4 {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 0.85rem;
+      gap: 0.8rem;
     }
 
     /* Cards */
     .card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 1.2rem;
+      border-radius: 11px;
+      padding: 1.1rem;
       backdrop-filter: var(--glass-blur);
-      transition: all 0.25s ease;
+      transition: all 0.2s ease;
       display: flex;
       flex-direction: column;
       position: relative;
@@ -301,43 +301,43 @@
 
     .card-highlight {
       border-color: var(--border-glow);
-      background: linear-gradient(145deg, rgba(14, 165, 233, 0.08) 0%, rgba(11, 19, 36, 0.9) 100%);
+      background: linear-gradient(145deg, rgba(14, 165, 233, 0.08) 0%, rgba(10, 18, 34, 0.92) 100%);
     }
 
     .card-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
+      width: 34px;
+      height: 34px;
+      border-radius: 7px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 0.6rem;
+      margin-bottom: 0.55rem;
       color: white;
     }
 
     .card-title {
-      font-size: 1rem;
+      font-size: 0.96rem;
       font-weight: 700;
-      margin-bottom: 0.35rem;
+      margin-bottom: 0.3rem;
       color: var(--text-main);
     }
 
     .card-text {
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       color: var(--text-muted);
-      line-height: 1.45;
+      line-height: 1.42;
       flex: 1;
     }
 
-    /* Concept Explanation Callout (In-Situ Term Definition) */
+    /* Concept In-Situ Box */
     .concept-box {
-      margin-top: 0.6rem;
-      padding: 0.55rem 0.75rem;
+      margin-top: 0.55rem;
+      padding: 0.5rem 0.7rem;
       background: rgba(14, 165, 233, 0.07);
       border-left: 3px solid #38bdf8;
-      border-radius: 0 6px 6px 0;
-      font-size: 0.76rem;
-      line-height: 1.35;
+      border-radius: 0 5px 5px 0;
+      font-size: 0.74rem;
+      line-height: 1.34;
       color: #cbd5e1;
     }
 
@@ -374,22 +374,22 @@
     .dual-actions {
       display: flex;
       flex-wrap: wrap;
-      gap: 7px;
-      margin-top: 0.8rem;
-      padding-top: 0.55rem;
+      gap: 6px;
+      margin-top: 0.7rem;
+      padding-top: 0.5rem;
       border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .link-app {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      font-size: 0.74rem;
+      gap: 4px;
+      font-size: 0.72rem;
       font-weight: 700;
       color: #0284c7;
       background: #e0f2fe;
-      padding: 4px 10px;
-      border-radius: 6px;
+      padding: 4px 9px;
+      border-radius: 5px;
       text-decoration: none;
       transition: all 0.2s ease;
       box-shadow: 0 2px 6px rgba(14, 165, 233, 0.15);
@@ -404,14 +404,14 @@
     .link-code {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       color: #94a3b8;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border-color);
-      padding: 4px 9px;
-      border-radius: 6px;
+      padding: 4px 8px;
+      border-radius: 5px;
       text-decoration: none;
       transition: all 0.2s ease;
     }
@@ -425,9 +425,9 @@
 
     /* Badges */
     .badge-triage {
-      padding: 2px 8px;
-      border-radius: 5px;
-      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 0.68rem;
       font-weight: 700;
       display: inline-flex;
       align-items: center;
@@ -452,36 +452,36 @@
       color: #34d399;
     }
 
-    /* Wizard 4 Steps Layout */
+    /* Wizard Grid */
     .wizard-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 0.8rem;
-      margin-top: 0.4rem;
+      gap: 0.75rem;
+      margin-top: 0.35rem;
     }
 
     .wizard-card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: 11px;
-      padding: 1rem;
+      border-radius: 10px;
+      padding: 0.95rem;
       display: flex;
       flex-direction: column;
-      gap: 0.4rem;
+      gap: 0.35rem;
       position: relative;
     }
 
     .wizard-card.active-step {
       border-color: var(--border-glow);
-      background: linear-gradient(145deg, rgba(14, 165, 233, 0.12) 0%, rgba(11, 19, 36, 0.9) 100%);
+      background: linear-gradient(145deg, rgba(14, 165, 233, 0.12) 0%, rgba(10, 18, 34, 0.92) 100%);
     }
 
     .wizard-badge {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       font-weight: 800;
-      width: 26px;
-      height: 26px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       background: var(--primary-gradient);
       display: flex;
@@ -490,20 +490,20 @@
       color: white;
     }
 
-    /* Comparison Container */
+    /* Comparison Box */
     .comparison-container {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-      margin-top: 0.3rem;
+      gap: 0.95rem;
+      margin-top: 0.25rem;
     }
 
     .compare-box {
-      border-radius: 12px;
-      padding: 1.2rem;
+      border-radius: 11px;
+      padding: 1.1rem;
       display: flex;
       flex-direction: column;
-      gap: 0.7rem;
+      gap: 0.65rem;
     }
 
     .compare-as-is {
@@ -521,15 +521,15 @@
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 0.55rem;
+      gap: 0.5rem;
     }
 
     .compare-item {
-      font-size: 0.83rem;
+      font-size: 0.81rem;
       display: flex;
       align-items: flex-start;
       gap: 8px;
-      line-height: 1.38;
+      line-height: 1.36;
     }
 
     .compare-item i {
@@ -537,24 +537,55 @@
       flex-shrink: 0;
     }
 
+    /* Technical Stack Comparison Table */
+    .stack-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      text-align: left;
+      margin-top: 0.5rem;
+    }
+
+    .stack-table th {
+      background: rgba(255, 255, 255, 0.06);
+      color: #38bdf8;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+    }
+
+    .stack-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      vertical-align: top;
+    }
+
+    .stack-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+      color: #fff;
+    }
+
     /* Metrics Hero */
     .metric-card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 1.05rem;
+      border-radius: 11px;
+      padding: 1rem;
       text-align: center;
     }
 
     .metric-value {
-      font-size: 2.2rem;
+      font-size: 2.1rem;
       font-weight: 800;
       line-height: 1;
-      margin-bottom: 0.3rem;
+      margin-bottom: 0.25rem;
     }
 
     .metric-label {
-      font-size: 0.74rem;
+      font-size: 0.72rem;
       font-weight: 600;
       color: var(--text-muted);
       text-transform: uppercase;
@@ -565,13 +596,13 @@
     footer {
       position: relative;
       z-index: 100;
-      height: 54px;
-      background: rgba(5, 8, 17, 0.94);
+      height: 52px;
+      background: rgba(4, 7, 17, 0.95);
       border-top: 1px solid var(--border-color);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 2rem;
+      padding: 0 1.8rem;
     }
 
     .progress-track {
@@ -586,17 +617,17 @@
     .progress-bar {
       height: 100%;
       background: var(--primary-gradient);
-      width: 9.09%;
+      width: 7.14%;
       transition: width 0.3s ease;
       box-shadow: 0 0 10px var(--primary);
     }
 
     .footer-hints {
-      font-size: 0.76rem;
+      font-size: 0.74rem;
       color: var(--text-dim);
       display: flex;
       align-items: center;
-      gap: 0.85rem;
+      gap: 0.8rem;
     }
 
     .kbd {
@@ -605,14 +636,14 @@
       padding: 2px 5px;
       border-radius: 4px;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       color: var(--text-muted);
     }
 
     .slide-nav-buttons {
       display: flex;
       align-items: center;
-      gap: 7px;
+      gap: 6px;
     }
 
     /* Drawer Modal */
@@ -640,15 +671,15 @@
     .drawer-content {
       width: 530px;
       height: 100%;
-      background: #090e1c;
+      background: #080d1a;
       border-left: 1px solid var(--border-color);
-      padding: 1.8rem;
+      padding: 1.6rem;
       overflow-y: auto;
       transform: translateX(100%);
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
-      gap: 1.1rem;
+      gap: 1rem;
     }
 
     .drawer-overlay.active .drawer-content {
@@ -658,17 +689,17 @@
     .slide-jump-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
-      margin-top: 0.4rem;
+      gap: 5px;
+      margin-top: 0.35rem;
     }
 
     .jump-btn {
-      padding: 7px 6px;
-      border-radius: 6px;
+      padding: 6px 5px;
+      border-radius: 5px;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--border-color);
       color: var(--text-muted);
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       font-weight: 600;
       cursor: pointer;
       text-align: left;
@@ -685,11 +716,11 @@
     }
 
     .tree-section {
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       font-weight: 700;
       text-transform: uppercase;
       color: var(--text-dim);
-      margin-top: 0.6rem;
+      margin-top: 0.55rem;
       letter-spacing: 0.5px;
     }
 
@@ -697,14 +728,14 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 7px 11px;
-      border-radius: 7px;
+      padding: 6px 10px;
+      border-radius: 6px;
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid var(--border-color);
       color: var(--text-main);
       text-decoration: none;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.74rem;
+      font-size: 0.72rem;
       transition: all 0.2s ease;
     }
 
@@ -719,17 +750,17 @@
         grid-template-columns: repeat(2, 1fr);
       }
       .slide {
-        padding: 1.3rem;
+        padding: 1.2rem;
       }
       .slide-title {
-        font-size: 1.55rem;
+        font-size: 1.5rem;
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- Ambient background elements -->
+  <!-- Background Ambience -->
   <div class="ambient-bg"></div>
   <div class="grid-overlay"></div>
 
@@ -742,12 +773,12 @@
       <div>
         <div class="brand-title">MediSinc<span>-IA</span></div>
       </div>
-      <div class="brand-badge">Sistema Integral de Pre-Triaje Clínico</div>
+      <div class="brand-badge">Defensa Técnica & Arquitectura de Software</div>
     </div>
 
     <div class="nav-controls">
       <div class="slide-counter">
-        <span id="currentSlideNum">1</span> / <span id="totalSlidesNum">11</span>
+        <span id="currentSlideNum">1</span> / <span id="totalSlidesNum">14</span>
       </div>
       <button class="btn-action" onclick="toggleDrawer()">
         <i data-lucide="folder-git-2"></i>
@@ -770,9 +801,9 @@
         <div class="slide-tag">
           <i data-lucide="sparkles"></i> Innovación Sanitaria en Redes de Salud
         </div>
-        <h1 class="slide-title">MediSinc-IA: Transformando el Pre-Triaje Clínico</h1>
+        <h1 class="slide-title">MediSinc-IA: Pre-Triaje Clínico e Inteligencia de Salud</h1>
         <p class="slide-subtitle">
-          Sistema inteligente de captura anticipada de síntomas, anamnesis asistida por IA y priorización hospitalaria para centros de 1er y 2do nivel en Santa Cruz de la Sierra, Bolivia.
+          Sistema inteligente de captura anticipada de síntomas, anamnesis adaptativa con IA y priorización hospitalaria en tiempo real para centros de salud y hospitales de 1er y 2do nivel en Santa Cruz de la Sierra, Bolivia.
         </p>
       </div>
 
@@ -850,7 +881,7 @@
         <div class="slide-tag">
           <i data-lucide="map-pin"></i> Estudio de Caso: Santa Cruz de la Sierra
         </div>
-        <h2 class="slide-title">El Problema Real: Filas a las 4 AM vs MediSinc-IA</h2>
+        <h2 class="slide-title">Diagnóstico de Contexto: De las Filas a las 4 AM al Triaje Digital</h2>
         <p class="slide-subtitle">
           Análisis de saturación en Centros de 1er Nivel (Lazareto, Bajío del Oriente, El Bateón) y Hospitales de 2do Nivel (Plan 3000, Francés, Pampa de la Isla).
         </p>
@@ -860,7 +891,7 @@
         <!-- AS-IS -->
         <div class="compare-box compare-as-is">
           <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div style="font-size: 1rem; font-weight: 700; color: #f43f5e; display: flex; align-items: center; gap: 8px;">
+            <div style="font-size: 0.95rem; font-weight: 700; color: #f43f5e; display: flex; align-items: center; gap: 6px;">
               <i data-lucide="x-circle"></i> Proceso Tradicional (AS-IS)
             </div>
             <span class="badge-triage triage-red">Saturación Crónica</span>
@@ -893,7 +924,7 @@
         <!-- TO-BE -->
         <div class="compare-box compare-to-be">
           <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div style="font-size: 1rem; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 8px;">
+            <div style="font-size: 0.95rem; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 6px;">
               <i data-lucide="check-circle-2"></i> Solución con MediSinc-IA (TO-BE)
             </div>
             <span class="badge-triage triage-green">Triaje Ágil & Priorizado</span>
@@ -916,7 +947,7 @@
               <span><strong>Traducción Dialectal Automática:</strong> Normaliza expresiones populares a terminología médica clínica.</span>
             </li>
           </ul>
-          <div class="concept-box concept-box-success" style="margin-top: 0.2rem;">
+          <div class="concept-box concept-box-success" style="margin-top: 0.1rem;">
             <strong>Calibración Sociolingüística:</strong> Mapea modismos cruceños (<em>"me dio un chuy"</em> &rarr; escalofríos febriles, <em>"siento basca"</em> &rarr; náuseas, <em>"tutuma"</em> &rarr; cefalea).
           </div>
           <div class="dual-actions">
@@ -932,9 +963,153 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 3: FLUJO DEL PACIENTE (WIZARD 4 PASOS) -->
+    <!-- SLIDE 3: STACK TECNOLÓGICO Y JUSTIFICACIÓN -->
     <!-- ========================================== -->
     <section class="slide" data-slide="3">
+      <div class="slide-header">
+        <div class="slide-tag">
+          <i data-lucide="code"></i> Selección de Tecnologías & Fundamentación
+        </div>
+        <h2 class="slide-title">Stack Tecnológico Seleccionado y Justificación Técnica</h2>
+        <p class="slide-subtitle">
+          ¿Por qué se eligió cada tecnología? Comparativa y justificación de ingeniería para garantizar alta disponibilidad, velocidad y seguridad clínica.
+        </p>
+      </div>
+
+      <table class="stack-table">
+        <thead>
+          <tr>
+            <th>Capa</th>
+            <th>Tecnología Seleccionada</th>
+            <th>Justificación Técnica y de Rendimiento</th>
+            <th>Enlace al Proyecto</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Frontend</strong></td>
+            <td><span style="color: #38bdf8; font-weight: 700;">React 18 + Vite (SPA)</span></td>
+            <td>Carga ultrarrápida (&lt;1.5s en 3G), renderizado reactivo del Wizard de 4 pasos y compatibilidad móvil sin requerir descarga de apps.</td>
+            <td><a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/package.json">package.json</a></td>
+          </tr>
+          <tr>
+            <td><strong>Backend</strong></td>
+            <td><span style="color: #34d399; font-weight: 700;">FastAPI + Uvicorn (Python 3.11)</span></td>
+            <td>Asincronía nativa (`async/await`), validación estricta con Pydantic V2, generación OpenAPI/Swagger y velocidad comparable a Go.</td>
+            <td><a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/main.py">main.py</a></td>
+          </tr>
+          <tr>
+            <td><strong>Base de Datos</strong></td>
+            <td><span style="color: #60a5fa; font-weight: 700;">PostgreSQL en Supabase (3FN)</span></td>
+            <td>Integridad referencial estricta, políticas Row Level Security (RLS), triggers automáticos y suscripciones WebSocket en tiempo real.</td>
+            <td><a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/database/04_esquema_definitivo_3fn.sql">04_esquema_3fn.sql</a></td>
+          </tr>
+          <tr>
+            <td><strong>Inteligencia Artificial</strong></td>
+            <td><span style="color: #c084fc; font-weight: 700;">Gemini 1.5 + Groq + OpenAI</span></td>
+            <td>Arquitectura desacoplada con Patrón Factory: Gemini 1.5 Flash (primario), Groq LPU (baja latencia) y OpenAI (contingencia).</td>
+            <td><a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/proveedores/fabrica_ia.py">fabrica_ia.py</a></td>
+          </tr>
+          <tr>
+            <td><strong>Criptografía</strong></td>
+            <td><span style="color: #fbbf24; font-weight: 700;">Fernet AES-256 + HMAC-SHA256</span></td>
+            <td>Cifrado autenticado de la Cédula de Identidad (CI) y Blind Index con Pepper para búsquedas $O(1)$ sin descifrado masivo.</td>
+            <td><a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/core/seguridad.py">seguridad.py</a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="dual-actions" style="margin-top: 0.8rem;">
+        <a class="link-app" href="http://localhost:8000/docs" target="_blank">
+          <i data-lucide="external-link"></i> Ver Swagger API OpenAPI
+        </a>
+        <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/requirements.txt">
+          <i data-lucide="file-code"></i> backend/requirements.txt
+        </a>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 4: ARQUITECTURA DEL SISTEMA C4 -->
+    <!-- ========================================== -->
+    <section class="slide" data-slide="4">
+      <div class="slide-header">
+        <div class="slide-tag">
+          <i data-lucide="layers"></i> Arquitectura de Software & Capas
+        </div>
+        <h2 class="slide-title">Arquitectura del Sistema: Modelo por Capas Desacopladas</h2>
+        <p class="slide-subtitle">
+          Diseño arquitectónico C4 desacoplado que separa la presentación, lógica de negocio, servicios de IA y capa de persistencia en Supabase.
+        </p>
+      </div>
+
+      <div class="grid-4">
+        <!-- Capa 1 -->
+        <div class="card">
+          <div class="card-icon" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8;">
+            <i data-lucide="layout"></i>
+          </div>
+          <h4 class="card-title">1. Presentación (SPA)</h4>
+          <p class="card-text">
+            React 18 con Vite. Módulos: Paciente Wizard, Dashboard Médico con vista dividida, Panel Admin y Monitores de Sala.
+          </p>
+          <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/App.jsx">
+            <i data-lucide="file-code"></i> frontend/src/App.jsx
+          </a>
+        </div>
+
+        <!-- Capa 2 -->
+        <div class="card">
+          <div class="card-icon" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">
+            <i data-lucide="server"></i>
+          </div>
+          <h4 class="card-title">2. Lógica & API REST</h4>
+          <p class="card-text">
+            FastAPI modular con routers versionados (`/api/v1/triaje`, `/api/v1/medico`, `/api/v1/administracion`, `/api/v1/auth`).
+          </p>
+          <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/api/v1/triaje.py">
+            <i data-lucide="file-code"></i> api/v1/triaje.py
+          </a>
+        </div>
+
+        <!-- Capa 3 -->
+        <div class="card">
+          <div class="card-icon" style="background: rgba(139, 92, 246, 0.2); color: #c084fc;">
+            <i data-lucide="cpu"></i>
+          </div>
+          <h4 class="card-title">3. Safety & Fábrica IA</h4>
+          <p class="card-text">
+            Motor de reglas duras (`motor_reglas.py`) + Fábrica de IA agnóstica (`fabrica_ia.py`) con conmutación multi-proveedor.
+          </p>
+          <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/servicios/motor_reglas.py">
+            <i data-lucide="file-code"></i> motor_reglas.py
+          </a>
+        </div>
+
+        <!-- Capa 4 -->
+        <div class="card">
+          <div class="card-icon" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">
+            <i data-lucide="database"></i>
+          </div>
+          <h4 class="card-title">4. Persistencia 3FN</h4>
+          <p class="card-text">
+            PostgreSQL en Supabase con RLS, criptografía nativa `pgcrypto` y tabla inmutable de auditoría médica (`registros_auditoria`).
+          </p>
+          <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/servicios/servicio_supabase.py">
+            <i data-lucide="file-code"></i> servicio_supabase.py
+          </a>
+        </div>
+      </div>
+
+      <div class="concept-box" style="margin-top: 0.8rem;">
+        <strong>Arquitectura Desacoplada (Clean Architecture):</strong> Los cambios en la base de datos o en el proveedor de IA no afectan la lógica de negocio ni la interfaz de usuario.
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 5: FLUJO DEL PACIENTE (WIZARD 4 PASOS) -->
+    <!-- ========================================== -->
+    <section class="slide" data-slide="5">
       <div class="slide-header">
         <div class="slide-tag">
           <i data-lucide="user-check"></i> Módulo 1: Flujo Guiado del Paciente
@@ -952,8 +1127,8 @@
             <div class="wizard-badge">0</div>
             <span style="font-size: 0.65rem; font-weight: 700; color: #38bdf8;">PASO INICIAL</span>
           </div>
-          <h4 style="font-size: 0.92rem; font-weight: 700; color: #38bdf8;">Paso 0: Especialidad</h4>
-          <p style="font-size: 0.77rem; color: var(--text-muted); flex: 1;">
+          <h4 style="font-size: 0.9rem; font-weight: 700; color: #38bdf8;">Paso 0: Especialidad</h4>
+          <p style="font-size: 0.76rem; color: var(--text-muted); flex: 1;">
             Selección del servicio clínico requerido (Medicina General, Pediatría, Gineco-Obstetricia, Traumatología) y médico de turno.
           </p>
           <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PasoSelectorEspecialidad.jsx">
@@ -964,11 +1139,11 @@
         <!-- Paso 1 -->
         <div class="wizard-card">
           <div class="wizard-badge">1</div>
-          <h4 style="font-size: 0.92rem; font-weight: 700; color: #818cf8;">Paso 1: Datos & CI</h4>
-          <p style="font-size: 0.77rem; color: var(--text-muted); flex: 1;">
+          <h4 style="font-size: 0.9rem; font-weight: 700; color: #818cf8;">Paso 1: Datos & CI</h4>
+          <p style="font-size: 0.76rem; color: var(--text-muted); flex: 1;">
             Filiación, Carnet (CI), edad, sexo, dolor en Escala EVA (1-10) y descripción del síntoma en lenguaje natural.
           </p>
-          <div class="concept-box" style="margin-top: 0.3rem;">
+          <div class="concept-box" style="margin-top: 0.2rem;">
             <strong>Escala EVA (1-10):</strong> Escala Visual Analógica estandarizada para medir intensidad del dolor.
           </div>
           <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PasoDatosEstaticos.jsx">
@@ -979,11 +1154,11 @@
         <!-- Paso 2 -->
         <div class="wizard-card">
           <div class="wizard-badge">2</div>
-          <h4 style="font-size: 0.92rem; font-weight: 700; color: #14b8a6;">Paso 2: Preguntas IA</h4>
-          <p style="font-size: 0.77rem; color: var(--text-muted); flex: 1;">
+          <h4 style="font-size: 0.9rem; font-weight: 700; color: #14b8a6;">Paso 2: Preguntas IA</h4>
+          <p style="font-size: 0.76rem; color: var(--text-muted); flex: 1;">
             Preguntas adaptativas generadas por IA según el síntoma, más antecedentes (diabetes, hipertensión, alergias).
           </p>
-          <div class="concept-box concept-box-success" style="margin-top: 0.3rem;">
+          <div class="concept-box concept-box-success" style="margin-top: 0.2rem;">
             <strong>Anamnesis Semiológica:</strong> Interrogatorio clínico que evalúa duración, localización y factores de alivio.
           </div>
           <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PasoPreguntasDinamicas.jsx">
@@ -994,8 +1169,8 @@
         <!-- Paso 3 -->
         <div class="wizard-card">
           <div class="wizard-badge">3</div>
-          <h4 style="font-size: 0.92rem; font-weight: 700; color: #10b981;">Paso 3: Ficha QR</h4>
-          <p style="font-size: 0.77rem; color: var(--text-muted); flex: 1;">
+          <h4 style="font-size: 0.9rem; font-weight: 700; color: #10b981;">Paso 3: Ficha QR</h4>
+          <p style="font-size: 0.76rem; color: var(--text-muted); flex: 1;">
             Generación del código alfanumérico (<code>MS-XXXXX</code>), token QR escaneable y tiempo estimado de espera.
           </p>
           <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PasoConfirmacionQR.jsx">
@@ -1004,10 +1179,10 @@
         </div>
       </div>
 
-      <div style="margin-top: 1rem; display: flex; align-items: center; justify-content: space-between; background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: 10px; padding: 0.75rem 1.25rem;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <i data-lucide="play-circle" style="color: #38bdf8; width: 20px; height: 20px;"></i>
-          <span style="font-size: 0.84rem;"><strong>Probar el asistente de paciente en vivo desde el navegador:</strong></span>
+      <div style="margin-top: 0.9rem; display: flex; align-items: center; justify-content: space-between; background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: 9px; padding: 0.7rem 1.2rem;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="play-circle" style="color: #38bdf8; width: 18px; height: 18px;"></i>
+          <span style="font-size: 0.82rem;"><strong>Probar el asistente de paciente en vivo desde el navegador:</strong></span>
         </div>
         <div class="dual-actions" style="margin-top: 0; padding-top: 0; border: none;">
           <a class="link-app" href="http://localhost:5173/" target="_blank">
@@ -1018,9 +1193,9 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 4: PANEL DEL MÉDICO (TRIAJE MANCHESTER) -->
+    <!-- SLIDE 6: PANEL DEL MÉDICO (TRIAJE MANCHESTER) -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="4">
+    <section class="slide" data-slide="6">
       <div class="slide-header">
         <div class="slide-tag">
           <i data-lucide="layout-dashboard"></i> Módulo 2: Portal Médico de Guardia
@@ -1034,9 +1209,9 @@
       <div class="grid-3">
         <!-- Nivel Rojo -->
         <div class="card" style="border-top: 3px solid #f43f5e;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.55rem;">
             <span class="badge-triage triage-red"><i data-lucide="alert-circle"></i> NIVEL ROJO (Emergencia)</span>
-            <span style="font-size: 0.7rem; color: #f43f5e; font-weight: 700;">Atención Inmediata</span>
+            <span style="font-size: 0.68rem; color: #f43f5e; font-weight: 700;">Atención Inmediata</span>
           </div>
           <h4 class="card-title">Prioridad 1: Riesgo Vital Inminente</h4>
           <p class="card-text">
@@ -1049,24 +1224,24 @@
 
         <!-- Nivel Amarillo -->
         <div class="card" style="border-top: 3px solid #f59e0b;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.55rem;">
             <span class="badge-triage triage-yellow"><i data-lucide="clock"></i> NIVEL AMARILLO (Urgencia)</span>
-            <span style="font-size: 0.7rem; color: #f59e0b; font-weight: 700;">&lt; 30 - 60 min</span>
+            <span style="font-size: 0.68rem; color: #f59e0b; font-weight: 700;">&lt; 30 - 60 min</span>
           </div>
           <h4 class="card-title">Prioridad 2: Urgencia Relativa</h4>
           <p class="card-text">
             Cuadros febriles agudos, dolor moderado (EVA 5-7), cólicos renales o deshidratación que requieren atención médica antes de los leves.
           </p>
           <div class="concept-box">
-            <strong>Tiempo de Espera Clínico:</strong> Atención máxima recomendada de 30 a 60 minutos para evitar complicaciones.
+            <strong>Tiempo Clínico:</strong> Atención máxima recomendada de 30 a 60 minutos para evitar complicaciones.
           </div>
         </div>
 
         <!-- Nivel Verde -->
         <div class="card" style="border-top: 3px solid #10b981;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.55rem;">
             <span class="badge-triage triage-green"><i data-lucide="check"></i> NIVEL VERDE (Estándar)</span>
-            <span style="font-size: 0.7rem; color: #10b981; font-weight: 700;">Consulta Externa</span>
+            <span style="font-size: 0.68rem; color: #10b981; font-weight: 700;">Consulta Externa</span>
           </div>
           <h4 class="card-title">Prioridad 3: Consulta Habitual</h4>
           <p class="card-text">
@@ -1078,16 +1253,16 @@
         </div>
       </div>
 
-      <div class="grid-2" style="margin-top: 0.8rem;">
-        <div class="card" style="padding: 0.85rem;">
-          <div style="font-size: 0.82rem; font-weight: 700; color: #38bdf8; margin-bottom: 2px;">
+      <div class="grid-2" style="margin-top: 0.75rem;">
+        <div class="card" style="padding: 0.75rem;">
+          <div style="font-size: 0.8rem; font-weight: 700; color: #38bdf8; margin-bottom: 2px;">
             <i data-lucide="refresh-cw"></i> Suscripción en Tiempo Real y Filtros Avanzados
           </div>
-          <p style="font-size: 0.76rem; color: var(--text-muted);">
+          <p style="font-size: 0.74rem; color: var(--text-muted);">
             Actualización automática vía Supabase Realtime. Filtros por especialidad, estado de turno y búsqueda por código <code>MS-XXXXX</code> o CI.
           </p>
         </div>
-        <div class="card" style="padding: 0.85rem; justify-content: center;">
+        <div class="card" style="padding: 0.75rem; justify-content: center;">
           <div class="dual-actions" style="margin-top: 0; padding-top: 0; border: none; justify-content: flex-end;">
             <a class="link-app" href="http://localhost:5173/medico" target="_blank">
               <i data-lucide="external-link"></i> Abrir Panel Médico en Vivo
@@ -1101,9 +1276,9 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 5: MODAL CLÍNICO Y FORMATO SOAP -->
+    <!-- SLIDE 7: MODAL CLÍNICO Y FORMATO SOAP -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="5">
+    <section class="slide" data-slide="7">
       <div class="slide-header">
         <div class="slide-tag">
           <i data-lucide="columns"></i> Módulo 2.1: Consulta Médica Asistida
@@ -1115,15 +1290,14 @@
       </div>
 
       <div class="grid-2">
-        <!-- Izquierda -->
         <div class="card">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.55rem;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 0.5rem;">
             <div class="card-icon" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8; margin: 0;">
               <i data-lucide="file-text"></i>
             </div>
             <h3 class="card-title" style="margin: 0;">Panel Izquierdo: Expediente Sintomático</h3>
           </div>
-          <ul style="list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.42;">
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 5px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
             <li><strong style="color: #fff;">• Motivo en Crudo vs Traducido:</strong> Declaración exacta del paciente y traducción normalizada.</li>
             <li><strong style="color: #fff;">• Respuestas Dinámicas IA (PQRST):</strong> Respuestas a preguntas semiológicas y antecedentes base.</li>
             <li><strong style="color: #fff;">• Hipótesis Diagnósticas IA:</strong> Posibilidades clínicas orientativas sugeridas por IA.</li>
@@ -1131,27 +1305,26 @@
           </ul>
         </div>
 
-        <!-- Derecha -->
         <div class="card">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.55rem;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 0.5rem;">
             <div class="card-icon" style="background: rgba(16, 185, 129, 0.2); color: #34d399; margin: 0;">
               <i data-lucide="check-square"></i>
             </div>
             <h3 class="card-title" style="margin: 0;">Panel Derecho: Decisión & Formato SOAP</h3>
           </div>
-          <ul style="list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.42;">
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 5px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
             <li><strong style="color: #fff;">• Reclasificación Manchester:</strong> Ajuste soberano del nivel de triaje por el médico tratante.</li>
             <li><strong style="color: #fff;">• Notas de Evolución SOAP:</strong> Registro estructurado de datos Subjetivos, Objetivos, Análisis y Plan.</li>
             <li><strong style="color: #fff;">• Diagnóstico Final (CIE-10):</strong> Confirmación del diagnóstico principal y tratamiento.</li>
             <li><strong style="color: #fff;">• Cierre de Turno y Trazabilidad:</strong> Liberación del paciente y registro inalterable en auditoría.</li>
           </ul>
-          <div class="concept-box concept-box-success" style="margin-top: 0.4rem;">
+          <div class="concept-box concept-box-success" style="margin-top: 0.3rem;">
             <strong>Formato SOAP:</strong> Estándar médico internacional (Subjetivo, Objetivo, Análisis, Plan) para notas clínicas de evolución.
           </div>
         </div>
       </div>
 
-      <div class="dual-actions" style="margin-top: 0.8rem;">
+      <div class="dual-actions" style="margin-top: 0.75rem;">
         <a class="link-app" href="http://localhost:5173/medico" target="_blank">
           <i data-lucide="external-link"></i> Abrir Vista Médica en Vivo
         </a>
@@ -1162,9 +1335,9 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 6: PANEL DE ADMINISTRACIÓN & AUDITORÍA -->
+    <!-- SLIDE 8: PANEL DE ADMINISTRACIÓN & AUDITORÍA -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="6">
+    <section class="slide" data-slide="8">
       <div class="slide-header">
         <div class="slide-tag">
           <i data-lucide="settings"></i> Módulo 3: Dirección Médica & Auditoría
@@ -1217,7 +1390,7 @@
           <p class="card-text">
             Registro de cada acción clínica (quién leyó qué expediente, IP, timestamp, cambios de triaje y notas médicas).
           </p>
-          <div class="concept-box concept-box-purple" style="margin-top: 0.3rem;">
+          <div class="concept-box concept-box-purple" style="margin-top: 0.25rem;">
             <strong>Audit Log:</strong> Registro de auditoría protegido contra borrado que garantiza trazabilidad médico-legal.
           </div>
           <div class="dual-actions">
@@ -1228,7 +1401,7 @@
         </div>
       </div>
 
-      <div class="dual-actions" style="margin-top: 1rem;">
+      <div class="dual-actions" style="margin-top: 0.9rem;">
         <a class="link-app" href="http://localhost:5173/admin" target="_blank">
           <i data-lucide="external-link"></i> Abrir Panel de Administración en Vivo
         </a>
@@ -1239,9 +1412,9 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 7: SALA DE ESPERA & MONITORES TV -->
+    <!-- SLIDE 9: SALA DE ESPERA & MONITORES TV -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="7">
+    <section class="slide" data-slide="9">
       <div class="slide-header">
         <div class="slide-tag">
           <i data-lucide="tv"></i> Módulo 4: Sala de Espera y Pantalla Pública
@@ -1295,9 +1468,9 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 8: DOBLE CAPA DE DECISIÓN CLÍNICA -->
+    <!-- SLIDE 10: DOBLE CAPA DE DECISIÓN CLÍNICA -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="8">
+    <section class="slide" data-slide="10">
       <div class="slide-header">
         <div class="slide-tag">
           <i data-lucide="shield-alert"></i> Seguridad Clínica Determinística
@@ -1310,14 +1483,14 @@
 
       <div class="grid-2">
         <div class="card" style="border-left: 4px solid #f43f5e;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.55rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
             <h3 class="card-title" style="color: #fb7185; margin: 0;">Capa 1: Safety Overrides Engine</h3>
             <span class="badge-triage triage-red">Reglas Determinísticas</span>
           </div>
           <p class="card-text">
             Evalúa reglas clínicas críticas antes o independientemente de la IA. Si se detecta:
           </p>
-          <ul style="margin: 0.35rem 0 0.35rem 1.2rem; font-size: 0.8rem; color: var(--text-muted); line-height: 1.42;">
+          <ul style="margin: 0.3rem 0 0.3rem 1.2rem; font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
             <li>Dolor agudo con escala EVA &ge; 8 / 10.</li>
             <li>Dolor torácico opresivo con irradiación a brazo o mandíbula.</li>
             <li>Disnea / Asfixia respiratoria aguda.</li>
@@ -1334,14 +1507,14 @@
         </div>
 
         <div class="card" style="border-left: 4px solid #10b981;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.55rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
             <h3 class="card-title" style="color: #34d399; margin: 0;">Capa 2: Síntesis Estructurada IA</h3>
             <span class="badge-triage triage-green">Pydantic V2 Strict JSON</span>
           </div>
           <p class="card-text">
             Genera la estructura clínica estandarizada:
           </p>
-          <ul style="margin: 0.35rem 0 0.35rem 1.2rem; font-size: 0.8rem; color: var(--text-muted); line-height: 1.42;">
+          <ul style="margin: 0.3rem 0 0.3rem 1.2rem; font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
             <li>Traducción de modismos cruceños a terminología médica.</li>
             <li>Extracción de antecedentes patológicos y alergias.</li>
             <li>Generación adaptativa de preguntas semiológicas (Paso 2).</li>
@@ -1360,9 +1533,9 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 9: CAPA DE IA MULTI-PROVEEDOR -->
+    <!-- SLIDE 11: CAPA DE IA MULTI-PROVEEDOR -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="9">
+    <section class="slide" data-slide="11">
       <div class="slide-header">
         <div class="slide-tag">
           <i data-lucide="cpu"></i> Arquitectura de Inteligencia Artificial
@@ -1423,11 +1596,11 @@
         </div>
       </div>
 
-      <div class="concept-box" style="margin-top: 0.9rem;">
+      <div class="concept-box" style="margin-top: 0.8rem;">
         <strong>Patrón Factory (Fábrica de IA):</strong> Patrón de diseño de software que instancia el proveedor de IA configurado en el archivo <code>.env</code> (Gemini, Groq u OpenAI) de forma transparente para la aplicación.
       </div>
 
-      <div class="dual-actions" style="margin-top: 0.6rem;">
+      <div class="dual-actions" style="margin-top: 0.55rem;">
         <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/proveedores/fabrica_ia.py">
           <i data-lucide="file-code"></i> Ver Factoría Abstracta: backend/app/proveedores/fabrica_ia.py
         </a>
@@ -1435,16 +1608,16 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 10: SEGURIDAD, CIFRADO Y BASE DE DATOS 3FN -->
+    <!-- SLIDE 12: SEGURIDAD Y CRIPTOGRAFÍA -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="10">
+    <section class="slide" data-slide="12">
       <div class="slide-header">
         <div class="slide-tag">
-          <i data-lucide="lock"></i> Criptografía & Base de Datos Relacional
+          <i data-lucide="lock"></i> Criptografía & Privacidad por Diseño
         </div>
-        <h2 class="slide-title">Seguridad Criptográfica y Arquitectura 3FN</h2>
+        <h2 class="slide-title">Seguridad Criptográfica: Cifrado y Blind Indexing</h2>
         <p class="slide-subtitle">
-          Diseñado bajo principios de Privacidad por Diseño con base de datos PostgreSQL normalizada en 3FN y políticas de seguridad RLS en Supabase.
+          Implementación de estándares de seguridad médica para proteger la identidad de los pacientes y prevenir accesos no autorizados.
         </p>
       </div>
 
@@ -1458,6 +1631,9 @@
           <p class="card-text">
             Los números de Cédula de Identidad (CI) y datos de contacto se cifran antes de persistirse en base de datos.
           </p>
+          <div class="concept-box">
+            <strong>Cifrado en Reposo:</strong> Si la base de datos es sustraída, los números de CI son ilegibles sin la llave secreta del servidor.
+          </div>
           <div class="dual-actions">
             <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/core/seguridad.py#L40-L80">
               <i data-lucide="file-code"></i> core/seguridad.py (AES)
@@ -1474,7 +1650,7 @@
           <p class="card-text">
             Permite búsquedas exactas por CI en el backend sin descifrar masivamente la base de datos, usando una clave secreta Pepper.
           </p>
-          <div class="concept-box concept-box-success" style="margin-top: 0.3rem;">
+          <div class="concept-box concept-box-success">
             <strong>Blind Indexing:</strong> Hash seguro con sal secreta para buscar pacientes por CI sin descifrar la base de datos completa.
           </div>
           <div class="dual-actions">
@@ -1484,21 +1660,21 @@
           </div>
         </div>
 
-        <!-- 3FN & RLS -->
+        <!-- Rate Limiter -->
         <div class="card">
           <div class="card-icon" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">
-            <i data-lucide="database"></i>
+            <i data-lucide="shield-alert"></i>
           </div>
-          <h4 class="card-title">Base de Datos 3FN & RLS</h4>
+          <h4 class="card-title">Token Bucket Rate Limiting</h4>
           <p class="card-text">
-            Tablas normalizadas (`pacientes`, `registros_triaje`, `resultados_ia`, `revisiones_medicas`, `registros_auditoria`).
+            Protección contra ataques de denegación de servicio (DoS) o fuerza bruta mediante limitador de peticiones por IP y cliente.
           </p>
-          <div class="concept-box concept-box-purple" style="margin-top: 0.3rem;">
-            <strong>3FN & RLS:</strong> Tercera Forma Normal (cero redundancia) y Row Level Security (seguridad a nivel de fila en Supabase).
+          <div class="concept-box concept-box-purple">
+            <strong>Protección DoS:</strong> Máximo 5 peticiones por IP cada 5 minutos en endpoints críticos para evitar scraping de datos.
           </div>
           <div class="dual-actions">
-            <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/database/04_esquema_definitivo_3fn.sql">
-              <i data-lucide="file-code"></i> 04_esquema_definitivo_3fn.sql
+            <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/core/limite_peticiones.py">
+              <i data-lucide="file-code"></i> core/limite_peticiones.py
             </a>
           </div>
         </div>
@@ -1506,9 +1682,64 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 11: VALIDACIÓN CLÍNICA (CV01-CV20) & CIERRE -->
+    <!-- SLIDE 13: DISEÑO DE BASE DE DATOS 3FN -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="11">
+    <section class="slide" data-slide="13">
+      <div class="slide-header">
+        <div class="slide-tag">
+          <i data-lucide="database"></i> Modelo Relacional & Normalización
+        </div>
+        <h2 class="slide-title">Diseño de Base de Datos en Tercera Forma Normal (3FN)</h2>
+        <p class="slide-subtitle">
+          Esquema PostgreSQL normalizado en Supabase que elimina redundancias, garantiza integridad referencial y aplica políticas de aislamiento RLS.
+        </p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-icon" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">
+            <i data-lucide="table"></i>
+          </div>
+          <h3 class="card-title">Diccionario de Tablas Principales (3FN)</h3>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 5px; font-size: 0.77rem; color: var(--text-muted); line-height: 1.4;">
+            <li><code>• pacientes:</code> Entidad maestra con CI cifrado (`ci_cifrado`), hash indexado (`ci_hash`) y antecedentes JSONB.</li>
+            <li><code>• registros_triaje:</code> Episodios de pre-triaje con código corto (`codigo_acceso`), dolor y prioridad.</li>
+            <li><code>• resultados_ia:</code> Inferencia clínica estructurada vinculada 1:1 con triaje.</li>
+            <li><code>• revisiones_medicas:</code> Notas de evolución médica SOAP y diagnóstico CIE-10.</li>
+            <li><code>• perfiles, roles, especialidades:</code> Personal sanitario y consultorios.</li>
+            <li><code>• registros_auditoria:</code> Trazabilidad inalterable de lecturas y cierres.</li>
+          </ul>
+          <div class="dual-actions">
+            <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/database/04_esquema_definitivo_3fn.sql">
+              <i data-lucide="file-code"></i> database/04_esquema_definitivo_3fn.sql
+            </a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">
+            <i data-lucide="shield-check"></i>
+          </div>
+          <h3 class="card-title">Ventajas de la Normalización 3FN & RLS</h3>
+          <p class="card-text">
+            <strong>¿Por qué 3FN?</strong> Desacopla la identidad del paciente de sus múltiples visitas hospitalarias, evitando duplicidad de antecedentes y garantizando consistencia atómica en cada actualización.
+          </p>
+          <div class="concept-box concept-box-success" style="margin-top: 0.5rem;">
+            <strong>Row Level Security (RLS):</strong> Las políticas en PostgreSQL aseguran que los médicos solo accedan a consultas de su servicio y los pacientes a su ficha individual.
+          </div>
+          <div class="dual-actions">
+            <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/docs/DOCUMENTACION_MEDISINC_IA.md#L410-L475">
+              <i data-lucide="file-text"></i> Ver Diagrama ERD en Documentación
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 14: VALIDACIÓN CLÍNICA (CV01-CV20) & CIERRE -->
+    <!-- ========================================== -->
+    <section class="slide" data-slide="14">
       <div class="slide-header">
         <div class="slide-tag">
           <i data-lucide="check-circle-2"></i> Resultados y Validación Clínica
@@ -1519,7 +1750,7 @@
         </p>
       </div>
 
-      <div class="grid-4" style="margin-bottom: 1rem;">
+      <div class="grid-4" style="margin-bottom: 0.95rem;">
         <div class="metric-card">
           <div class="metric-value" style="color: #38bdf8;">&lt; 2 min</div>
           <div class="metric-label">Tiempo de Pre-Triaje</div>
@@ -1538,13 +1769,13 @@
         </div>
       </div>
 
-      <div class="card" style="background: rgba(11, 19, 36, 0.95); border: 1px solid var(--border-glow);">
+      <div class="card" style="background: rgba(10, 18, 34, 0.95); border: 1px solid var(--border-glow);">
         <div style="display: flex; align-items: center; justify-content: space-between;">
           <div>
-            <h4 style="font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 3px;">
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 2px;">
               <i data-lucide="award" style="color: #fbbf24; vertical-align: middle;"></i> Matriz de Validación de Casos Clínicos (CV-01 a CV-20)
             </h4>
-            <p style="font-size: 0.8rem; color: var(--text-muted);">
+            <p style="font-size: 0.78rem; color: var(--text-muted);">
               Documentación de 20 casos clínicos reales con verificación de respuestas IA, banderas rojas y niveles Manchester asignados.
             </p>
           </div>
@@ -1556,11 +1787,11 @@
         </div>
       </div>
 
-      <div style="margin-top: 1rem; text-align: center; display: flex; justify-content: center; gap: 12px;">
-        <a class="btn-action btn-primary" style="padding: 9px 18px; font-size: 0.88rem;" href="http://localhost:5173/" target="_blank">
+      <div style="margin-top: 0.95rem; text-align: center; display: flex; justify-content: center; gap: 10px;">
+        <a class="btn-action btn-primary" style="padding: 8px 16px; font-size: 0.85rem;" href="http://localhost:5173/" target="_blank">
           <i data-lucide="play"></i> Iniciar Demostración en Vivo
         </a>
-        <button class="btn-action" style="padding: 9px 16px; font-size: 0.88rem;" onclick="goToSlide(1)">
+        <button class="btn-action" style="padding: 8px 14px; font-size: 0.85rem;" onclick="goToSlide(1)">
           <i data-lucide="rotate-ccw"></i> Reiniciar Diapositivas
         </button>
       </div>
@@ -1596,14 +1827,14 @@
       <div class="drawer-header">
         <div style="display: flex; align-items: center; gap: 8px;">
           <i data-lucide="folder-tree" style="color: #38bdf8;"></i>
-          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff;">Explorador del Proyecto</h3>
+          <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff;">Explorador del Proyecto</h3>
         </div>
         <button class="btn-action" onclick="toggleDrawer()" style="padding: 4px 8px;">
           <i data-lucide="x"></i>
         </button>
       </div>
 
-      <p style="font-size: 0.8rem; color: var(--text-muted);">
+      <p style="font-size: 0.78rem; color: var(--text-muted);">
         Navega rápidamente a cualquier diapositiva o abre los enlaces directos a la aplicación web y código fuente.
       </p>
 
@@ -1613,15 +1844,18 @@
         <div class="slide-jump-grid">
           <button class="jump-btn active" onclick="goToSlide(1)">1. Portada</button>
           <button class="jump-btn" onclick="goToSlide(2)">2. Santa Cruz</button>
-          <button class="jump-btn" onclick="goToSlide(3)">3. Flujo Wizard</button>
-          <button class="jump-btn" onclick="goToSlide(4)">4. Panel Médico</button>
-          <button class="jump-btn" onclick="goToSlide(5)">5. Modal Clínico</button>
-          <button class="jump-btn" onclick="goToSlide(6)">6. Admin & Audit</button>
-          <button class="jump-btn" onclick="goToSlide(7)">7. Sala de Espera</button>
-          <button class="jump-btn" onclick="goToSlide(8)">8. Reglas Duras</button>
-          <button class="jump-btn" onclick="goToSlide(9)">9. Capa IA</button>
-          <button class="jump-btn" onclick="goToSlide(10)">10. Seguridad & 3FN</button>
-          <button class="jump-btn" onclick="goToSlide(11)">11. Validación</button>
+          <button class="jump-btn" onclick="goToSlide(3)">3. Stack & Justif.</button>
+          <button class="jump-btn" onclick="goToSlide(4)">4. Arquitectura C4</button>
+          <button class="jump-btn" onclick="goToSlide(5)">5. Flujo Wizard</button>
+          <button class="jump-btn" onclick="goToSlide(6)">6. Panel Médico</button>
+          <button class="jump-btn" onclick="goToSlide(7)">7. Modal Clínico</button>
+          <button class="jump-btn" onclick="goToSlide(8)">8. Admin & Audit</button>
+          <button class="jump-btn" onclick="goToSlide(9)">9. Sala Espera</button>
+          <button class="jump-btn" onclick="goToSlide(10)">10. Reglas Duras</button>
+          <button class="jump-btn" onclick="goToSlide(11)">11. Fábrica IA</button>
+          <button class="jump-btn" onclick="goToSlide(12)">12. Criptografía</button>
+          <button class="jump-btn" onclick="goToSlide(13)">13. Base Datos 3FN</button>
+          <button class="jump-btn" onclick="goToSlide(14)">14. Validación</button>
         </div>
       </div>
 
