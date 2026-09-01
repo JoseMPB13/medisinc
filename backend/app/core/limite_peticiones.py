@@ -1,12 +1,15 @@
 """
 Módulo de Control de Abuso y Límite de Peticiones (Rate Limiting) para MediSinc-IA.
-Protege las rutas públicas contra peticiones masivas mediante la IP del cliente
-con Upstash Redis o contador en memoria local como fallback resiliente.
+Protege las rutas públicas contra peticiones masivas mediante la IP del cliente.
+Implementa almacenamiento acotado en memoria con evicción LRU (Least Recently Used)
+para blindar el sistema contra fugas de memoria o ataques de denegación de servicio (DoS).
 """
 
 import time
 import logging
-from typing import Dict, List
+import asyncio
+from collections import OrderedDict
+from typing import Dict, List, Optional
 from fastapi import Request, HTTPException, status
 import httpx
 
@@ -14,15 +17,84 @@ from app.core.configuracion import configuracion, settings
 
 logger = logging.getLogger(__name__)
 
-# Base de datos en memoria local para el contador por IP: {ip: [timestamps]}
-_LOCAL_RATE_LIMIT_DB: Dict[str, list] = {}
-_BD_LOCAL_LIMITE_PETICIONES = _LOCAL_RATE_LIMIT_DB
-
 # Configuración del límite: 5 peticiones por ventana de 300 segundos (5 minutos)
 MAX_REQUESTS_PER_WINDOW = configuracion.RATE_LIMIT_REQUESTS
 LIMITE_PETICIONES_VENTANA = configuracion.RATE_LIMIT_REQUESTS
 WINDOW_SECONDS = configuracion.RATE_LIMIT_MINUTES * 60
 VENTANA_SEGUNDOS = configuracion.RATE_LIMIT_MINUTES * 60
+
+
+class RateLimiterMemoria:
+    """
+    Controlador de tasa en memoria con límite acotado de capacidad y política de evicción LRU.
+    Garantiza que la estructura no crezca indefinidamente ante ráfagas de IPs rotativas.
+    """
+
+    def __init__(
+        self,
+        capacidad_maxima: int = 10000,
+        ventana_segundos: int = 300,
+        limite_maximo: int = 5
+    ):
+        self.capacidad_maxima = capacidad_maxima
+        self.ventana_segundos = ventana_segundos
+        self.limite_maximo = limite_maximo
+        self._almacen: OrderedDict[str, List[float]] = OrderedDict()
+        self._candado = asyncio.Lock()
+
+    async def registrar_y_validar(
+        self,
+        clave_ip: str,
+        limite_personalizado: Optional[int] = None
+    ) -> bool:
+        """
+        Registra el intento de solicitud para la IP indicada y valida si está dentro del umbral.
+
+        Retorna:
+            bool: True si la petición es admitida, False si superó la cuota permitida.
+        """
+        limite = limite_personalizado if limite_personalizado is not None else self.limite_maximo
+        ahora = time.time()
+
+        async with self._candado:
+            if clave_ip in self._almacen:
+                # Marcar como recientemente usada moviéndola al final
+                self._almacen.move_to_end(clave_ip)
+                historial = [t for t in self._almacen[clave_ip] if ahora - t < self.ventana_segundos]
+            else:
+                # Si se alcanza el tope de capacidad, expulsar la entrada más antigua (LRU)
+                if len(self._almacen) >= self.capacidad_maxima:
+                    self._almacen.popitem(last=False)
+                historial = []
+
+            if len(historial) >= limite:
+                self._almacen[clave_ip] = historial
+                return False
+
+            historial.append(ahora)
+            self._almacen[clave_ip] = historial
+            return True
+
+    def limpiar(self) -> None:
+        """Limpia el almacenamiento en memoria (utilizado para aislar pruebas)."""
+        self._almacen.clear()
+
+    @property
+    def total_ips_registradas(self) -> int:
+        """Retorna el número de IPs activas almacenadas."""
+        return len(self._almacen)
+
+
+# Instancia global del limitador en memoria
+limiter_memoria_global = RateLimiterMemoria(
+    capacidad_maxima=10000,
+    ventana_segundos=VENTANA_SEGUNDOS,
+    limite_maximo=LIMITE_PETICIONES_VENTANA
+)
+
+# Alias de compatibilidad
+_LOCAL_RATE_LIMIT_DB = limiter_memoria_global._almacen
+_BD_LOCAL_LIMITE_PETICIONES = _LOCAL_RATE_LIMIT_DB
 
 
 async def verificar_limite_peticiones(request: Request):
@@ -38,8 +110,6 @@ async def verificar_limite_peticiones(request: Request):
     encabezado_reenvio = request.headers.get("X-Forwarded-For")
     if encabezado_reenvio:
         ip_cliente = encabezado_reenvio.split(",")[0].strip()
-
-    ahora = time.time()
 
     # 1. Verificación en Upstash Redis REST API si está configurado
     if settings.UPSTASH_REDIS_REST_URL and settings.UPSTASH_REDIS_REST_TOKEN and "placeholder" not in settings.UPSTASH_REDIS_REST_URL:
@@ -67,22 +137,16 @@ async def verificar_limite_peticiones(request: Request):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"[RateLimit] Error consultando Upstash Redis: {e}. Usando contador local.")
+            logger.error(f"[RateLimit] Error consultando Upstash Redis: {e}. Usando contador local acotado.")
 
-    # 2. Contador en Memoria Local (Fallback)
-    marcas_tiempo = _LOCAL_RATE_LIMIT_DB.get(ip_cliente, [])
-    # Filtrar marcas de tiempo que estén dentro de la ventana de 5 minutos
-    marcas_validas = [t for t in marcas_tiempo if ahora - t < VENTANA_SEGUNDOS]
-
-    if len(marcas_validas) >= LIMITE_PETICIONES_VENTANA:
-        logger.warning(f"[RateLimit] IP {ip_cliente} excedió el límite local ({len(marcas_validas)}/{LIMITE_PETICIONES_VENTANA})")
+    # 2. Contador en Memoria Local Acotado con LRU (Fallback Resiliente)
+    admitido = await limiter_memoria_global.registrar_y_validar(ip_cliente)
+    if not admitido:
+        logger.warning(f"[RateLimit] IP {ip_cliente} excedió el límite local.")
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Límite de solicitudes excedido. Se permite un máximo de 5 peticiones cada 5 minutos por dirección IP."
         )
-
-    marcas_validas.append(ahora)
-    _LOCAL_RATE_LIMIT_DB[ip_cliente] = marcas_validas
 
 
 # -----------------------------------------------------------------------------
