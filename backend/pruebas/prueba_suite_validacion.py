@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from app.main import app
 from app.core.configuracion import configuracion, settings
-from app.core.seguridad import cifrar_ci, descifrar_ci, hashear_ci, generar_codigo_acceso
+from app.core.seguridad import cifrar_ci, descifrar_ci, hashear_ci, generar_codigo_acceso, crear_token_jwt
 from app.core.limite_peticiones import _LOCAL_RATE_LIMIT_DB, VENTANA_SEGUNDOS, LIMITE_PETICIONES_VENTANA
 from app.servicios.motor_reglas import evaluar_sobreescrituras_seguridad
 from app.esquemas.triaje import EsquemaSalidaEstructuradaIA, EsquemaEntradaPaciente
@@ -200,6 +200,22 @@ def test_cv09_validacion_esquema_salida_ia():
 
 
 # =============================================================================
+# Helper de autenticación JWT para pruebas médicas
+# =============================================================================
+def _obtener_cabecera_medico():
+    token = crear_token_jwt({
+        "id": "doc-med-general-01",
+        "sub": "doc-med-general-01",
+        "rol": "MEDICO",
+        "correo": "carlos.menacho@medisinc.bo",
+        "nombre_completo": "Dr. Carlos Menacho",
+        "especialidad": "Medicina General",
+        "esta_activo": True
+    })
+    return {"Authorization": f"Bearer {token}"}
+
+
+# =============================================================================
 # CV10: Cierre de consulta médica y transición de estado a REVISADO
 # =============================================================================
 def test_cv10_cierre_consulta_revision_medica():
@@ -215,12 +231,12 @@ def test_cv10_cierre_consulta_revision_medica():
 
     payload = {
         "triaje_id": triaje_id,
-        "medico_id": "doc-uuid-12345",
+        "medico_id": "doc-med-general-01",
         "notas_medico": "Paciente evaluado presencialmente. Se descarta abdomen agudo.",
         "prioridad_ajustada": "VERDE"
     }
 
-    resp = client.post("/api/v1/medico/revisar", json=payload)
+    resp = client.post("/api/v1/medico/revisar", json=payload, headers=_obtener_cabecera_medico())
     assert resp.status_code == 200
     assert resp.json()["estado"] in ["exito", "success"] or resp.json()["status"] in ["exito", "success"]
     assert _BD_LOCAL_TRIAJES[triaje_id]["estado"] in ["REVISADO", "REVIEWED"]
@@ -230,7 +246,7 @@ def test_cv10_cierre_consulta_revision_medica():
 # CV11: Acceso a endpoints y métricas del dashboard médico
 # =============================================================================
 def test_cv11_metricas_dashboard_medico():
-    resp = client.get("/api/v1/medico/panel")
+    resp = client.get("/api/v1/medico/panel", headers=_obtener_cabecera_medico())
     assert resp.status_code == 200
     datos = resp.json()
     assert "metricas" in datos or "metrics" in datos
@@ -256,7 +272,7 @@ def test_cv12_trazabilidad_consulta_expediente():
         "creado_en": datetime.now(timezone.utc).isoformat()
     }
 
-    resp = client.get(f"/api/v1/medico/paciente/{codigo}")
+    resp = client.get(f"/api/v1/medico/paciente/{codigo}", headers=_obtener_cabecera_medico())
     assert resp.status_code == 200
     datos = resp.json()
     assert datos.get("ci_descifrado") == "9876543 SC" or datos.get("decrypted_ci") == "9876543 SC"
@@ -366,7 +382,7 @@ def test_cv17_descifrado_seguro_ci_memoria():
         "creado_en": datetime.now(timezone.utc).isoformat()
     }
 
-    resp = client.get(f"/api/v1/medico/paciente/{codigo}")
+    resp = client.get(f"/api/v1/medico/paciente/{codigo}", headers=_obtener_cabecera_medico())
     assert resp.status_code == 200
     assert resp.json().get("ci_descifrado") == ci_secreto or resp.json().get("decrypted_ci") == ci_secreto
 

@@ -8,9 +8,10 @@ import asyncio
 import logging
 from typing import Dict, Any
 
-from app.providers.ai_factory import get_ai_provider
-from app.services.rules_engine import evaluate_safety_overrides
-from app.services.supabase_service import supabase_service
+from app.proveedores.fabrica_ia import obtener_proveedor_ia, get_ai_provider
+from app.servicios.motor_reglas import evaluar_sobreescrituras_seguridad, evaluate_safety_overrides
+from app.servicios.servicio_supabase import servicio_supabase, supabase_service
+
 
 logger = logging.getLogger(__name__)
 
@@ -44,13 +45,15 @@ async def process_triage_background_task(triage_id: str, patient_payload: Dict[s
 
             # 3. Persistencia en Supabase: Guardar AI_RESULT y actualizar estado a 'READY'
             ai_result_dict = ai_output.model_dump()
-            success = supabase_service.update_triage_with_ai_result(
+            success = await asyncio.to_thread(
+                supabase_service.update_triage_with_ai_result,
                 triage_id=triage_id,
                 ai_result=ai_result_dict,
                 final_priority=final_priority,
                 override_applied=override_applied,
                 override_reason=override_reason
             )
+
 
             if success:
                 logger.info(f"[Worker] Triaje ID {triage_id} procesado exitosamente. Prioridad final: {final_priority} (Override: {override_applied})")

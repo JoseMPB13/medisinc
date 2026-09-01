@@ -6,7 +6,12 @@
 import axios from 'axios';
 import { createClient } from '@supabase/supabase-js';
 
-const URL_BASE_API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// URL Base configurable mediante variables de entorno (Vite) con soporte para red local
+const URL_BASE_API = (
+  import.meta.env.VITE_API_BASE_URL
+  || import.meta.env.VITE_API_URL
+  || (typeof window !== 'undefined' && window.location.hostname ? `http://${window.location.hostname}:8000` : 'http://localhost:8000')
+).replace(/\/api\/v1\/?$/, '');
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder_anon_key';
 

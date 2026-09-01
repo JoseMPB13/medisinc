@@ -9,6 +9,7 @@ import InicioPaciente from './paginas/InicioPaciente';
 import IniciarSesion from './paginas/IniciarSesion';
 import PanelMedico from './paginas/PanelMedico';
 import PanelAdministrador from './paginas/PanelAdministrador';
+import PantallaSeguimientoPaciente from './paginas/PantallaSeguimientoPaciente';
 import RutaProtegida from './componentes/RutaProtegida';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
       {/* 1. Portal Público de Paciente (Pre-Triaje y Comprobante QR) */}
       <Route path="/" element={<InicioPaciente />} />
       <Route path="/paciente" element={<InicioPaciente />} />
+      <Route path="/seguimiento/:codigo" element={<PantallaSeguimientoPaciente />} />
 
       {/* 2. Portal de Autenticación */}
       <Route path="/iniciar-sesion" element={<IniciarSesion />} />

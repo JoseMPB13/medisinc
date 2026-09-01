@@ -74,6 +74,28 @@ export const PanelMedico = () => {
     setTimeout(() => setNotificacion(null), 4000);
   };
 
+  const [medicoActivo, setMedicoActivo] = useState(usuarioActual?.esta_activo ?? true);
+
+  const toggleEstadoMedico = async () => {
+    try {
+      const nuevoEstado = !medicoActivo;
+      await servicioMedico.cambiarEstadoDisponibilidad(nuevoEstado);
+      setMedicoActivo(nuevoEstado);
+      lanzarNotificacion(nuevoEstado ? 'Estás Activo nuevamente.' : 'Te has marcado como Inactivo.', 'exito');
+      
+      // Update local storage so it persists on reload
+      const userStr = localStorage.getItem('medisinc_usuario');
+      if (userStr) {
+        const userObj = JSON.parse(userStr);
+        userObj.esta_activo = nuevoEstado;
+        localStorage.setItem('medisinc_usuario', JSON.stringify(userObj));
+      }
+    } catch (error) {
+      lanzarNotificacion('Error al cambiar el estado de disponibilidad.', 'error');
+    }
+  };
+
+
   // Cargar datos de la cola general y mis pacientes
   const cargarDatos = async () => {
     try {
@@ -203,7 +225,16 @@ export const PanelMedico = () => {
     const coincideEspecialidad =
       filtroEspecialidad === 'TODAS' || esp === filtroEspecialidad;
 
-    return coincideBusqueda && coincidePrioridad && coincideEspecialidad;
+    const miEspecialidad = usuarioActual?.especialidad || 'Medicina General';
+    const esAdmin = usuarioActual?.rol === 'ADMIN' || usuarioActual?.rol === 'ADMINISTRADOR' || miEspecialidad === 'Administrador';
+    
+    // Si estamos en cola general, solo mostrar las que coincidan con la especialidad del médico
+    // (a menos que sea Administrador)
+    const coincideMiEspecialidad = pestanaActiva === 'COLA_GENERAL' 
+      ? (esAdmin || esp === miEspecialidad)
+      : true;
+
+    return coincideBusqueda && coincidePrioridad && coincideEspecialidad && coincideMiEspecialidad;
   });
 
   return (
@@ -231,9 +262,23 @@ export const PanelMedico = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Toggle de Estado */}
+            <button
+              onClick={toggleEstadoMedico}
+              className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition shadow-sm cursor-pointer ${
+                medicoActivo
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                  : 'bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-rose-500/20'
+              }`}
+              title={medicoActivo ? 'Estás Activo. Clic para marcarte como Inactivo.' : 'Estás Inactivo. Clic para activarte.'}
+            >
+              <div className={`w-2 h-2 rounded-full ${medicoActivo ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></div>
+              <span className="hidden sm:inline">{medicoActivo ? 'Activo' : 'Inactivo'}</span>
+            </button>
+
             <button
               onClick={() => setMostrarEscaner(true)}
-              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-teal-300 rounded-xl border border-slate-700 flex items-center gap-2 text-xs font-bold transition shadow-sm"
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-teal-300 rounded-xl border border-slate-700 flex items-center gap-2 text-xs font-bold transition shadow-sm cursor-pointer"
               title="Escanear código QR del paciente"
             >
               <QrCode className="w-4 h-4 text-teal-400" />
@@ -479,7 +524,7 @@ export const PanelMedico = () => {
                   <th className="py-3.5 px-4">Especialidad</th>
                   <th className="py-3.5 px-4">Motivo Principal</th>
                   <th className="py-3.5 px-4">Estado / Asignación</th>
-                  <th className="py-3.5 px-4">Llegada</th>
+                  <th className="py-3.5 px-4">Fecha y Hora de Cita</th>
                   <th className="py-3.5 px-4 text-right">Acción</th>
                 </tr>
               </thead>
@@ -598,13 +643,23 @@ export const PanelMedico = () => {
                           )}
                         </td>
 
-                        {/* 6. Hora de Llegada */}
+                        {/* 6. Fecha y Hora de Cita */}
                         <td className="py-4 px-4 whitespace-nowrap text-slate-400">
                           {paciente.creado_en || paciente.created_at
-                            ? new Date(paciente.creado_en || paciente.created_at).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })
+                            ? (() => {
+                                const d = new Date(paciente.creado_en || paciente.created_at);
+                                const isToday = d.toDateString() === new Date().toDateString();
+                                return (
+                                  <div>
+                                    <span className="block font-bold text-slate-300">
+                                      {d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                    <span className="text-[10px]">
+                                      {isToday ? 'Hoy' : d.toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                );
+                              })()
                             : 'Reciente'}
                         </td>
 
@@ -616,7 +671,7 @@ export const PanelMedico = () => {
                               className="px-3.5 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs shadow-md shadow-teal-500/20 transition flex items-center gap-1.5 ml-auto"
                             >
                               <Play className="w-3.5 h-3.5 fill-current" />
-                              <span>Atender</span>
+                              <span>Aceptar Cita</span>
                             </button>
                           ) : (
                             <button

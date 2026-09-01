@@ -114,74 +114,63 @@ def decodificar_token_jwt(token: str) -> Optional[Dict[str, Any]]:
 
 
 async def obtener_perfil_usuario_actual(
-    authorization: Optional[str] = Header(None, alias="Authorization"),
-    x_user_role: Optional[str] = Header(None, alias="X-User-Role")
+    authorization: Optional[str] = Header(None, alias="Authorization")
 ) -> Dict[str, Any]:
     """
-    Extrae la información del usuario autenticado a partir del encabezado Authorization (Bearer Token)
-    o del encabezado de rol en modo de pruebas / desarrollo.
+    Extrae y valida estrictamente la información del usuario autenticado a partir del
+    encabezado Authorization (Bearer Token JWT).
+    Rechaza cualquier petición sin credenciales, con tokens expirados, firmas inválidas
+    o carentes de claims requeridos.
     """
-    # 1. Soporte de encabezado explícito para desarrollo y pruebas automatizadas
-    if x_user_role:
-        rol = x_user_role.upper()
-        rol_estandar = "ADMIN" if rol == "ADMIN" else "MEDICO"
-        return {
-            "id": "mock-admin-uuid" if rol == "ADMIN" else "mock-doctor-uuid",
-            "usuario_id": "mock-user-id",
-            "nombre_completo": "Administrador del Sistema" if rol == "ADMIN" else "Dr. Médico de Guardia",
-            "correo": "admin@medisinc.bo" if rol == "ADMIN" else "medico@medisinc.bo",
-            "especialidad": "Dirección Médica" if rol == "ADMIN" else "Medicina General",
-            "rol": rol_estandar,
-            "esta_activo": True
-        }
-
-    # 2. Validación de encabezado Authorization
     if not authorization:
-        if settings.ENVIRONMENT in ["development", "test", "testing", "dev"] or not settings.ENVIRONMENT:
-            return {
-                "id": "doc-med-general-01",
-                "usuario_id": "auth-doc-01",
-                "nombre_completo": "Dr. Carlos Menacho",
-                "correo": "carlos.menacho@medisinc.bo",
-                "especialidad": "Medicina General",
-                "rol": "MEDICO",
-                "esta_activo": True
-            }
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales de acceso no proporcionadas. Se requiere Bearer Token."
+            detail="Credenciales de acceso no proporcionadas. Se requiere Bearer Token.",
+            headers={"WWW-Authenticate": "Bearer"}
         )
 
-    token = authorization.replace("Bearer ", "").strip()
+    partes = authorization.strip().split(" ")
+    if len(partes) != 2 or partes[0].lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Formato de encabezado de autorización inválido. Debe ser 'Bearer <token>'.",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    token = partes[1].strip()
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token de autorización inválido o vacío."
+            detail="Token de autorización vacío o inválido.",
+            headers={"WWW-Authenticate": "Bearer"}
         )
 
-    # 3. Intentar decodificar JWT real
     payload_jwt = decodificar_token_jwt(token)
-    if payload_jwt:
-        return {
-            "id": payload_jwt.get("id") or payload_jwt.get("sub"),
-            "usuario_id": payload_jwt.get("usuario_id") or payload_jwt.get("sub"),
-            "nombre_completo": payload_jwt.get("nombre_completo") or payload_jwt.get("nombre", "Profesional Médico"),
-            "correo": payload_jwt.get("correo") or payload_jwt.get("email"),
-            "especialidad": payload_jwt.get("especialidad", "Medicina General"),
-            "rol": payload_jwt.get("rol", "MEDICO").upper(),
-            "esta_activo": payload_jwt.get("esta_activo", True)
-        }
+    if not payload_jwt:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de autenticación inválido o expirado.",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
 
-    rol = "ADMIN" if "admin" in token.lower() else "MEDICO"
+    usuario_id = payload_jwt.get("id") or payload_jwt.get("sub")
+    rol = payload_jwt.get("rol") or payload_jwt.get("role")
+
+    if not usuario_id or not rol:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de autenticación incompleto o carente de claims requeridos (sub, rol).",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
 
     return {
-        "id": f"uuid-{rol.lower()}-01",
-        "usuario_id": f"auth-{rol.lower()}-01",
-        "nombre_completo": "Profesional Autenticado",
-        "correo": f"{rol.lower()}@medisinc.bo",
-        "especialidad": "Medicina General",
-        "rol": rol,
-        "esta_activo": True
+        "id": str(usuario_id),
+        "usuario_id": str(payload_jwt.get("usuario_id") or usuario_id),
+        "nombre_completo": payload_jwt.get("nombre_completo") or payload_jwt.get("nombre", "Profesional Médico"),
+        "correo": payload_jwt.get("correo") or payload_jwt.get("email"),
+        "especialidad": payload_jwt.get("especialidad") or payload_jwt.get("specialty", "Medicina General"),
+        "rol": str(rol).upper(),
+        "esta_activo": payload_jwt.get("esta_activo", True)
     }
 
 

@@ -106,7 +106,7 @@ export const PasoConfirmacionQR = ({ resultadoTriaje, alReiniciar }) => {
           <div className="p-4 bg-white rounded-2xl shadow-xl border-4 border-teal-500/30 inline-block">
             <QRCodeCanvas
               id="qr-canvas-paciente"
-              value={codigoAcceso}
+              value={`${window.location.origin}/seguimiento/${codigoAcceso}`}
               size={180}
               level="H"
               includeMargin={true}

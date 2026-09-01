@@ -386,8 +386,12 @@ EJEMPLO DE SALIDA ESPERADA:
             enfermedades_base=enfermedades_base
         )
 
+    # Aliases de compatibilidad con suites de pruebas
+    _generate_fallback = generar_salida_contingencia
+
 
 # -----------------------------------------------------------------------------
 # ALIASES DE COMPATIBILIDAD CON CÓDIGO EXISTENTE
 # -----------------------------------------------------------------------------
 BaseAIProvider = ProveedorIABase
+

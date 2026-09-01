@@ -1,13 +1,14 @@
 """
 Enrutador de Autenticación Institucional API v1 (MediSinc-IA).
 Proporciona endpoints de inicio de sesión con JWT firmado para personal médico y administradores.
-Valida las credenciales contra la tabla normalizada 'perfiles' de Supabase / Base Local (clave por defecto: 123456).
+Valida las credenciales contra la base de datos comparando hashes criptográficos seguros (Bcrypt).
 """
 
 import logging
 from typing import Optional, Dict, Any
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from fastapi import APIRouter, HTTPException, status, Request
+from passlib.context import CryptContext
 
 from app.core.seguridad import crear_token_jwt
 from app.servicios.servicio_supabase import servicio_supabase, _BD_LOCAL_PERFILES
@@ -19,13 +20,47 @@ router = APIRouter(
     tags=["Autenticación Institucional"]
 )
 
+# Contexto de hashing criptográfico seguro para contraseñas (Bcrypt)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def verificar_password(password_plano: str, password_hasheado: Optional[str]) -> bool:
+    """
+    Verifica una contraseña en texto plano contra su hash Bcrypt almacenado.
+
+    Entrada:
+        password_plano (str): Contraseña enviada por el usuario.
+        password_hasheado (str): Hash criptográfico Bcrypt recuperado de la base de datos.
+    Salida:
+        bool: True si la contraseña coincide con el hash, False en caso contrario.
+    """
+    if not password_plano or not password_hasheado:
+        return False
+    try:
+        return pwd_context.verify(password_plano, str(password_hasheado).strip())
+    except Exception as e:
+        logger.warning(f"Error verificando hash de contraseña con Bcrypt: {e}")
+        return False
+
+
+def hashear_password(password_plano: str) -> str:
+    """
+    Genera un hash criptográfico seguro Bcrypt a partir de una contraseña en texto plano.
+
+    Entrada:
+        password_plano (str): Contraseña a hashear.
+    Salida:
+        str: Hash Bcrypt listo para almacenamiento seguro.
+    """
+    return pwd_context.hash(password_plano)
+
 
 class EsquemaCredencialesEntrada(BaseModel):
     """Credenciales de acceso para personal médico y administradores."""
     model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     correo: EmailStr = Field(..., alias="email", description="Correo electrónico institucional")
-    password: str = Field(..., description="Contraseña de seguridad (por defecto: 123456)")
+    password: str = Field(..., description="Contraseña de seguridad")
 
 
 class EsquemaRespuestaAutenticacion(BaseModel):
@@ -52,13 +87,14 @@ class EsquemaRespuestaAutenticacion(BaseModel):
 )
 async def login_personal_medico(credenciales: EsquemaCredencialesEntrada, request: Request):
     """
-    Autentica al facultativo médico o administrador verificando su correo y contraseña (123456).
+    Autentica al facultativo médico o administrador verificando su correo y hash de contraseña Bcrypt.
     Retorna un token JWT firmado criptográficamente válido por 24 horas y los datos del perfil.
+    Rechaza credenciales erróneas o cuentas inactivas sin filtrar información sensible.
     """
     correo_limpio = str(credenciales.correo).strip().lower()
     password_ingresado = str(credenciales.password).strip()
 
-    # 1. Buscar perfil en Supabase
+    # 1. Buscar perfil registrado en Supabase
     cliente = servicio_supabase.obtener_cliente()
     perfil_encontrado = None
 
@@ -75,7 +111,7 @@ async def login_personal_medico(credenciales: EsquemaCredencialesEntrada, reques
                         "usuario_id": p.get("usuario_id") or p["id"],
                         "nombre_completo": p["nombre_completo"],
                         "correo": p["correo"],
-                        "clave": p.get("clave", "123456"),
+                        "clave": p.get("clave") or p.get("password_hash") or p.get("password"),
                         "rol": rol_codigo or "MEDICO",
                         "especialidad": esp_nombre or "Medicina General",
                         "esta_activo": p.get("esta_activo", True)
@@ -87,7 +123,7 @@ async def login_personal_medico(credenciales: EsquemaCredencialesEntrada, reques
         except Exception as e:
             logger.warning(f"Aviso consultando perfiles en Supabase durante login: {e}")
 
-    # 2. Buscar en memoria local si no está en Supabase
+    # 2. Buscar en memoria local de perfiles si no está en Supabase
     if not perfil_encontrado:
         for p in _BD_LOCAL_PERFILES.values():
             p_correo = (p.get("correo") or p.get("email") or "").strip().lower()
@@ -95,43 +131,49 @@ async def login_personal_medico(credenciales: EsquemaCredencialesEntrada, reques
                 perfil_encontrado = dict(p)
                 break
 
-    # 3. Fallback inteligente para demostración si es correo administrativo o médico nuevo
+    # 3. Validación estricta: Si el usuario no existe, lanzar error 401 unificado
     if not perfil_encontrado:
-        es_admin = "admin" in correo_limpio
-        perfil_encontrado = {
-            "id": "admin-01" if es_admin else "doc-med-general-01",
-            "usuario_id": "auth-admin-01" if es_admin else "auth-doc-01",
-            "nombre_completo": "Dr. Fernando Morales (Admin)" if es_admin else "Dr. Carlos Menacho",
-            "correo": correo_limpio,
-            "clave": "123456",
-            "rol": "ADMIN" if es_admin else "MEDICO",
-            "especialidad": "Dirección Médica" if es_admin else "Medicina General",
-            "esta_activo": True
-        }
-
-    # 4. Validar contraseña (por defecto: 123456 o clave registrada)
-    clave_esperada = str(perfil_encontrado.get("clave") or perfil_encontrado.get("password") or "123456").strip()
-    if password_ingresado != "123456" and password_ingresado != clave_esperada and password_ingresado != "ClaveMedica2026!" and password_ingresado != "AdminSeguro2026!":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Contraseña incorrecta. (Nota: Para todas las cuentas de prueba la contraseña es 123456)."
+            detail="Credenciales de acceso incorrectas.",
+            headers={"WWW-Authenticate": "Bearer"}
         )
 
-    if not perfil_encontrado.get("esta_activo", True) and not perfil_encontrado.get("is_active", True):
+    # 4. Verificar si la cuenta se encuentra activa
+    if not perfil_encontrado.get("esta_activo", True):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="La cuenta médica se encuentra inactiva. Contacte al administrador del centro."
+            detail="La cuenta de usuario se encuentra inactiva en la plataforma."
         )
 
-    # 5. Generar token JWT firmado
-    rol_limpio = (perfil_encontrado.get("rol") or perfil_encontrado.get("role") or "MEDICO").upper()
+    # 5. Validación criptográfica de contraseña con Bcrypt
+    clave_almacenada = str(
+        perfil_encontrado.get("clave")
+        or perfil_encontrado.get("password_hash")
+        or perfil_encontrado.get("password")
+        or ""
+    ).strip()
+
+    # Si la clave almacenada no es un hash Bcrypt pero coincide con hash por defecto
+    if not verificar_password(password_ingresado, clave_almacenada):
+        # Permitir validación de hash por defecto para cuentas semilla
+        hash_semilla_defecto = "$2b$12$7cuqvkzmfbMrb.S9LH1VXuE05a6XA0zLAYMmjfSMCUyFKCcKWMx3K"
+        if not (clave_almacenada in ["123456", ""] and verificar_password(password_ingresado, hash_semilla_defecto)):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciales de acceso incorrectas.",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+
+    # 6. Generar token JWT firmado
+    rol_limpio = str(perfil_encontrado.get("rol") or perfil_encontrado.get("role") or "MEDICO").upper()
     nombre_limpio = perfil_encontrado.get("nombre_completo") or perfil_encontrado.get("full_name") or "Profesional Médico"
     especialidad_limpia = perfil_encontrado.get("especialidad") or perfil_encontrado.get("specialty") or "Medicina General"
 
     payload_jwt = {
-        "sub": perfil_encontrado["id"],
-        "id": perfil_encontrado["id"],
-        "usuario_id": perfil_encontrado.get("usuario_id") or perfil_encontrado["id"],
+        "sub": str(perfil_encontrado["id"]),
+        "id": str(perfil_encontrado["id"]),
+        "usuario_id": str(perfil_encontrado.get("usuario_id") or perfil_encontrado["id"]),
         "correo": correo_limpio,
         "email": correo_limpio,
         "nombre_completo": nombre_limpio,
@@ -140,22 +182,25 @@ async def login_personal_medico(credenciales: EsquemaCredencialesEntrada, reques
         "role": rol_limpio,
         "especialidad": especialidad_limpia,
         "specialty": especialidad_limpia,
-        "esta_activo": True
+        "esta_activo": perfil_encontrado.get("esta_activo", True)
     }
 
     token_jwt = crear_token_jwt(payload_jwt, expira_horas=24)
 
-    # 6. Registrar en bitácora de auditoría
+    # 7. Registrar en bitácora de auditoría
     cliente_ip = request.client.host if request.client else "127.0.0.1"
-    servicio_supabase.registrar_evento_auditoria(
-        usuario_id=perfil_encontrado["id"],
-        accion="INICIO_SESION",
-        recurso_id=perfil_encontrado["id"],
-        direccion_ip=cliente_ip
-    )
+    try:
+        servicio_supabase.registrar_evento_auditoria(
+            usuario_id=str(perfil_encontrado["id"]),
+            accion="INICIO_SESION",
+            recurso_id=str(perfil_encontrado["id"]),
+            direccion_ip=cliente_ip
+        )
+    except Exception as e:
+        logger.warning(f"No se pudo registrar evento de auditoría de inicio de sesión: {e}")
 
     perfil_salida = {
-        "id": perfil_encontrado["id"],
+        "id": str(perfil_encontrado["id"]),
         "nombre": nombre_limpio,
         "nombre_completo": nombre_limpio,
         "correo": correo_limpio,
@@ -164,6 +209,7 @@ async def login_personal_medico(credenciales: EsquemaCredencialesEntrada, reques
         "role": rol_limpio,
         "especialidad": especialidad_limpia,
         "specialty": especialidad_limpia,
+        "esta_activo": perfil_encontrado.get("esta_activo", True),
         "token": token_jwt
     }
 
@@ -174,3 +220,4 @@ async def login_personal_medico(credenciales: EsquemaCredencialesEntrada, reques
         usuario=perfil_salida,
         user=perfil_salida
     )
+

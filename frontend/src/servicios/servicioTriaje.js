@@ -5,7 +5,12 @@
 
 import axios from 'axios';
 
-const URL_BASE_API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// URL Base configurable mediante variables de entorno (Vite) con soporte para red local
+const URL_BASE_API = (
+  import.meta.env.VITE_API_BASE_URL
+  || import.meta.env.VITE_API_URL
+  || (typeof window !== 'undefined' && window.location.hostname ? `http://${window.location.hostname}:8000` : 'http://localhost:8000')
+).replace(/\/api\/v1\/?$/, '');
 
 const clienteApi = axios.create({
   baseURL: URL_BASE_API,

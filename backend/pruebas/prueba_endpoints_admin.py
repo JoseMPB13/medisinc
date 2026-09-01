@@ -10,6 +10,19 @@ Verifica:
 import pytest
 from httpx import AsyncClient, ASGITransport
 from app.main import app
+from app.core.seguridad import crear_token_jwt
+
+
+def _cabecera_auth(rol: str = "ADMIN") -> dict:
+    token = crear_token_jwt({
+        "id": "admin-01" if rol == "ADMIN" else "doc-med-general-01",
+        "sub": "admin-01" if rol == "ADMIN" else "doc-med-general-01",
+        "rol": rol,
+        "correo": f"{rol.lower()}@medisinc.bo",
+        "nombre_completo": f"Usuario {rol}",
+        "esta_activo": True
+    })
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.mark.asyncio
@@ -22,7 +35,7 @@ async def test_admin_bloqueo_roles_no_autorizados():
     async with AsyncClient(transport=transporte, base_url="http://testserver") as cliente:
         resp = await cliente.get(
             "/api/v1/admin/estadisticas",
-            headers={"X-User-Role": "MEDICO"}
+            headers=_cabecera_auth("MEDICO")
         )
         assert resp.status_code == 403
         assert "Se requieren privilegios de Administrador" in resp.json().get("detail", "")
@@ -37,7 +50,7 @@ async def test_admin_consulta_metricas():
     async with AsyncClient(transport=transporte, base_url="http://testserver") as cliente:
         resp = await cliente.get(
             "/api/v1/admin/estadisticas",
-            headers={"X-User-Role": "ADMIN"}
+            headers=_cabecera_auth("ADMIN")
         )
         assert resp.status_code == 200
         datos = resp.json()
@@ -65,7 +78,7 @@ async def test_admin_crear_y_listar_medicos():
         resp_crear = await cliente.post(
             "/api/v1/admin/medicos",
             json=payload_medico,
-            headers={"X-User-Role": "ADMIN"}
+            headers=_cabecera_auth("ADMIN")
         )
         assert resp_crear.status_code == 201
         medico_creado = resp_crear.json()
@@ -81,7 +94,7 @@ async def test_admin_crear_y_listar_medicos():
         # 2. Listar médicos y verificar presencia
         resp_listar = await cliente.get(
             "/api/v1/admin/medicos",
-            headers={"X-User-Role": "ADMIN"}
+            headers=_cabecera_auth("ADMIN")
         )
         assert resp_listar.status_code == 200
         medicos = resp_listar.json()
@@ -100,7 +113,7 @@ async def test_admin_consulta_bitacora_auditoria():
     async with AsyncClient(transport=transporte, base_url="http://testserver") as cliente:
         resp = await cliente.get(
             "/api/v1/admin/registros-auditoria",
-            headers={"X-User-Role": "ADMIN"}
+            headers=_cabecera_auth("ADMIN")
         )
         assert resp.status_code == 200
         logs = resp.json()
@@ -108,3 +121,44 @@ async def test_admin_consulta_bitacora_auditoria():
         if len(logs) > 0:
             assert "accion" in logs[0] or "action" in logs[0]
             assert "fecha_hora" in logs[0] or "timestamp" in logs[0]
+
+
+@pytest.mark.asyncio
+async def test_admin_actualizar_medico():
+    """
+    Verifica la actualización de datos y estado de actividad de un médico.
+    """
+    transporte = ASGITransport(app=app)
+    async with AsyncClient(transport=transporte, base_url="http://testserver") as cliente:
+        payload_update = {
+            "especialidad": "Jefe de Emergencias Pediátricas",
+            "esta_activo": False
+        }
+        resp = await cliente.put(
+            "/api/v1/admin/medicos/doc-01",
+            json=payload_update,
+            headers=_cabecera_auth("ADMIN")
+        )
+        assert resp.status_code == 200
+        actualizado = resp.json()
+        assert actualizado.get("especialidad") == "Jefe de Emergencias Pediátricas" or actualizado.get("specialty") == "Jefe de Emergencias Pediátricas"
+        assert actualizado.get("esta_activo") is False or actualizado.get("is_active") is False
+
+
+@pytest.mark.asyncio
+async def test_admin_historial_pacientes():
+    """
+    Verifica la consulta del historial de pacientes recibidos.
+    """
+    transporte = ASGITransport(app=app)
+    async with AsyncClient(transport=transporte, base_url="http://testserver") as cliente:
+        resp = await cliente.get(
+            "/api/v1/admin/pacientes/historial",
+            headers=_cabecera_auth("ADMIN")
+        )
+        assert resp.status_code == 200
+        datos = resp.json()
+        assert "total" in datos
+        assert "records" in datos or "registros" in datos
+
+

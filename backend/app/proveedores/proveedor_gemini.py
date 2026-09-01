@@ -8,6 +8,7 @@ import json
 import asyncio
 import logging
 from typing import Dict, Any, Optional, List
+from app.core.utilidades_json import extraer_json_seguro
 from app.core.config import settings
 from app.proveedores.proveedor_base import ProveedorIABase
 from app.esquemas.triaje import EsquemaSalidaEstructuradaIA
@@ -102,7 +103,7 @@ class ProveedorGemini(ProveedorIABase):
                     timeout=25.0
                 )
                 raw_json = respuesta.text.strip()
-                parsed = json.loads(raw_json)
+                parsed = extraer_json_seguro(raw_json)
                 return EsquemaSalidaEstructuradaIA(**parsed)
             except Exception as e:
                 logger.warning(f"[ProveedorGemini] Modelo {nombre_modelo} no disponible ({type(e).__name__}: {str(e)[:100]}). Intentando siguiente...")
@@ -141,13 +142,14 @@ class ProveedorGemini(ProveedorIABase):
                     asyncio.to_thread(mod.generate_content, prompt),
                     timeout=25.0
                 )
-                parsed = json.loads(respuesta.text.strip())
+                parsed = extraer_json_seguro(respuesta.text.strip())
                 lista = parsed if isinstance(parsed, list) else parsed.get("preguntas") or parsed.get("questions") or []
                 if isinstance(lista, list) and len(lista) >= 2:
                     return lista
             except Exception as e:
                 logger.warning(f"[ProveedorGemini] Modelo {nombre_modelo} falló en preguntas dinámicas ({type(e).__name__}: {str(e)[:100]}). Intentando siguiente...")
                 continue
+
 
         return self.generar_preguntas_dinamicas_fallback(
             sintomas=sintomas,

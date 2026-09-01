@@ -34,7 +34,7 @@ export const IniciarSesion = () => {
       }
     } catch (err) {
       console.error('Error de autenticación:', err);
-      setError('Credenciales inválidas. Por favor verifica tu correo y contraseña.');
+      setError(err.message || 'Credenciales inválidas. Por favor verifica tu correo y contraseña.');
     } finally {
       setCargando(false);
     }

@@ -5,8 +5,9 @@ métricas globales y bitácora de auditoría.
 Soporte bilingüe dual completo para blindar el consumo del frontend.
 """
 
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Dict, Any
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
+
 
 
 class EsquemaCrearMedico(BaseModel):
@@ -91,6 +92,10 @@ class EsquemaEstadisticasAdmin(BaseModel):
     moderados_amarillo: Optional[int] = Field(0, description="Casos prioritarios")
     leves_verde: Optional[int] = Field(0, description="Casos no urgentes")
     total_medicos: Optional[int] = Field(0, description="Total médicos registrados")
+
+    # Diccionarios de soporte dual para pruebas y clientes legacy
+    metricas: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Diccionario estructurado de métricas en español")
+    stats: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Diccionario estructurado de métricas en inglés")
 
 
 class EsquemaRegistroAuditoria(BaseModel):

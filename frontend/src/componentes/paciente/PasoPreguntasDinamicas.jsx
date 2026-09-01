@@ -25,6 +25,7 @@ import {
   Check,
 } from 'lucide-react';
 import { servicioTriaje } from '../../servicios/servicioTriaje';
+import PantallaAnalisisNeuronal from './PantallaAnalisisNeuronal';
 
 // Preguntas de contingencia inmediata para garantizar que la vista nunca quede vacía
 const PREGUNTAS_FALLBACK_DEFAULT = [
@@ -221,6 +222,10 @@ export const PasoPreguntasDinamicas = ({
     };
     alFinalizar(respuestasFinales);
   };
+
+  if (estaEnviando) {
+    return <PantallaAnalisisNeuronal />;
+  }
 
   return (
     <form onSubmit={manejarEnvio} className="space-y-6 animate-fade-in text-slate-100">

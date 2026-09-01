@@ -6,7 +6,12 @@
 import axios from 'axios';
 import { servicioAutenticacion } from './servicioAutenticacion';
 
-const URL_BASE_API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// URL Base configurable mediante variables de entorno (Vite) con soporte para red local
+const URL_BASE_API = (
+  import.meta.env.VITE_API_BASE_URL
+  || import.meta.env.VITE_API_URL
+  || (typeof window !== 'undefined' && window.location.hostname ? `http://${window.location.hostname}:8000` : 'http://localhost:8000')
+).replace(/\/api\/v1\/?$/, '');
 
 const clienteApiAdmin = axios.create({
   baseURL: URL_BASE_API,
@@ -133,6 +138,18 @@ export const servicioAdmin = {
       return respuesta.data;
     } catch (error) {
       console.error('[servicioAdmin] Error al listar pacientes:', error);
+      throw error.response?.data || error;
+    }
+  },
+  /**
+   * Actualiza la fecha/hora y médico asignado de una cita.
+   */
+  async actualizarCita(triajeId, datos) {
+    try {
+      const respuesta = await clienteApiAdmin.put(`/api/v1/admin/cita/${triajeId}`, datos);
+      return respuesta.data;
+    } catch (error) {
+      console.error('[servicioAdmin] Error al actualizar cita:', error);
       throw error.response?.data || error;
     }
   },

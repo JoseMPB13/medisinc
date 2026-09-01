@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     # Cifrado y Hash de Datos Sensibles (CI)
     AES_SECRET_KEY: str = "medisinc_secret_aes_key_32_bytes_len!"
     HMAC_PEPPER_KEY: str = "medisinc_hmac_pepper_secret_key"
+    JWT_SECRET_KEY: str = "medisinc_jwt_secret_key_very_secure_string!"
 
     # Proveedor de Inteligencia Artificial (gemini, groq, openai)
     AI_PROVIDER: str = "gemini"

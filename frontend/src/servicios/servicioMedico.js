@@ -6,7 +6,12 @@
 import axios from 'axios';
 import { servicioAutenticacion } from './servicioAutenticacion';
 
-const URL_BASE_API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// URL Base configurable mediante variables de entorno (Vite) con soporte para red local
+const URL_BASE_API = (
+  import.meta.env.VITE_API_BASE_URL
+  || import.meta.env.VITE_API_URL
+  || (typeof window !== 'undefined' && window.location.hostname ? `http://${window.location.hostname}:8000` : 'http://localhost:8000')
+).replace(/\/api\/v1\/?$/, '');
 
 const obtenerCabeceras = () => {
   const token = servicioAutenticacion.obtenerToken();
@@ -96,6 +101,20 @@ export const servicioMedico = {
     );
     return res.data;
   },
+
+  /**
+   * Cambia el estado de disponibilidad del médico (Activo/Inactivo).
+   * @param {boolean} estadoActivo - true para Activo, false para Inactivo
+   */
+  async cambiarEstadoDisponibilidad(estadoActivo) {
+    const res = await axios.put(
+      `${URL_BASE_API}/api/v1/medico/estado`,
+      { esta_activo: estadoActivo },
+      obtenerCabeceras()
+    );
+    return res.data;
+  },
+
 };
 
 // Aliases para retrocompatibilidad

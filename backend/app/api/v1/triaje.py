@@ -20,12 +20,35 @@ from app.esquemas.triaje import (
     EsquemaItemCatalogoEspecialidad
 )
 from app.servicios.servicio_supabase import servicio_supabase
-from app.services.queue_service import queue_service
+from app.servicios.servicio_cola import servicio_cola, queue_service
 from app.proveedores.fabrica_ia import FabricaIA
+
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/triaje", tags=["Triaje Clínico"])
+
+import time
+import asyncio
+
+# =============================================================================
+# CACHÉ EN MEMORIA CON TTL PARA EL CATÁLOGO DE ESPECIALIDADES
+# =============================================================================
+_CACHE_CATALOGO: Optional[List[EsquemaItemCatalogoEspecialidad]] = None
+_CACHE_TIMESTAMP: float = 0.0
+_TTL_CACHE_CATALOGO: float = 60.0  # Tiempo de vida de la caché en segundos
+_CANDADO_CACHE_CATALOGO = asyncio.Lock()
+
+
+def invalidar_cache_catalogo() -> None:
+    """
+    Invalida de forma determinista la caché del catálogo de especialidades.
+    Útil tras actualizaciones en el staff médico o en bancos de pruebas unitarias.
+    """
+    global _CACHE_CATALOGO, _CACHE_TIMESTAMP
+    _CACHE_CATALOGO = None
+    _CACHE_TIMESTAMP = 0.0
+
 
 # =============================================================================
 # 0. GET /especialidades (y /specialties): Catálogo de Especialidades y Médicos Activos
@@ -40,86 +63,107 @@ router = APIRouter(prefix="/triaje", tags=["Triaje Clínico"])
     response_model=List[EsquemaItemCatalogoEspecialidad],
     include_in_schema=False
 )
-async def obtener_catalogo_especialidades():
+async def obtener_catalogo_especialidades(
+    forzar_refresco: bool = Query(default=False, include_in_schema=False)
+):
     """
     Retorna la lista de especialidades clínicas disponibles en el centro de salud
     e incluye los médicos en guardia activa para cada una de ellas y el especialista de turno.
+    Implementa caché en memoria con TTL de 60 segundos para ultra-baja latencia (< 10ms).
     """
-    medicos_por_esp = servicio_supabase.obtener_medicos_activos_por_especialidad()
-    medicos_general = medicos_por_esp.get("Medicina General", [])
-    medico_general_defecto = medicos_general[0] if medicos_general else {
-        "id": "doc-med-general-01",
-        "nombre_completo": "Dr. Carlos Menacho",
-        "name": "Dr. Carlos Menacho",
-        "especialidad": "Medicina General",
-        "esta_activo": True
-    }
+    global _CACHE_CATALOGO, _CACHE_TIMESTAMP
+    es_forzado = (forzar_refresco is True)
+    ahora = time.time()
 
-    especialidades_config = [
-        {
-            "id": "medicina_general",
-            "nombre": "Medicina General",
-            "icono": "Stethoscope",
-            "descripcion": "Atención primaria integral, evaluación clínica general y derivación oportuna."
-        },
-        {
-            "id": "pediatria",
-            "nombre": "Pediatría",
-            "icono": "Baby",
-            "descripcion": "Atención médica especializada para lactantes, niños y adolescentes."
-        },
-        {
-            "id": "ginecologia",
-            "nombre": "Ginecología y Obstetricia",
-            "icono": "HeartHandshake",
-            "descripcion": "Salud femenina integral, control prenatal, dolor pélvico y urgencias ginecológicas."
-        },
-        {
-            "id": "traumatologia",
-            "nombre": "Traumatología y Urgencias",
-            "icono": "Bone",
-            "descripcion": "Lesiones óseas y articulares, caídas, contusiones y traumatismos agudos."
-        },
-        {
-            "id": "cardiologia",
-            "nombre": "Cardiología y Medicina Interna",
-            "icono": "HeartPulse",
-            "descripcion": "Dolor torácico, hipertensión, arritmias y patologías médicas complejas."
-        },
-        {
-            "id": "odontologia",
-            "nombre": "Odontología",
-            "icono": "Smile",
-            "descripcion": "Dolor dental agudo, infecciones maxilofaciales y urgencias bucales."
+    # 1. Comprobación rápida sin lock (Fast Path)
+    if not es_forzado and _CACHE_CATALOGO is not None and (ahora - _CACHE_TIMESTAMP) < _TTL_CACHE_CATALOGO:
+        return _CACHE_CATALOGO
+
+    # 2. Adquisición segura del Lock para re-computar la caché (Slow Path thread-safe)
+    async with _CANDADO_CACHE_CATALOGO:
+        ahora = time.time()
+        if not es_forzado and _CACHE_CATALOGO is not None and (ahora - _CACHE_TIMESTAMP) < _TTL_CACHE_CATALOGO:
+            return _CACHE_CATALOGO
+
+
+        # I/O asíncrona delegada para no bloquear el loop de Uvicorn
+        medicos_por_esp = await asyncio.to_thread(servicio_supabase.obtener_medicos_activos_por_especialidad)
+        medicos_general = medicos_por_esp.get("Medicina General", [])
+        medico_general_defecto = medicos_general[0] if medicos_general else {
+            "id": "doc-med-general-01",
+            "nombre_completo": "Dr. Carlos Menacho",
+            "name": "Dr. Carlos Menacho",
+            "especialidad": "Medicina General",
+            "esta_activo": True
         }
-    ]
 
-    catalogo: List[EsquemaItemCatalogoEspecialidad] = []
-    for item in especialidades_config:
-        nombre_esp = item["nombre"]
-        docs = medicos_por_esp.get(nombre_esp, [])
-        # Si no hay especialista activo, el médico de turno predeterminado es el de guardia general
-        medico_turno = docs[0] if docs else medico_general_defecto
+        especialidades_config = [
+            {
+                "id": "medicina_general",
+                "nombre": "Medicina General",
+                "icono": "Stethoscope",
+                "descripcion": "Atención primaria integral, evaluación clínica general y derivación oportuna."
+            },
+            {
+                "id": "pediatria",
+                "nombre": "Pediatría",
+                "icono": "Baby",
+                "descripcion": "Atención médica especializada para lactantes, niños y adolescentes."
+            },
+            {
+                "id": "ginecologia",
+                "nombre": "Ginecología y Obstetricia",
+                "icono": "HeartHandshake",
+                "descripcion": "Salud femenina integral, control prenatal, dolor pélvico y urgencias ginecológicas."
+            },
+            {
+                "id": "traumatologia",
+                "nombre": "Traumatología y Urgencias",
+                "icono": "Bone",
+                "descripcion": "Lesiones óseas y articulares, caídas, contusiones y traumatismos agudos."
+            },
+            {
+                "id": "cardiologia",
+                "nombre": "Cardiología y Medicina Interna",
+                "icono": "HeartPulse",
+                "descripcion": "Dolor torácico, hipertensión, arritmias y patologías médicas complejas."
+            },
+            {
+                "id": "odontologia",
+                "nombre": "Odontología",
+                "icono": "Smile",
+                "descripcion": "Dolor dental agudo, infecciones maxilofaciales y urgencias bucales."
+            }
+        ]
 
-        catalogo.append(
-            EsquemaItemCatalogoEspecialidad(
-                id=item["id"],
-                nombre=nombre_esp,
-                name=nombre_esp,
-                icono=item["icono"],
-                icon=item["icono"],
-                descripcion=item["descripcion"],
-                description=item["descripcion"],
-                medicos_activos_turno=len(docs),
-                active_doctors=len(docs),
-                medicos_disponibles=docs,
-                available_doctors=docs,
-                medico_de_guardia=medico_turno,
-                on_duty_doctor=medico_turno
+        catalogo: List[EsquemaItemCatalogoEspecialidad] = []
+        for item in especialidades_config:
+            nombre_esp = item["nombre"]
+            docs = medicos_por_esp.get(nombre_esp, [])
+            medico_turno = docs[0] if docs else medico_general_defecto
+
+            catalogo.append(
+                EsquemaItemCatalogoEspecialidad(
+                    id=item["id"],
+                    nombre=nombre_esp,
+                    name=nombre_esp,
+                    icono=item["icono"],
+                    icon=item["icono"],
+                    descripcion=item["descripcion"],
+                    description=item["descripcion"],
+                    medicos_activos_turno=len(docs),
+                    active_doctors=len(docs),
+                    medicos_disponibles=docs,
+                    available_doctors=docs,
+                    medico_de_guardia=medico_turno,
+                    on_duty_doctor=medico_turno
+                )
             )
-        )
 
-    return catalogo
+        _CACHE_CATALOGO = catalogo
+        _CACHE_TIMESTAMP = ahora
+        return catalogo
+
 
 
 # =============================================================================
@@ -196,7 +240,7 @@ async def procesar_triaje(
         }
 
         # Guardar registro inicial en Supabase / Base Local
-        registro_guardado = servicio_supabase.crear_registro_triaje(datos_registro)
+        registro_guardado = await asyncio.to_thread(servicio_supabase.crear_registro_triaje, datos_registro)
         id_guardado = registro_guardado.get("id", triaje_id)
 
         # Encolar tarea asíncrona de IA y motor de reglas
@@ -311,13 +355,6 @@ async def generar_preguntas_dinamicas_api(entrada: EsquemaEntradaPreguntasDinami
             detail=f"Error al procesar preguntas adaptativas: {str(e)}"
         )
 
-    except Exception as e:
-        logger.error(f"Error al generar preguntas dinámicas: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al procesar preguntas adaptativas: {str(e)}"
-        )
-
 
 # =============================================================================
 # 3. GET /estado/{identificador} (y /status/{identifier}): Polling de Estado
@@ -335,12 +372,27 @@ async def consultar_estado_triaje(identificador: str = None, identifier: str = N
     Consulta el estado y resumen estructurado de un pre-triaje por código alfanumérico (ej. MS-8X92K) o ID.
     """
     codigo = identificador or identifier
-    registro = servicio_supabase.obtener_triaje_por_codigo(codigo_acceso=codigo)
+    registro = await asyncio.to_thread(servicio_supabase.obtener_triaje_por_codigo, codigo_acceso=codigo)
     if not registro:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No se encontró ningún registro con el código de acceso '{codigo}'"
         )
+        
+    # Calcular tiempo estimado dinámico
+    creado_en = registro.get("creado_en") or registro.get("created_at")
+    try:
+        if creado_en:
+            dt_creado = datetime.fromisoformat(creado_en.replace('Z', '+00:00'))
+            ahora = datetime.now(timezone.utc)
+            diferencia = (ahora - dt_creado).total_seconds()
+            restante = max(0, 15 * 60 - diferencia)
+            registro["tiempo_estimado_segundos_restantes"] = int(restante)
+        else:
+            registro["tiempo_estimado_segundos_restantes"] = 15 * 60
+    except Exception as e:
+        registro["tiempo_estimado_segundos_restantes"] = 15 * 60
+        
     return registro
 
 
@@ -371,7 +423,12 @@ async def buscar_triaje(
         )
 
     ci_hasheado = hashear_ci(ci) if ci else None
-    registro = servicio_supabase.obtener_triaje_por_criterio(codigo_acceso=codigo, ci_hash=ci_hasheado)
+    registro = await asyncio.to_thread(
+        servicio_supabase.obtener_triaje_por_criterio,
+        codigo_acceso=codigo,
+        ci_hash=ci_hasheado
+    )
+
 
     if not registro:
         raise HTTPException(

@@ -9,6 +9,8 @@ from app.api.v1.administracion import (
     crear_medico,
     actualizar_medico,
     listar_pacientes_historico,
+    listar_pacientes_historial_estructurado,
+    obtener_historial_paciente_especifico,
     listar_registros_auditoria
 )
 
@@ -19,5 +21,8 @@ __all__ = [
     "crear_medico",
     "actualizar_medico",
     "listar_pacientes_historico",
+    "listar_pacientes_historial_estructurado",
+    "obtener_historial_paciente_especifico",
     "listar_registros_auditoria"
 ]
+

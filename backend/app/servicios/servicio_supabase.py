@@ -1052,6 +1052,67 @@ class ServicioSupabase:
 
         return medicos_agrupados
 
+    def obtener_historial_por_paciente(self, paciente_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Consulta el historial clínico y expedientes de triaje anteriores de un paciente por su ID o código.
+        """
+        if not paciente_id:
+            return None
+
+        cliente = self.obtener_cliente()
+        paciente_encontrado = None
+        triajes = []
+
+        if cliente:
+            try:
+                # 1. Buscar en tabla pacientes
+                try:
+                    res_p = cliente.table("pacientes").select("*").eq("id", paciente_id).execute()
+                    if res_p.data:
+                        paciente_encontrado = res_p.data[0]
+                except Exception:
+                    pass
+
+                # 2. Buscar en registros_triaje
+                try:
+                    res_t = cliente.table("registros_triaje").select("*, resultados_ia(*)").or_(f"id.eq.{paciente_id},paciente_id.eq.{paciente_id},codigo_acceso.eq.{paciente_id}").execute()
+                    if res_t.data:
+                        triajes = res_t.data
+                        if not paciente_encontrado and triajes:
+                            paciente_encontrado = {
+                                "id": paciente_id,
+                                "nombre_completo": triajes[0].get("nombre_paciente") or "Paciente Registrado",
+                                "ci_cifrado": triajes[0].get("ci_cifrado")
+                            }
+                except Exception:
+                    pass
+            except Exception as e:
+                logger.warning(f"Aviso consultando historial de paciente en Supabase: {e}")
+
+        # 3. Fallback en memoria local
+        if not paciente_encontrado:
+            for k, t in _BD_LOCAL_TRIAJES.items():
+                if t.get("id") == paciente_id or t.get("codigo_acceso") == paciente_id or k == paciente_id or t.get("paciente_id") == paciente_id:
+                    paciente_encontrado = {
+                        "id": paciente_id,
+                        "nombre_completo": t.get("nombre_paciente") or t.get("patient_name") or "Paciente Local",
+                        "ci_cifrado": t.get("ci_cifrado") or t.get("ci_encrypted")
+                    }
+                    triajes.append(t)
+
+        if not paciente_encontrado and not triajes:
+            return None
+
+        return {
+            "paciente": paciente_encontrado or {"id": paciente_id},
+            "patient": paciente_encontrado or {"id": paciente_id},
+            "historial": triajes,
+            "history": triajes,
+            "records": triajes,
+            "registros": triajes,
+            "total": len(triajes)
+        }
+
 
 # Instancia global del servicio Supabase en español
 servicio_supabase = ServicioSupabase()

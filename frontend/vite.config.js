@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   envDir: '../', // Carga el archivo .env desde la raíz del proyecto
   server: {
-    port: 3000,
+    port: 5173,
     host: true
   }
 });

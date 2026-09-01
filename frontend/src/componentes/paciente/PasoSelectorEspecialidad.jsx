@@ -149,11 +149,15 @@ export const PasoSelectorEspecialidad = ({
             return (
               <div
                 key={esp.id || nombreEsp}
-                onClick={() => manejarClickEspecialidad(esp)}
-                className={`group relative p-5 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between hover:scale-[1.02] active:scale-[0.99] ${
+                onClick={() => tieneEspecialistaActivo && manejarClickEspecialidad(esp)}
+                className={`group relative p-5 rounded-2xl border transition-all duration-200 flex flex-col justify-between 
+                  ${tieneEspecialistaActivo ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.99]' : 'cursor-not-allowed opacity-60 grayscale'}
+                  ${
                   esSeleccionado
                     ? 'bg-gradient-to-b from-teal-950/70 to-slate-900/90 border-teal-400 shadow-xl shadow-teal-500/10 ring-2 ring-teal-500/40'
-                    : 'bg-slate-950/60 border-slate-800 hover:border-teal-500/50 hover:bg-slate-800/40'
+                    : tieneEspecialistaActivo 
+                      ? 'bg-slate-950/60 border-slate-800 hover:border-teal-500/50 hover:bg-slate-800/40'
+                      : 'bg-slate-900/40 border-slate-800/50'
                 }`}
               >
                 <div>
@@ -163,16 +167,20 @@ export const PasoSelectorEspecialidad = ({
                       className={`p-3 rounded-xl transition-colors ${
                         esSeleccionado
                           ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/20'
-                          : 'bg-slate-800 text-teal-400 group-hover:bg-teal-500/20 group-hover:text-teal-300'
+                          : tieneEspecialistaActivo
+                            ? 'bg-slate-800 text-teal-400 group-hover:bg-teal-500/20 group-hover:text-teal-300'
+                            : 'bg-slate-800 text-slate-500'
                       }`}
                     >
                       <IconoComponente className="w-6 h-6" />
                     </div>
 
-                    <div className="flex items-center gap-1 text-teal-400 font-bold text-xs bg-teal-500/10 px-2.5 py-1 rounded-full border border-teal-500/30 group-hover:bg-teal-500 group-hover:text-slate-950 transition-colors">
-                      <span>Elegir</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </div>
+                    {tieneEspecialistaActivo && (
+                      <div className="flex items-center gap-1 text-teal-400 font-bold text-xs bg-teal-500/10 px-2.5 py-1 rounded-full border border-teal-500/30 group-hover:bg-teal-500 group-hover:text-slate-950 transition-colors">
+                        <span>Elegir</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </div>
+                    )}
                   </div>
 
                   {/* Nombre y Descripción */}
@@ -194,13 +202,13 @@ export const PasoSelectorEspecialidad = ({
                         En Turno
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] text-amber-300 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                        Guardia General
+                      <span className="inline-flex items-center gap-1 text-[10px] text-rose-300 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                        Inactivo
                       </span>
                     )}
                   </div>
-                  <p className="font-bold text-teal-300 text-xs truncate">
-                    {nombreMedico}
+                  <p className={`font-bold text-xs truncate ${tieneEspecialistaActivo ? 'text-teal-300' : 'text-slate-500'}`}>
+                    {tieneEspecialistaActivo ? nombreMedico : 'Sin Especialista Activo'}
                   </p>
                 </div>
               </div>

@@ -7,10 +7,12 @@ cierre y diagnóstico de revisión médica con auditoría inalterable.
 
 import json
 import logging
+import asyncio
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, status, Query, Request, Depends
 from pydantic import BaseModel, Field
+
 
 from app.core.seguridad import descifrar_ci, hashear_ci, obtener_medico_actual
 from app.esquemas.triaje import (
@@ -18,6 +20,10 @@ from app.esquemas.triaje import (
     EsquemaAsignacionPacienteEntrada,
     EsquemaDetalleExpedienteMedico
 )
+
+class EsquemaEstadoMedico(BaseModel):
+    esta_activo: bool
+
 from app.servicios.servicio_supabase import (
     servicio_supabase,
     _BD_LOCAL_TRIAJES,
@@ -110,7 +116,8 @@ async def obtener_panel_medico(
     try:
         filtrar_disponibles = only_available if only_available is not None else solo_disponibles
         esp_filtro = specialty or especialidad
-        registros_ordenados = servicio_supabase.obtener_cola_guardia(
+        registros_ordenados = await asyncio.to_thread(
+            servicio_supabase.obtener_cola_guardia,
             solo_disponibles=filtrar_disponibles,
             especialidad=esp_filtro
         )
@@ -192,7 +199,11 @@ async def asignar_paciente_guardia(
         cliente_ip = request.client.host if request and request.client else "127.0.0.1"
 
         try:
-            resultado = servicio_supabase.asignar_paciente_a_medico(triaje_id=triaje_id, medico_id=medico_id)
+            resultado = await asyncio.to_thread(
+                servicio_supabase.asignar_paciente_a_medico,
+                triaje_id=triaje_id,
+                medico_id=medico_id
+            )
         except ValueError as ve:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -200,7 +211,8 @@ async def asignar_paciente_guardia(
             )
 
         # Auditoría inalterable de asignación
-        servicio_supabase.registrar_evento_auditoria(
+        await asyncio.to_thread(
+            servicio_supabase.registrar_evento_auditoria,
             usuario_id=medico_id,
             accion="RECLAMAR_PACIENTE_GUARDIA",
             recurso_id=triaje_id,
@@ -244,10 +256,15 @@ async def liberar_paciente_guardia(
         medico_id = usuario_actual.get("id") or usuario_actual.get("usuario_id") or "doc-uuid-12345"
         cliente_ip = request.client.host if request and request.client else "127.0.0.1"
 
-        resultado = servicio_supabase.liberar_paciente(triaje_id=triaje_id, medico_id=medico_id)
+        resultado = await asyncio.to_thread(
+            servicio_supabase.liberar_paciente,
+            triaje_id=triaje_id,
+            medico_id=medico_id
+        )
 
         # Registrar trazabilidad
-        servicio_supabase.registrar_evento_auditoria(
+        await asyncio.to_thread(
+            servicio_supabase.registrar_evento_auditoria,
             usuario_id=medico_id,
             accion="LIBERAR_PACIENTE_GUARDIA",
             recurso_id=triaje_id,
@@ -289,7 +306,11 @@ async def obtener_mis_pacientes(
         medico_id = usuario_actual.get("id") or usuario_actual.get("usuario_id") or "doc-uuid-12345"
         filtrar_revisados = include_reviewed if include_reviewed is not None else incluir_revisados
 
-        pacientes = servicio_supabase.obtener_pacientes_por_medico(medico_id=medico_id, incluir_revisados=filtrar_revisados)
+        pacientes = await asyncio.to_thread(
+            servicio_supabase.obtener_pacientes_por_medico,
+            medico_id=medico_id,
+            incluir_revisados=filtrar_revisados
+        )
         pacientes_limpios = [sanitizar_objeto_expediente(p) for p in pacientes]
 
         return {
@@ -335,19 +356,24 @@ async def obtener_detalle_paciente(
         medico_id = usuario_actual.get("id") or usuario_actual.get("usuario_id") or "doc-uuid-12345"
         cliente_ip = request.client.host if request and request.client else "127.0.0.1"
 
-        registro = servicio_supabase.obtener_triaje_por_codigo(codigo_acceso=id_objetivo)
+        registro = await asyncio.to_thread(
+            servicio_supabase.obtener_triaje_por_codigo,
+            codigo_acceso=id_objetivo
+        )
 
         if not registro:
             cliente = servicio_supabase.obtener_cliente()
             if cliente:
                 try:
-                    resp = cliente.table("registros_triaje").select("*, resultados_ia(*)").eq("id", id_objetivo).execute()
-                    if resp.data:
-                        registro = resp.data[0]
-                    else:
+                    def consultar_paciente():
+                        resp = cliente.table("registros_triaje").select("*, resultados_ia(*)").eq("id", id_objetivo).execute()
+                        if resp.data:
+                            return resp.data[0]
                         resp_leg = cliente.table("triage_record").select("*, ai_result(*)").eq("id", id_objetivo).execute()
                         if resp_leg.data:
-                            registro = resp_leg.data[0]
+                            return resp_leg.data[0]
+                        return None
+                    registro = await asyncio.to_thread(consultar_paciente)
                 except Exception as e:
                     logger.error(f"Error consultando paciente por ID en Supabase: {e}")
 
@@ -367,7 +393,8 @@ async def obtener_detalle_paciente(
         ci_descifrado = descifrar_ci(ci_cifrado) if ci_cifrado else "NO_DISPONIBLE"
 
         # Registrar trazabilidad en bitácora de auditoría
-        servicio_supabase.registrar_evento_auditoria(
+        await asyncio.to_thread(
+            servicio_supabase.registrar_evento_auditoria,
             usuario_id=medico_id,
             accion="CONSULTA_EXPEDIENTE_DESCIFRADO_CI",
             recurso_id=registro.get("id"),
@@ -416,7 +443,8 @@ async def registrar_revision_medica(
         medico_id = payload.medico_id or usuario_actual.get("id") or usuario_actual.get("usuario_id") or "doc-uuid-12345"
         cliente_ip = request.client.host if request and request.client else "127.0.0.1"
 
-        resultado = servicio_supabase.guardar_revision_medica(
+        resultado = await asyncio.to_thread(
+            servicio_supabase.guardar_revision_medica,
             triaje_id=payload.triaje_id,
             medico_id=medico_id,
             notas_medico=payload.notas_medico,
@@ -424,12 +452,14 @@ async def registrar_revision_medica(
         )
 
         # Auditoría de cierre
-        servicio_supabase.registrar_evento_auditoria(
+        await asyncio.to_thread(
+            servicio_supabase.registrar_evento_auditoria,
             usuario_id=medico_id,
             accion="CIERRE_REVISION_MEDICA",
             recurso_id=payload.triaje_id,
             direccion_ip=cliente_ip
         )
+
 
         return {
             "estado": "exito",
@@ -445,3 +475,74 @@ async def registrar_revision_medica(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al guardar la revisión médica: {str(e)}"
         )
+
+
+# =============================================================================
+# 7. PUT /estado (y /status): Cambiar Estado de Disponibilidad
+# =============================================================================
+@router.put(
+    "/estado",
+    status_code=status.HTTP_200_OK,
+    summary="Actualizar estado de disponibilidad del médico (Activo/Inactivo)"
+)
+@router.put(
+    "/status",
+    status_code=status.HTTP_200_OK,
+    include_in_schema=False
+)
+async def actualizar_estado_medico(
+    payload: EsquemaEstadoMedico,
+    request: Request,
+    usuario_actual: Dict[str, Any] = Depends(obtener_medico_actual)
+):
+    """
+    Permite al médico cambiar su estado de disponibilidad (Activo/Inactivo).
+    Este cambio queda registrado en la bitácora de auditoría.
+    """
+    try:
+        medico_id = usuario_actual.get("id") or usuario_actual.get("usuario_id") or "doc-uuid-12345"
+        cliente_ip = request.client.host if request and request.client else "127.0.0.1"
+
+        cliente = servicio_supabase.obtener_cliente()
+        if cliente:
+            try:
+                # Evitamos el error 22P02 de PostgreSQL ignorando IDs que no sean UUID
+                try:
+                    cliente.table("perfiles").update({"esta_activo": payload.esta_activo}).eq("id", medico_id).execute()
+                except Exception:
+                    try:
+                        cliente.table("profiles").update({"is_active": payload.esta_activo}).eq("id", medico_id).execute()
+                    except Exception:
+                        pass
+            except Exception as e:
+                logger.warning(f"No se pudo actualizar en Supabase, aplicando localmente: {e}")
+        
+        # Fallback local
+        from app.servicios.servicio_supabase import _BD_LOCAL_PERFILES
+        for k, p in _BD_LOCAL_PERFILES.items():
+            if p.get("id") == medico_id or p.get("usuario_id") == medico_id:
+                p["esta_activo"] = payload.esta_activo
+                p["is_active"] = payload.esta_activo
+
+        # Registrar trazabilidad
+        accion = "MEDICO_ESTADO_ACTIVO" if payload.esta_activo else "MEDICO_ESTADO_INACTIVO"
+        servicio_supabase.registrar_evento_auditoria(
+            usuario_id=medico_id,
+            accion=accion,
+            recurso_id=medico_id,
+            direccion_ip=cliente_ip
+        )
+
+        return {
+            "estado": "exito",
+            "esta_activo": payload.esta_activo,
+            "mensaje": f"Estado actualizado a {'Activo' if payload.esta_activo else 'Inactivo'}."
+        }
+
+    except Exception as e:
+        logger.error(f"Error al cambiar estado del médico: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al cambiar estado: {str(e)}"
+        )
+

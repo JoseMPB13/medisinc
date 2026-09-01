@@ -15,55 +15,55 @@ class EsquemaEntradaPaciente(BaseModel):
     """
     model_config = ConfigDict(populate_by_name=True, extra="allow")
 
-    nombre_paciente: str = Field(..., alias="patient_name", description="Nombre completo del paciente", example="Juan Pérez")
-    ci: str = Field(..., description="Carnet de Identidad del paciente", example="1234567 SC")
-    edad: int = Field(..., ge=0, le=120, alias="age", description="Edad del paciente en años", example=35)
-    genero: str = Field(..., alias="gender", description="Género del paciente", example="Masculino")
-    sintomas_brutos: str = Field(..., alias="raw_symptoms", description="Síntoma principal en texto libre", example="Me duele fuerte el pecho y tengo opresión")
+    nombre_paciente: str = Field(..., alias="patient_name", description="Nombre completo del paciente", json_schema_extra={"example": "Juan Pérez"})
+    ci: str = Field(..., description="Carnet de Identidad del paciente", json_schema_extra={"example": "1234567 SC"})
+    edad: int = Field(..., ge=0, le=120, alias="age", description="Edad del paciente en años", json_schema_extra={"example": 35})
+    genero: str = Field(..., alias="gender", description="Género del paciente", json_schema_extra={"example": "Masculino"})
+    sintomas_brutos: str = Field(..., alias="raw_symptoms", description="Síntoma principal en texto libre", json_schema_extra={"example": "Me duele fuerte el pecho y tengo opresión"})
     
     # Especialidad médica seleccionada y antecedentes clínicos ampliados
     especialidad_solicitada: str = Field(
         default="Medicina General",
         alias="requested_specialty",
         description="Especialidad médica seleccionada por el paciente en el Paso 0",
-        example="Medicina General"
+        json_schema_extra={"example": "Medicina General"}
     )
     alergias_medicamentosas: str = Field(
         default="Ninguna conocida",
         alias="drug_allergies",
         description="Alergias a medicamentos declaradas",
-        example="Penicilina, AINEs"
+        json_schema_extra={"example": "Penicilina, AINEs"}
     )
     medicacion_actual: str = Field(
         default="Ninguna",
         alias="current_medication",
         description="Fármacos o tratamientos que consume regularmente",
-        example="Losartán 50mg, Metformina 850mg"
+        json_schema_extra={"example": "Losartán 50mg, Metformina 850mg"}
     )
     enfermedades_base: List[str] = Field(
         default_factory=list,
         alias="base_diseases",
         description="Comorbilidades o enfermedades crónicas diagnosticadas",
-        example=["Hipertensión arterial", "Diabetes mellitus tipo 2"]
+        json_schema_extra={"example": ["Hipertensión arterial", "Diabetes mellitus tipo 2"]}
     )
     medico_asignado_id: Optional[str] = Field(
         default=None,
         alias="assigned_doctor_id",
         description="ID del médico de turno asignado para la atención",
-        example="doc-med-general-01"
+        json_schema_extra={"example": "doc-med-general-01"}
     )
 
     datos_estaticos: Dict[str, Any] = Field(
         default_factory=dict,
         alias="static_data",
         description="Datos estáticos adicionales (ej. intensidad 1-10, evolución)",
-        example={"intensidad": 8, "duracion": "2 horas"}
+        json_schema_extra={"example": {"intensidad": 8, "duracion": "2 horas"}}
     )
     respuestas_dinamicas: Optional[Dict[str, Any]] = Field(
         default_factory=dict,
         alias="dynamic_answers",
         description="Respuestas a preguntas adaptativas de opción múltiple",
-        example={"ubicacion": "centro del pecho", "sudoracion": "sí"}
+        json_schema_extra={"example": {"ubicacion": "centro del pecho", "sudoracion": "sí"}}
     )
 
     @property
@@ -120,37 +120,37 @@ class EsquemaSalidaEstructuradaIA(BaseModel):
     sintomas_principales: List[str] = Field(
         ...,
         description="Lista de síntomas principales adaptados a terminología médica estandarizada",
-        example=["Dolor torácico opresivo", "Diaforesis"]
+        json_schema_extra={"example": ["Dolor torácico opresivo", "Diaforesis"]}
     )
     duracion_e_intensidad: str = Field(
         ...,
         description="Resumen de tiempo de evolución e intensidad del cuadro sintomático",
-        example="Evolución de 2 horas con intensidad 8/10"
+        json_schema_extra={"example": "Evolución de 2 horas con intensidad 8/10"}
     )
     factores_agravantes_antecedentes: List[str] = Field(
         default_factory=list,
         description="Factores gatillantes, comorbilidades, alergias o medicación mencionada",
-        example=["Hipertensión arterial", "Alergia a Penicilina"]
+        json_schema_extra={"example": ["Hipertensión arterial", "Alergia a Penicilina"]}
     )
     senales_alerta_identificadas: List[str] = Field(
         default_factory=list,
         description="Banderas rojas o señales de peligro vital detectadas",
-        example=["Opresión precordial irradiada"]
+        json_schema_extra={"example": ["Opresión precordial irradiada"]}
     )
     prioridad_sugerida_ia: Literal["ROJO", "AMARILLO", "VERDE", "RED", "YELLOW", "GREEN"] = Field(
         ...,
         description="Prioridad preliminar evaluada por la IA (ROJO, AMARILLO, VERDE)",
-        example="ROJO"
+        json_schema_extra={"example": "ROJO"}
     )
     resumen_clinico_narrativo: str = Field(
         ...,
         description="Síntesis narrativa concisa (2 a 3 oraciones) para rápida lectura del médico de guardia",
-        example="Paciente masculino de 35 años consulta por dolor torácico opresivo de 2 horas de evolución e intensidad 8/10. Presenta diaforesis. Se sugiere atención prioritaria inmediata."
+        json_schema_extra={"example": "Paciente masculino de 35 años consulta por dolor torácico opresivo de 2 horas de evolución e intensidad 8/10. Presenta diaforesis. Se sugiere atención prioritaria inmediata."}
     )
     informacion_faltante_critica: List[str] = Field(
         default_factory=list,
         description="Preguntas o datos clave no especificados que el facultativo debe interrogar",
-        example=["Irradiación a extremidad superior izquierda", "Antecedentes coronarios familiares"]
+        json_schema_extra={"example": ["Irradiación a extremidad superior izquierda", "Antecedentes coronarios familiares"]}
     )
 
     @field_validator(

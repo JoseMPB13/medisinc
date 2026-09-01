@@ -27,6 +27,9 @@ import {
   Check,
   FileHeart,
   BriefcaseMedical,
+  Printer,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { servicioMedico } from '../../servicios/servicioMedico';
 import { servicioAutenticacion } from '../../servicios/servicioAutenticacion';
@@ -97,6 +100,15 @@ export const ModalDetallePaciente = ({ expediente, alCerrar, alActualizar }) => 
   const [mensajeExito, setMensajeExito] = useState(null);
   const [mensajeError, setMensajeError] = useState(null);
 
+  // Estados para la Receta Médica
+  const [recetaMedica, setRecetaMedica] = useState([]);
+  const [medicamentoActual, setMedicamentoActual] = useState({
+    nombre: '',
+    dosis: '',
+    frecuencia: '',
+    duracion: '',
+  });
+
   if (!expediente) return null;
 
   const resultadoIa =
@@ -143,6 +155,54 @@ export const ModalDetallePaciente = ({ expediente, alCerrar, alActualizar }) => 
       ? 'text-amber-400 bg-amber-950/40 border-amber-500/30'
       : 'text-emerald-400 bg-emerald-950/40 border-emerald-500/30';
 
+  // Lógica de Sugerencia de Medicamentos (Inteligencia Clínica Local)
+  const obtenerSugerenciasMedicamentos = () => {
+    const textoAnalizar = `${resumenNarrativo} ${sintomasPrincipales.join(' ')} ${expediente.sintomas_brutos || ''}`.toLowerCase();
+    const sugerencias = new Set();
+
+    if (textoAnalizar.includes('fiebre') || textoAnalizar.includes('dolor')) {
+      sugerencias.add('Paracetamol 500mg');
+      sugerencias.add('Ibuprofeno 400mg');
+    }
+    if (textoAnalizar.includes('tos') || textoAnalizar.includes('garganta') || textoAnalizar.includes('resfrío')) {
+      sugerencias.add('Loratadina 10mg');
+      sugerencias.add('Ambroxol 30mg');
+    }
+    if (textoAnalizar.includes('infección') || textoAnalizar.includes('purulento')) {
+      sugerencias.add('Amoxicilina 500mg');
+      sugerencias.add('Azitromicina 500mg');
+    }
+    if (textoAnalizar.includes('vómito') || textoAnalizar.includes('nausea') || textoAnalizar.includes('náusea')) {
+      sugerencias.add('Ondansetrón 8mg');
+      sugerencias.add('Metoclopramida 10mg');
+    }
+    if (textoAnalizar.includes('diarrea') || textoAnalizar.includes('estomacal')) {
+      sugerencias.add('Loperamida 2mg');
+      sugerencias.add('Sales de Rehidratación');
+    }
+    if (textoAnalizar.includes('alergia') || textoAnalizar.includes('picazón')) {
+      sugerencias.add('Cetirizina 10mg');
+    }
+
+    return Array.from(sugerencias).slice(0, 5); // Máximo 5 sugerencias
+  };
+
+  const sugerencias = obtenerSugerenciasMedicamentos();
+
+  const agregarMedicamento = (medicamento = null) => {
+    if (medicamento) {
+      setRecetaMedica([...recetaMedica, { nombre: medicamento, dosis: 'Según indicación', frecuencia: 'Cada 8 horas', duracion: '3 a 5 días' }]);
+    } else {
+      if (!medicamentoActual.nombre) return;
+      setRecetaMedica([...recetaMedica, { ...medicamentoActual }]);
+      setMedicamentoActual({ nombre: '', dosis: '', frecuencia: '', duracion: '' });
+    }
+  };
+
+  const eliminarMedicamento = (index) => {
+    setRecetaMedica(recetaMedica.filter((_, i) => i !== index));
+  };
+
   // Guardar evaluación médica y cerrar consulta
   const guardarRevision = async (e) => {
     e.preventDefault();
@@ -157,13 +217,23 @@ export const ModalDetallePaciente = ({ expediente, alCerrar, alActualizar }) => 
     setMensajeError(null);
 
     try {
+      let notasCompletas = notasMedico;
+      
+      // Anexar la receta médica si existe
+      if (recetaMedica.length > 0) {
+        const textoReceta = recetaMedica.map((m, i) => 
+          `  ${i + 1}. ${m.nombre} | Dosis: ${m.dosis} | Frec.: ${m.frecuencia} | Dur.: ${m.duracion}`
+        ).join('\n');
+        notasCompletas += `\n\n=== RECETA MÉDICA ===\n${textoReceta}`;
+      }
+
       const payload = {
         triaje_id: expediente.id,
         triage_id: expediente.id,
         medico_id: usuarioActual?.id || usuarioActual?.usuario_id || 'doc-uuid-12345',
         doctor_id: usuarioActual?.id || usuarioActual?.usuario_id || 'doc-uuid-12345',
-        notas_medico: notasMedico,
-        doctor_notes: notasMedico,
+        notas_medico: notasCompletas,
+        doctor_notes: notasCompletas,
         prioridad_ajustada: prioridadAjustada,
         priority_adjusted: prioridadAjustada,
       };
@@ -209,8 +279,8 @@ export const ModalDetallePaciente = ({ expediente, alCerrar, alActualizar }) => 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-6xl w-full max-h-[94vh] flex flex-col shadow-2xl overflow-hidden text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in print:p-0 print:bg-white print:block">
+      <div className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-6xl w-full max-h-[94vh] flex flex-col shadow-2xl overflow-hidden text-slate-100 print:hidden">
         {/* ========================================================================= */}
         {/* Encabezado del Modal Clínico */}
         {/* ========================================================================= */}
@@ -531,6 +601,117 @@ export const ModalDetallePaciente = ({ expediente, alCerrar, alActualizar }) => 
               </div>
             </div>
 
+            {/* Módulo de Receta Médica */}
+            <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                <span className="text-xs font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Pill className="w-4 h-4" /> Receta y Prescripción
+                </span>
+                {recetaMedica.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="text-xs bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition border border-slate-700"
+                  >
+                    <Printer className="w-3.5 h-3.5" /> Imprimir
+                  </button>
+                )}
+              </div>
+
+              {/* Sugerencias Rápidas */}
+              {!esRevisado && sugerencias.length > 0 && (
+                <div className="mb-4">
+                  <span className="text-[10px] text-slate-400 block mb-1.5">Sugerencias basadas en síntomas:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {sugerencias.map((sug, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => agregarMedicamento(sug)}
+                        className="px-2.5 py-1 text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/30 transition flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" /> {sug}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Formulario Manual */}
+              {!esRevisado && (
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 mb-4 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                  <div className="sm:col-span-4">
+                    <input
+                      type="text"
+                      placeholder="Medicamento"
+                      value={medicamentoActual.nombre}
+                      onChange={(e) => setMedicamentoActual({ ...medicamentoActual, nombre: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white focus:border-teal-500 outline-none"
+                    />
+                  </div>
+                  <div className="sm:col-span-3">
+                    <input
+                      type="text"
+                      placeholder="Dosis (ej. 500mg)"
+                      value={medicamentoActual.dosis}
+                      onChange={(e) => setMedicamentoActual({ ...medicamentoActual, dosis: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white focus:border-teal-500 outline-none"
+                    />
+                  </div>
+                  <div className="sm:col-span-3">
+                    <input
+                      type="text"
+                      placeholder="Frec. (ej. 8 horas)"
+                      value={medicamentoActual.frecuencia}
+                      onChange={(e) => setMedicamentoActual({ ...medicamentoActual, frecuencia: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white focus:border-teal-500 outline-none"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <button
+                      type="button"
+                      onClick={() => agregarMedicamento()}
+                      disabled={!medicamentoActual.nombre}
+                      className="w-full h-full bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-950 font-bold rounded-lg text-xs flex items-center justify-center transition"
+                    >
+                      Añadir
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Lista de Recetados */}
+              {recetaMedica.length > 0 ? (
+                <ul className="space-y-2">
+                  {recetaMedica.map((med, idx) => (
+                    <li key={idx} className="flex items-center justify-between bg-slate-800/50 border border-slate-700/50 p-2.5 rounded-xl">
+                      <div>
+                        <span className="text-xs font-bold text-white block">{med.nombre}</span>
+                        <span className="text-[10px] text-slate-400">
+                          {med.dosis && `Dosis: ${med.dosis} | `} 
+                          {med.frecuencia && `Cada: ${med.frecuencia} | `}
+                          {med.duracion && `Por: ${med.duracion}`}
+                        </span>
+                      </div>
+                      {!esRevisado && (
+                        <button
+                          type="button"
+                          onClick={() => eliminarMedicamento(idx)}
+                          className="text-rose-400 hover:text-rose-300 p-1.5 bg-rose-500/10 rounded-lg transition"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-slate-500 italic text-center py-2">
+                  No se han prescrito medicamentos aún.
+                </p>
+              )}
+            </div>
+
             {/* Formulario de Cierre de Consulta Médica */}
             <form
               onSubmit={guardarRevision}
@@ -594,6 +775,80 @@ export const ModalDetallePaciente = ({ expediente, alCerrar, alActualizar }) => 
                 </button>
               )}
             </form>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* VISTA DE IMPRESIÓN OCULTA (SOLO SE VE AL HACER PRINT) */}
+      {/* ========================================================================= */}
+      <div className="hidden print:block w-full max-w-4xl mx-auto bg-white text-black p-10 min-h-screen">
+        {/* Encabezado */}
+        <div className="flex justify-between items-center border-b-2 border-slate-800 pb-6 mb-6">
+          <div>
+            <h1 className="text-3xl font-black tracking-tighter text-slate-900 flex items-center gap-2">
+              <Stethoscope className="w-8 h-8" /> MediSinc-IA
+            </h1>
+            <p className="text-sm font-semibold text-slate-600">Sistema Inteligente de Gestión Hospitalaria</p>
+            <p className="text-xs text-slate-500 mt-1">Receta Médica Oficial</p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-bold">{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="text-xs text-slate-600 mt-1">Hora: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+          </div>
+        </div>
+
+        {/* Datos del Paciente */}
+        <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl mb-8">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3">Datos del Paciente</h2>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p><span className="font-semibold">Nombre:</span> {expediente.nombre_paciente || expediente.patient_name || 'Paciente'}</p>
+              <p><span className="font-semibold">Edad/Género:</span> {expediente.edad || expediente.age} años / {expediente.genero || expediente.gender}</p>
+            </div>
+            <div>
+              <p><span className="font-semibold">CI / Documento:</span> {expediente.ci_descifrado || expediente.decrypted_ci}</p>
+              <p><span className="font-semibold">Alergias:</span> <span className={tieneAlergiasRiesgo ? 'text-red-600 font-bold' : ''}>{alergias}</span></p>
+            </div>
+          </div>
+        </div>
+
+        {/* Receta */}
+        <div className="mb-12">
+          <h2 className="text-4xl font-serif font-black italic text-slate-800 mb-6">Rx</h2>
+          {recetaMedica.length > 0 ? (
+            <div className="space-y-6 pl-4">
+              {recetaMedica.map((med, idx) => (
+                <div key={idx} className="border-b border-slate-100 pb-4">
+                  <p className="text-lg font-bold text-slate-900">{idx + 1}. {med.nombre}</p>
+                  <p className="text-sm text-slate-700 mt-1">
+                    <span className="font-semibold">Dosis:</span> {med.dosis || 'Según indicación'} | 
+                    <span className="font-semibold ml-2">Frecuencia:</span> {med.frecuencia || 'Continuo'} | 
+                    <span className="font-semibold ml-2">Duración:</span> {med.duracion || 'Hasta finalizar el envase'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm italic text-slate-500">Sin medicamentos prescritos.</p>
+          )}
+        </div>
+
+        {/* Indicaciones / Diagnóstico */}
+        {notasMedico && (
+          <div className="mb-12">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3">Indicaciones Médicas Adicionales</h2>
+            <p className="text-sm whitespace-pre-wrap">{notasMedico}</p>
+          </div>
+        )}
+
+        {/* Firmas */}
+        <div className="mt-20 pt-10 border-t border-slate-300 flex justify-end">
+          <div className="text-center w-64">
+            <div className="border-b-2 border-black w-full mb-2"></div>
+            <p className="font-bold text-sm uppercase">{usuarioActual?.nombre || 'Dr. Médico Tratante'}</p>
+            <p className="text-xs text-slate-600">{usuarioActual?.rol || especialidad}</p>
+            <p className="text-[10px] text-slate-500 mt-1">Firma y Sello</p>
           </div>
         </div>
       </div>

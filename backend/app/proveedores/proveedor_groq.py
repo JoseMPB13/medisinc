@@ -9,7 +9,9 @@ import asyncio
 import logging
 from typing import Dict, Any, Optional, List
 from app.core.config import settings
+from app.core.utilidades_json import extraer_json_seguro
 from app.proveedores.proveedor_base import ProveedorIABase
+
 from app.esquemas.triaje import EsquemaSalidaEstructuradaIA
 
 logger = logging.getLogger(__name__)
@@ -102,7 +104,7 @@ class ProveedorGroq(ProveedorIABase):
                         timeout=15.0
                     )
                     raw_json = chat_completion.choices[0].message.content.strip()
-                    parsed = json.loads(raw_json)
+                    parsed = extraer_json_seguro(raw_json)
                     return EsquemaSalidaEstructuradaIA(**parsed)
                 except Exception as e:
                     logger.warning(f"[ProveedorGroq] Modelo {modelo} falló ({type(e).__name__}: {str(e)[:100]}). Probando siguiente...")
@@ -159,10 +161,11 @@ class ProveedorGroq(ProveedorIABase):
                         timeout=15.0
                     )
                     raw_content = chat_completion.choices[0].message.content.strip()
-                    parsed = json.loads(raw_content)
+                    parsed = extraer_json_seguro(raw_content)
                     lista = parsed if isinstance(parsed, list) else parsed.get("preguntas") or parsed.get("questions") or []
                     if isinstance(lista, list) and len(lista) >= 2:
                         return lista
+
                 except Exception as e:
                     logger.warning(f"[ProveedorGroq] Modelo {modelo} falló en preguntas dinámicas ({type(e).__name__}: {str(e)[:100]}). Probando siguiente...")
                     continue

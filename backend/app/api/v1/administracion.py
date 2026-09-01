@@ -9,11 +9,18 @@ Proporciona:
 
 import logging
 import uuid
+import asyncio
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, status, Query, Depends, Request
 
-from app.core.seguridad import obtener_admin_actual
+from pydantic import BaseModel
+
+class EsquemaActualizarCita(BaseModel):
+    medico_asignado_id: Optional[str] = None
+    fecha_cita: Optional[str] = None
+
+from app.core.seguridad import obtener_admin_actual, obtener_perfil_usuario_actual
 from app.esquemas.administracion import (
     EsquemaCrearMedico,
     EsquemaActualizarMedico,
@@ -64,61 +71,85 @@ async def obtener_estadisticas_admin():
     try:
         total_triajes = 0
         urgente_rojo = 0
+        moderados_amarillo = 0
+        leves_verde = 0
         revisados = 0
         medicos_activos = 0
+        total_medicos_count = 0
 
         cliente = servicio_supabase.obtener_cliente()
         if cliente:
             try:
-                try:
-                    triajes_res = cliente.table("registros_triaje").select("id, estado, prioridad_final").execute()
-                except Exception:
-                    triajes_res = cliente.table("triage_record").select("id, status, final_priority").execute()
+                def consultar_estadisticas():
+                    try:
+                        t_res = cliente.table("registros_triaje").select("id, estado, prioridad_final").execute()
+                    except Exception:
+                        t_res = cliente.table("triage_record").select("id, status, final_priority").execute()
 
-                if triajes_res.data:
-                    total_triajes = len(triajes_res.data)
-                    urgente_rojo = sum(1 for t in triajes_res.data if (t.get("prioridad_final") in ["ROJO", "RED"] or t.get("final_priority") in ["ROJO", "RED"]))
-                    revisados = sum(1 for t in triajes_res.data if (t.get("estado") in ["REVISADO", "REVIEWED"] or t.get("status") in ["REVISADO", "REVIEWED"]))
+                    try:
+                        m_res = cliente.table("perfiles").select("id, esta_activo").execute()
+                    except Exception:
+                        m_res = cliente.table("profiles").select("id, is_active").execute()
+                    return t_res.data or [], m_res.data or []
 
-                try:
-                    medicos_res = cliente.table("perfiles").select("id").eq("esta_activo", True).execute()
-                except Exception:
-                    medicos_res = cliente.table("profiles").select("id").eq("is_active", True).execute()
+                triajes_data, medicos_data = await asyncio.to_thread(consultar_estadisticas)
 
-                if medicos_res.data:
-                    medicos_activos = len(medicos_res.data)
+                if triajes_data:
+                    total_triajes = len(triajes_data)
+                    urgente_rojo = sum(1 for t in triajes_data if (t.get("prioridad_final") in ["ROJO", "RED"] or t.get("final_priority") in ["ROJO", "RED"]))
+                    moderados_amarillo = sum(1 for t in triajes_data if (t.get("prioridad_final") in ["AMARILLO", "YELLOW"] or t.get("final_priority") in ["AMARILLO", "YELLOW"]))
+                    leves_verde = sum(1 for t in triajes_data if (t.get("prioridad_final") in ["VERDE", "GREEN"] or t.get("final_priority") in ["VERDE", "GREEN"]))
+                    revisados = sum(1 for t in triajes_data if (t.get("estado") in ["REVISADO", "REVIEWED"] or t.get("status") in ["REVISADO", "REVIEWED"]))
+
+                if medicos_data:
+                    total_medicos_count = len(medicos_data)
+                    medicos_activos = sum(1 for p in medicos_data if p.get("esta_activo") is True or p.get("is_active") is True)
             except Exception as e:
                 logger.error(f"Error consultando estadísticas en Supabase: {e}")
+
 
         if total_triajes == 0 and _BD_LOCAL_TRIAJES:
             registros_unicos = {v.get("id"): v for v in _BD_LOCAL_TRIAJES.values() if v.get("id")}
             total_triajes = len(registros_unicos)
             urgente_rojo = sum(1 for t in registros_unicos.values() if (t.get("prioridad_final") in ["ROJO", "RED"] or t.get("final_priority") in ["ROJO", "RED"]))
+            moderados_amarillo = sum(1 for t in registros_unicos.values() if (t.get("prioridad_final") in ["AMARILLO", "YELLOW"] or t.get("final_priority") in ["AMARILLO", "YELLOW"]))
+            leves_verde = sum(1 for t in registros_unicos.values() if (t.get("prioridad_final") in ["VERDE", "GREEN"] or t.get("final_priority") in ["VERDE", "GREEN"]))
             revisados = sum(1 for t in registros_unicos.values() if (t.get("estado") in ["REVISADO", "REVIEWED"] or t.get("status") in ["REVISADO", "REVIEWED"]))
 
-        if medicos_activos == 0 and _BD_LOCAL_PERFILES:
+        if total_medicos_count == 0 and _BD_LOCAL_PERFILES:
+            total_medicos_count = len(_BD_LOCAL_PERFILES)
             medicos_activos = sum(1 for p in _BD_LOCAL_PERFILES.values() if p.get("esta_activo") or p.get("is_active"))
 
         tiempo_promedio = 8.5 if revisados > 0 else 0.0
 
+        datos_estadisticas = {
+            "total_triajes": total_triajes,
+            "casos_rojo_urgente": urgente_rojo,
+            "casos_revisados": revisados,
+            "medicos_activos": medicos_activos,
+            "tiempo_promedio_atencion_min": tiempo_promedio,
+            "total_patients": total_triajes,
+            "total_triages": total_triajes,
+            "urgent_red_cases": urgente_rojo,
+            "reviewed_cases": revisados,
+            "active_doctors": medicos_activos,
+            "average_attention_time_min": tiempo_promedio,
+            "total_pacientes": total_triajes,
+            "pacientes_hoy": total_triajes,
+            "en_espera": max(0, total_triajes - revisados),
+            "atendidos": revisados,
+            "criticos_rojo": urgente_rojo,
+            "moderados_amarillo": moderados_amarillo,
+            "leves_verde": leves_verde,
+            "total_medicos": total_medicos_count
+        }
+
         return EsquemaEstadisticasAdmin(
-            total_triajes=total_triajes,
-            casos_rojo_urgente=urgente_rojo,
-            casos_revisados=revisados,
-            medicos_activos=medicos_activos,
-            tiempo_promedio_atencion_min=tiempo_promedio,
-            total_patients=total_triajes,
-            urgent_red_cases=urgente_rojo,
-            reviewed_cases=revisados,
-            active_doctors=medicos_activos,
-            average_attention_time_min=tiempo_promedio,
-            total_pacientes=total_triajes,
-            pacientes_hoy=total_triajes,
-            en_espera=max(0, total_triajes - revisados),
-            atendidos=revisados,
-            criticos_rojo=urgente_rojo,
-            total_medicos=medicos_activos
+            **datos_estadisticas,
+            metricas=datos_estadisticas,
+            stats=datos_estadisticas
         )
+
 
     except Exception as e:
         logger.error(f"Error calculando estadísticas: {e}")
@@ -155,21 +186,23 @@ async def listar_medicos(
 
         if cliente:
             try:
-                try:
-                    consulta = cliente.table("perfiles").select("*")
-                except Exception:
-                    consulta = cliente.table("profiles").select("*")
+                def ejecutar_consulta_medicos():
+                    try:
+                        consulta = cliente.table("perfiles").select("*")
+                    except Exception:
+                        consulta = cliente.table("profiles").select("*")
 
-                if rol:
-                    consulta = consulta.eq("rol", rol.upper())
-                if esta_activo is not None:
-                    consulta = consulta.eq("esta_activo", esta_activo)
-                if busqueda:
-                    consulta = consulta.ilike("nombre_completo", f"%{busqueda}%")
+                    if rol:
+                        consulta = consulta.eq("rol", rol.upper())
+                    if esta_activo is not None:
+                        consulta = consulta.eq("esta_activo", esta_activo)
+                    if busqueda:
+                        consulta = consulta.ilike("nombre_completo", f"%{busqueda}%")
 
-                res = consulta.order("creado_en", desc=True).execute()
-                if res.data:
-                    lista_medicos = res.data
+                    res = consulta.order("creado_en", desc=True).execute()
+                    return res.data or []
+
+                lista_medicos = await asyncio.to_thread(ejecutar_consulta_medicos)
             except Exception as e:
                 logger.error(f"Error consultando perfiles en Supabase: {e}")
 
@@ -256,12 +289,16 @@ async def crear_medico(payload: EsquemaCrearMedico, request: Request):
         cliente = servicio_supabase.obtener_cliente()
         if cliente:
             try:
-                try:
-                    cliente.table("perfiles").insert(nuevo_perfil).execute()
-                except Exception:
-                    cliente.table("profiles").insert(nuevo_perfil).execute()
+                def insertar_medico_supabase():
+                    try:
+                        cliente.table("perfiles").insert(nuevo_perfil).execute()
+                    except Exception:
+                        cliente.table("profiles").insert(nuevo_perfil).execute()
 
-                servicio_supabase.registrar_evento_auditoria(
+                await asyncio.to_thread(insertar_medico_supabase)
+
+                await asyncio.to_thread(
+                    servicio_supabase.registrar_evento_auditoria,
                     usuario_id=medico_id,
                     accion="CREAR_MEDICO",
                     recurso_id=medico_id,
@@ -272,7 +309,8 @@ async def crear_medico(payload: EsquemaCrearMedico, request: Request):
 
         # Guardar en memoria local
         _BD_LOCAL_PERFILES[medico_id] = nuevo_perfil
-        servicio_supabase.registrar_evento_auditoria(
+        await asyncio.to_thread(
+            servicio_supabase.registrar_evento_auditoria,
             usuario_id=medico_id,
             accion="CREAR_MEDICO",
             recurso_id=medico_id,
@@ -314,12 +352,14 @@ async def actualizar_medico(medico_id: str, payload: EsquemaActualizarMedico, re
         cliente = servicio_supabase.obtener_cliente()
         if cliente and not perfil_actual:
             try:
-                try:
-                    res = cliente.table("perfiles").select("*").eq("id", medico_id).execute()
-                except Exception:
-                    res = cliente.table("profiles").select("*").eq("id", medico_id).execute()
-                if res.data:
-                    perfil_actual = res.data[0]
+                def buscar_medico():
+                    try:
+                        res = cliente.table("perfiles").select("*").eq("id", medico_id).execute()
+                    except Exception:
+                        res = cliente.table("profiles").select("*").eq("id", medico_id).execute()
+                    return res.data[0] if res.data else None
+
+                perfil_actual = await asyncio.to_thread(buscar_medico)
             except Exception as e:
                 logger.error(f"Error buscando médico en Supabase: {e}")
 
@@ -366,17 +406,21 @@ async def actualizar_medico(medico_id: str, payload: EsquemaActualizarMedico, re
                     "rol": perfil_actual["rol"],
                     "esta_activo": perfil_actual["esta_activo"]
                 }
-                try:
-                    cliente.table("perfiles").update(datos_update).eq("id", medico_id).execute()
-                except Exception:
-                    cliente.table("profiles").update(datos_update).eq("id", medico_id).execute()
+                def actualizar_supabase():
+                    try:
+                        cliente.table("perfiles").update(datos_update).eq("id", medico_id).execute()
+                    except Exception:
+                        cliente.table("profiles").update(datos_update).eq("id", medico_id).execute()
+
+                await asyncio.to_thread(actualizar_supabase)
             except Exception as e:
                 logger.error(f"Error actualizando médico en Supabase: {e}")
 
         # Persistir en memoria local
         _BD_LOCAL_PERFILES[medico_id] = perfil_actual
 
-        servicio_supabase.registrar_evento_auditoria(
+        await asyncio.to_thread(
+            servicio_supabase.registrar_evento_auditoria,
             usuario_id=medico_id,
             accion="ACTUALIZAR_MEDICO",
             recurso_id=medico_id,
@@ -394,7 +438,7 @@ async def actualizar_medico(medico_id: str, payload: EsquemaActualizarMedico, re
 
 
 # =============================================================================
-# 4. GET /pacientes (y /patients): Histórico de Pacientes
+# 4. GET /pacientes (y /patients, /patients/history): Histórico de Pacientes
 # =============================================================================
 @router.get(
     "/pacientes",
@@ -406,9 +450,71 @@ async def actualizar_medico(medico_id: str, payload: EsquemaActualizarMedico, re
 )
 async def listar_pacientes_historico():
     """
-    Retorna el histórico de todos los pacientes recibidos en el centro de salud.
+    Retorna el histórico de todos los pacientes recibidos en el centro de salud en formato lista.
     """
-    return servicio_supabase.obtener_cola_guardia()
+    return await asyncio.to_thread(servicio_supabase.obtener_cola_guardia)
+
+
+@router.get(
+    "/pacientes/historial",
+    summary="Historial Global de Pacientes (Objeto Estructurado)",
+    include_in_schema=False
+)
+@router.get(
+    "/patients/history",
+    summary="Patients History Legacy",
+    include_in_schema=False
+)
+async def listar_pacientes_historial_estructurado():
+    """
+    Retorna el histórico consolidado en formato de objeto con metadatos (total y records).
+    """
+    cola = await asyncio.to_thread(servicio_supabase.obtener_cola_guardia)
+    return {
+        "total": len(cola),
+        "records": cola,
+        "registros": cola,
+        "pacientes": cola,
+        "patients": cola
+    }
+
+
+# =============================================================================
+# 4.1 GET /paciente/{id}/historial (y /patient/{id}/history): Historial Individual
+# =============================================================================
+@router.get(
+    "/paciente/{paciente_id}/historial",
+    summary="Historial Clínico Específico de un Paciente"
+)
+@router.get(
+    "/patient/{paciente_id}/history",
+    summary="Patient Clinical History",
+    include_in_schema=False
+)
+async def obtener_historial_paciente_especifico(
+    paciente_id: str,
+    usuario_actual: Dict[str, Any] = Depends(obtener_perfil_usuario_actual)
+):
+    """
+    Retorna el historial clínico y expedientes de consultas previas de un paciente específico.
+    Requiere permisos de administrador. Lanza 404 si el paciente no existe.
+    """
+    rol = (usuario_actual.get("rol") or usuario_actual.get("role") or "").upper()
+    if rol not in ["ADMIN", "ADMINISTRADOR"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado: Se requieren privilegios de Administrador."
+        )
+
+    historial = await asyncio.to_thread(servicio_supabase.obtener_historial_por_paciente, paciente_id)
+    if not historial:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No se encontró el paciente o historial para el identificador '{paciente_id}'."
+        )
+
+    return historial
+
 
 
 # =============================================================================
@@ -437,17 +543,19 @@ async def listar_registros_auditoria(
 
         if cliente:
             try:
-                try:
-                    consulta = cliente.table("registros_auditoria").select("*")
-                except Exception:
-                    consulta = cliente.table("audit_log").select("*")
+                def consultar_bitacora():
+                    try:
+                        consulta = cliente.table("registros_auditoria").select("*")
+                    except Exception:
+                        consulta = cliente.table("audit_log").select("*")
 
-                if accion:
-                    consulta = consulta.eq("accion", accion)
+                    if accion:
+                        consulta = consulta.eq("accion", accion)
 
-                res = consulta.order("fecha_hora", desc=True).limit(limite).execute()
-                if res.data:
-                    registros_auditoria = res.data
+                    res = consulta.order("fecha_hora", desc=True).limit(limite).execute()
+                    return res.data or []
+
+                registros_auditoria = await asyncio.to_thread(consultar_bitacora)
             except Exception as e:
                 logger.error(f"Error consultando bitácora en Supabase: {e}")
 
@@ -480,3 +588,46 @@ async def listar_registros_auditoria(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error obteniendo bitácora de auditoría: {str(e)}"
         )
+
+
+
+# =============================================================================
+# 6. PUT /cita/{triaje_id} : Modificar una cita agendada
+# =============================================================================
+@router.put(
+    "/cita/{triaje_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Modificar cita agendada desde el pre-triaje"
+)
+async def actualizar_cita(
+    triaje_id: str,
+    payload: EsquemaActualizarCita
+):
+    try:
+        cliente = servicio_supabase.obtener_cliente()
+        datos_actualizar = {}
+        if payload.medico_asignado_id is not None:
+            datos_actualizar["medico_asignado_id"] = payload.medico_asignado_id
+        if payload.fecha_cita is not None:
+            datos_actualizar["creado_en"] = payload.fecha_cita  # Usamos creado_en o un nuevo campo
+            
+        if not datos_actualizar:
+            return {"estado": "ok", "mensaje": "Sin cambios"}
+
+        # Modo Local Contingencia
+        if _BD_LOCAL_TRIAJES and triaje_id in _BD_LOCAL_TRIAJES:
+            for k, v in datos_actualizar.items():
+                _BD_LOCAL_TRIAJES[triaje_id][k] = v
+                
+        if cliente:
+            try:
+                try:
+                    cliente.table("registros_triaje").update(datos_actualizar).eq("id", triaje_id).execute()
+                except Exception:
+                    cliente.table("triage_records").update(datos_actualizar).eq("id", triaje_id).execute()
+            except Exception as e:
+                logger.warning(f"Error base de datos: {e}")
+                
+        return {"estado": "exito", "mensaje": "Cita actualizada correctamente"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

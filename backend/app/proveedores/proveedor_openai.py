@@ -9,7 +9,9 @@ import asyncio
 import logging
 from typing import Dict, Any, Optional, List
 from app.core.config import settings
+from app.core.utilidades_json import extraer_json_seguro
 from app.proveedores.proveedor_base import ProveedorIABase
+
 from app.esquemas.triaje import EsquemaSalidaEstructuradaIA
 
 logger = logging.getLogger(__name__)
@@ -94,7 +96,7 @@ class ProveedorOpenAI(ProveedorIABase):
                     timeout=6.0
                 )
                 raw_json = respuesta.choices[0].message.content.strip()
-                parsed = json.loads(raw_json)
+                parsed = extraer_json_seguro(raw_json)
                 return EsquemaSalidaEstructuradaIA(**parsed)
             except Exception as e:
                 logger.warning(f"[ProveedorOpenAI] Error o timeout en llamada a OpenAI API ({e}). Activando fallback clínico.")
@@ -149,10 +151,11 @@ class ProveedorOpenAI(ProveedorIABase):
                     timeout=5.5
                 )
                 raw_json = respuesta.choices[0].message.content.strip()
-                parsed = json.loads(raw_json)
+                parsed = extraer_json_seguro(raw_json)
                 lista = parsed if isinstance(parsed, list) else parsed.get("preguntas") or parsed.get("questions") or []
                 if isinstance(lista, list) and len(lista) >= 2:
                     return lista
+
             except Exception as e:
                 logger.warning(f"[ProveedorOpenAI] Error o timeout generando preguntas en OpenAI ({e}). Activando fallback.")
 

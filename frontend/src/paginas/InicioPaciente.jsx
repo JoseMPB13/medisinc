@@ -53,6 +53,7 @@ export const InicioPaciente = () => {
     try {
       const payloadCompleto = {
         ...datosFormulario,
+        medico_asignado_id: null, // Evitar autoselección para que ingresen a la Cola General
         respuestas_dinamicas: respuestasDinamicas,
       };
 
@@ -258,7 +259,7 @@ export const InicioPaciente = () => {
 
         {pasoActual === 3 && resultadoTriaje && (
           <PasoConfirmacionQR
-            resultado={resultadoTriaje}
+            resultadoTriaje={resultadoTriaje}
             datosPaciente={datosFormulario}
             alReiniciar={reiniciarFormulario}
           />
