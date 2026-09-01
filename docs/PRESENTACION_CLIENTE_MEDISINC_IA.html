@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediSinc-IA | Presentación Ejecutiva para Clientes y Directivos de Salud</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --bg-dark: #070b14;
+      --bg-card: rgba(15, 23, 42, 0.75);
+      --bg-card-hover: rgba(30, 41, 59, 0.85);
+      --primary: #0ea5e9;
+      --primary-gradient: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-purple: #8b5cf6;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(14, 165, 233, 0.25);
+      --glass-blur: blur(16px);
+      --shadow-subtle: 0 10px 30px -10px rgba(0,0,0,0.5);
+      --shadow-glow: 0 0 40px -10px rgba(14, 165, 233, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* Ambient Background Glow */
+    .ambient-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      background: 
+        radial-gradient(circle at 15% 20%, rgba(14, 165, 233, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 85% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.05) 0%, transparent 60%);
+    }
+
+    /* Grid overlay */
+    .grid-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Header / Nav Bar */
+    header {
+      position: relative;
+      z-index: 100;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(7, 11, 20, 0.8);
+      backdrop-filter: var(--glass-blur);
+    }
+
+    .brand-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 0 20px rgba(14, 165, 233, 0.4);
+    }
+
+    .brand-title {
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-title span {
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      background: rgba(14, 165, 233, 0.15);
+      border: 1px solid rgba(14, 165, 233, 0.3);
+      border-radius: 20px;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .slide-counter {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .slide-counter span {
+      color: var(--accent-cyan);
+      font-weight: 700;
+    }
+
+    .btn-action {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-action:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--primary-gradient);
+      border: none;
+      color: white;
+      box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5);
+    }
+
+    /* Main Slide Stage */
+    main {
+      flex: 1;
+      position: relative;
+      z-index: 10;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      padding: 2.5rem 3.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.96) translateY(20px);
+      transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow-y: auto;
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1) translateY(0);
+    }
+
+    /* Slide Components */
+    .slide-header {
+      margin-bottom: 2rem;
+    }
+
+    .slide-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--accent-cyan);
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 0.75rem;
+    }
+
+    .slide-title {
+      font-size: 2.3rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      margin-bottom: 0.5rem;
+    }
+
+    .slide-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 850px;
+      line-height: 1.5;
+    }
+
+    /* Grid Layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    /* Glass Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.5rem;
+      backdrop-filter: var(--glass-blur);
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-subtle);
+    }
+
+    .card-highlight {
+      border-color: var(--border-glow);
+      background: linear-gradient(145deg, rgba(14, 165, 233, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%);
+    }
+
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      color: white;
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text-main);
+    }
+
+    .card-text {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    /* Code & File Links Badge */
+    .code-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 0.9rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: #38bdf8;
+      background: rgba(14, 165, 233, 0.1);
+      border: 1px solid rgba(14, 165, 233, 0.25);
+      padding: 4px 10px;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      align-self: flex-start;
+      cursor: pointer;
+    }
+
+    .code-link:hover {
+      background: rgba(14, 165, 233, 0.25);
+      border-color: #38bdf8;
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    /* Comparative AS-IS vs TO-BE Box */
+    .comparison-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    .compare-box {
+      border-radius: 16px;
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .compare-as-is {
+      background: rgba(244, 63, 94, 0.06);
+      border: 1px solid rgba(244, 63, 94, 0.2);
+    }
+
+    .compare-to-be {
+      background: rgba(16, 185, 129, 0.06);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.08);
+    }
+
+    .compare-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .compare-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .compare-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .compare-item {
+      font-size: 0.9rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.4;
+    }
+
+    .compare-item i {
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    /* Metrics Hero Numbers */
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-value {
+      font-size: 2.8rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #fff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .metric-value.highlight-cyan {
+      background: linear-gradient(135deg, #38bdf8 0%, #06b6d4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .metric-value.highlight-emerald {
+      background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .metric-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Steps Flow Timeline */
+    .flow-steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      position: relative;
+      margin-top: 1rem;
+    }
+
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 1.25rem;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .step-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      margin-bottom: 0.25rem;
+    }
+
+    /* Manchester Triage Badge Colors */
+    .badge-triage {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .triage-red {
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      color: #fb7185;
+    }
+
+    .triage-yellow {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+    }
+
+    .triage-green {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+    }
+
+    /* Interactive Bottom Bar */
+    footer {
+      position: relative;
+      z-index: 100;
+      height: 60px;
+      background: rgba(7, 11, 20, 0.9);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+    }
+
+    .progress-track {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      width: 100%;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: var(--primary-gradient);
+      width: 10%;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px var(--primary);
+    }
+
+    .footer-hints {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .kbd {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-color);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .slide-nav-buttons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Modal / Drawer for Project Navigation */
+    .drawer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .drawer-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .drawer-content {
+      width: 480px;
+      height: 100%;
+      background: #0f172a;
+      border-left: 1px solid var(--border-color);
+      padding: 2rem;
+      overflow-y: auto;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .drawer-overlay.active .drawer-content {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1rem;
+    }
+
+    .file-index-tree {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .tree-section {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 0.75rem;
+      letter-spacing: 0.5px;
+    }
+
+    .tree-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      text-decoration: none;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      transition: all 0.2s ease;
+    }
+
+    .tree-link:hover {
+      background: rgba(14, 165, 233, 0.15);
+      border-color: var(--primary);
+      color: #38bdf8;
+    }
+
+    /* Quick Slide Select Grid */
+    .slide-jump-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 1rem;
+    }
+
+    .jump-btn {
+      padding: 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .jump-btn.active, .jump-btn:hover {
+      background: var(--primary-gradient);
+      color: white;
+      border-color: transparent;
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.2);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.15);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    /* Media queries */
+    @media (max-width: 1024px) {
+      .grid-3, .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .slide {
+        padding: 1.5rem;
+      }
+      .slide-title {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient elements -->
+  <div class="ambient-bg"></div>
+  <div class="grid-overlay"></div>
+
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="brand-container">
+      <div class="brand-logo">
+        <i data-lucide="activity"></i>
+      </div>
+      <div>
+        <div class="brand-title">MediSinc<span>-IA</span></div>
+      </div>
+      <div class="brand-badge">Executive Pitch & System Demo</div>
+    </div>
+
+    <div class="nav-controls">
+      <div class="slide-counter">
+        <span id="currentSlideNum">1</span> / <span id="totalSlidesNum">8</span>
+      </div>
+      <button class="btn-action" onclick="toggleDrawer()">
+        <i data-lucide="folder-git-2"></i>
+        <span>Explorador del Proyecto</span>
+      </button>
+      <button class="btn-action" onclick="toggleFullScreen()">
+        <i data-lucide="maximize"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Slide Stage -->
+  <main id="slideContainer">
+
+    <!-- SLIDE 1: PORTADA & PROPUESTA DE VALOR -->
+    <section class="slide active" data-slide="1">
+      <div class="slide-header">
+        <div class="slide-tag">
+          <i data-lucide="sparkles"></i> Innovación en Salud Pública e IA Clínica
+        </div>
+        <h1 class="slide-title">MediSinc-IA: Transformando el Triaje y la Admisión Médica</h1>
+        <p class="slide-subtitle">
+          Sistema inteligente de pre-clasificación clínica, anamnesis adaptativa y optimización de flujos hospitalarios diseñado para centros de salud y hospitales de 1er y 2do nivel en Santa Cruz de la Sierra, Bolivia.
+        </p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card card-highlight">
+          <div class="card-icon" style="background: var(--primary-gradient);">
+            <i data-lucide="qr-code"></i>
+          </div>
+          <h3 class="card-title">Cero Descargas (Web / QR)</h3>
+          <p class="card-text">
+            El paciente accede al instante desde cualquier teléfono móvil sin instalar aplicaciones pesadas ni gastar datos.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/paginas/InicioPaciente.jsx">
+            <i data-lucide="file-code"></i> frontend/src/paginas/InicioPaciente.jsx
+          </a>
+        </div>
+
+        <div class="card card-highlight">
+          <div class="card-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <i data-lucide="cpu"></i>
+          </div>
+          <h3 class="card-title">IA Adaptativa Multi-Proveedor</h3>
+          <p class="card-text">
+            Preguntas dinámicas calibradas a modismos cruceños y síntesis clínica estructurada bajo el estándar de Triaje Manchester.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/proveedores/fabrica_ia.py">
+            <i data-lucide="file-code"></i> backend/app/proveedores/fabrica_ia.py
+          </a>
+        </div>
+
+        <div class="card card-highlight">
+          <div class="card-icon" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+            <i data-lucide="shield-check"></i>
+          </div>
+          <h3 class="card-title">Seguridad Criptográfica AES-256</h3>
+          <p class="card-text">
+            Protección de datos personales y médicos con cifrado de grado militar, HMAC con Pepper y auditoría inalterable RLS.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/core/seguridad.py">
+            <i data-lucide="file-code"></i> backend/app/core/seguridad.py
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: EL PROBLEMA REAL (DIAGNÓSTICO SANTA CRUZ) -->
+    <section class="slide" data-slide="2">
+      <div class="slide-header">
+        <div class="slide-tag">
+          <i data-lucide="alert-triangle"></i> Diagnóstico de Contexto y Necesidad
+        </div>
+        <h2 class="slide-title">El Cuello de Botella: De las Filas a las 4 AM a la Solución</h2>
+        <p class="slide-subtitle">
+          Análisis comparativo del modelo tradicional (AS-IS) versus la transformación digital implementada por MediSinc-IA (TO-BE).
+        </p>
+      </div>
+
+      <div class="comparison-container">
+        <!-- AS-IS -->
+        <div class="compare-box compare-as-is">
+          <div class="compare-header">
+            <div class="compare-title" style="color: #f43f5e;">
+              <i data-lucide="x-circle"></i> Modelo Tradicional (AS-IS)
+            </div>
+            <span class="badge-triage triage-red">Ineficiente & Saturado</span>
+          </div>
+          <ul class="compare-list">
+            <li class="compare-item">
+              <i data-lucide="clock" style="color: #f43f5e;"></i>
+              <span><strong>Filas de Madrugada:</strong> Pacientes esperando desde las 04:00 AM para alcanzar una de las 30 fichas por turno.</span>
+            </li>
+            <li class="compare-item">
+              <i data-lucide="alert-octagon" style="color: #f43f5e;"></i>
+              <span><strong>Triaje Empírico o Inexistente:</strong> Asignación por orden de llegada; casos críticos (infartos, dengue con alarma) esperan horas junto a casos leves.</span>
+            </li>
+            <li class="compare-item">
+              <i data-lucide="file-x" style="color: #f43f5e;"></i>
+              <span><strong>Pérdida de Tiempo en Consulta:</strong> 50% a 60% de los 15 minutos de consulta se pierden en preguntas rutinarias de filiación y antecedentes.</span>
+            </li>
+            <li class="compare-item">
+              <i data-lucide="message-square-off" style="color: #f43f5e;"></i>
+              <span><strong>Barreras Dialectales:</strong> Expresiones como <em>"chuy"</em>, <em>"basca"</em> o <em>"tutuma"</em> generan malentendidos o subestimación de riesgo.</span>
+            </li>
+          </ul>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/docs/DOCUMENTACION_MEDISINC_IA.md#L21-L50">
+            <i data-lucide="file-text"></i> Ver Estudio de Caso en DOCUMENTACION_MEDISINC_IA.md
+          </a>
+        </div>
+
+        <!-- TO-BE -->
+        <div class="compare-box compare-to-be">
+          <div class="compare-header">
+            <div class="compare-title" style="color: #10b981;">
+              <i data-lucide="check-circle-2"></i> Solución con MediSinc-IA (TO-BE)
+            </div>
+            <span class="badge-triage triage-green">Ágil & Priorizado</span>
+          </div>
+          <ul class="compare-list">
+            <li class="compare-item">
+              <i data-lucide="qr-code" style="color: #10b981;"></i>
+              <span><strong>Pre-Triaje Inmediato:</strong> El paciente escanea un código QR en la entrada o desde casa en menos de 2 minutos.</span>
+            </li>
+            <li class="compare-item">
+              <i data-lucide="shield-alert" style="color: #10b981;"></i>
+              <span><strong>Motor de Reglas Duras de Seguridad:</strong> Detección automática instantánea de banderas rojas (dolor ≥ 8/10, dolor torácico, disnea) forzando prioridad ROJA.</span>
+            </li>
+            <li class="compare-item">
+              <i data-lucide="layout-dashboard" style="color: #10b981;"></i>
+              <span><strong>Dashboard Médico en Tiempo Real:</strong> La lista de espera se reordena por severidad médica y el doctor recibe la anamnesis pre-elaborada.</span>
+            </li>
+            <li class="compare-item">
+              <i data-lucide="languages" style="color: #10b981;"></i>
+              <span><strong>Comprensión Sociolingüística IA:</strong> Traducción semántica de modismos bolivianos hacia terminología clínica estándar (ej. <em>"chuy"</em> &rarr; escalofríos febriles).</span>
+            </li>
+          </ul>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/servicios/motor_reglas.py">
+            <i data-lucide="file-code"></i> backend/app/servicios/motor_reglas.py
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: CÓMO FUNCIONA EL FLUJO END-TO-END -->
+    <section class="slide" data-slide="3">
+      <div class="slide-header">
+        <div class="slide-tag">
+          <i data-lucide="git-merge"></i> Experiencia de Usuario y Flujo Operativo
+        </div>
+        <h2 class="slide-title">Flujo Completo: Desde el Escaneo QR hasta la Atención</h2>
+        <p class="slide-subtitle">
+          Un proceso guiado paso a paso en 4 etapas que no requiere registro previo para el ciudadano y entrega información estructurada al personal de salud.
+        </p>
+      </div>
+
+      <div class="flow-steps">
+        <div class="step-card">
+          <div class="step-badge">1</div>
+          <h4 style="font-weight: 700; color: #38bdf8;">Paso 1: Datos Básicos</h4>
+          <p style="font-size: 0.8rem; color: var(--text-muted);">
+            Captura de CI, edad, sexo y síntoma inicial en lenguaje natural. Cifrado local de datos sensibles.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PasoDatosEstaticos.jsx">
+            <i data-lucide="file-code"></i> PasoDatosEstaticos.jsx
+          </a>
+        </div>
+
+        <div class="step-card">
+          <div class="step-badge">2</div>
+          <h4 style="font-weight: 700; color: #818cf8;">Paso 2: Preguntas IA</h4>
+          <p style="font-size: 0.8rem; color: var(--text-muted);">
+            La IA genera de 2 a 3 preguntas adaptativas de opción múltiple según el síntoma para discriminar severidad.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PasoPreguntasDinamicas.jsx">
+            <i data-lucide="file-code"></i> PasoPreguntasDinamicas.jsx
+          </a>
+        </div>
+
+        <div class="step-card">
+          <div class="step-badge">3</div>
+          <h4 style="font-weight: 700; color: #10b981;">Paso 3: Token & Código</h4>
+          <p style="font-size: 0.8rem; color: var(--text-muted);">
+            Se genera el código corto alfanumérico (ej. <code>MS-8X92K</code>) y el código QR de confirmación.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PasoConfirmacionQR.jsx">
+            <i data-lucide="file-code"></i> PasoConfirmacionQR.jsx
+          </a>
+        </div>
+
+        <div class="step-card">
+          <div class="step-badge">4</div>
+          <h4 style="font-weight: 700; color: #f59e0b;">Paso 4: Triaje & Médico</h4>
+          <p style="font-size: 0.8rem; color: var(--text-muted);">
+            El doctor visualiza el caso ordenado por prioridad Manchester con resumen del paciente y diagnósticos sugeridos.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/paginas/PanelMedico.jsx">
+            <i data-lucide="file-code"></i> PanelMedico.jsx
+          </a>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.5rem; background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.2); border-radius: 12px; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <i data-lucide="tv" style="color: #38bdf8;"></i>
+          <span style="font-size: 0.9rem; color: #e2e8f0;">
+            <strong>Pantalla de Sala de Espera en Tiempo Real:</strong> Permite a los pacientes seguir el turno actual en pantallas de sala sin exponer datos confidenciales.
+          </span>
+        </div>
+        <a class="code-link" style="margin-top: 0;" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/paginas/PantallaSeguimientoPaciente.jsx">
+          <i data-lucide="file-code"></i> PantallaSeguimientoPaciente.jsx
+        </a>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: ARQUITECTURA TÉCNICA Y STACK -->
+    <section class="slide" data-slide="4">
+      <div class="slide-header">
+        <div class="slide-tag">
+          <i data-lucide="layers"></i> Arquitectura de Software y Stack
+        </div>
+        <h2 class="slide-title">Stack Tecnológico y Patrón de Arquitectura por Capas</h2>
+        <p class="slide-subtitle">
+          Construido con tecnologías de alto rendimiento, escalabilidad horizontal y desacoplamiento para garantizar disponibilidad y rapidez.
+        </p>
+      </div>
+
+      <div class="grid-4">
+        <!-- Frontend -->
+        <div class="card">
+          <div class="card-icon" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.4);">
+            <i data-lucide="code-2"></i>
+          </div>
+          <h4 class="card-title">Frontend React</h4>
+          <p class="card-text">
+            React 18 + Vite. Interfaz reactiva, modular, ligera y adaptada a dispositivos móviles de gama baja.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/App.jsx">
+            <i data-lucide="file-code"></i> frontend/src/App.jsx
+          </a>
+        </div>
+
+        <!-- Backend -->
+        <div class="card">
+          <div class="card-icon" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">
+            <i data-lucide="server"></i>
+          </div>
+          <h4 class="card-title">Backend FastAPI</h4>
+          <p class="card-text">
+            Python 3.11 asíncrono. Validación estricta con Pydantic V2, OpenAPI/Swagger y alta concurrencia.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/main.py">
+            <i data-lucide="file-code"></i> backend/app/main.py
+          </a>
+        </div>
+
+        <!-- Database -->
+        <div class="card">
+          <div class="card-icon" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);">
+            <i data-lucide="database"></i>
+          </div>
+          <h4 class="card-title">Supabase & PostgreSQL</h4>
+          <p class="card-text">
+            Esquema relacional en 3FN, Row-Level Security (RLS), triggers automáticos y suscripciones en tiempo real.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/database/04_esquema_definitivo_3fn.sql">
+            <i data-lucide="file-code"></i> database/04_esquema_definitivo_3fn.sql
+          </a>
+        </div>
+
+        <!-- AI Engine -->
+        <div class="card">
+          <div class="card-icon" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4);">
+            <i data-lucide="bot"></i>
+          </div>
+          <h4 class="card-title">IA Multi-Proveedor</h4>
+          <p class="card-text">
+            Abstracción con patrón Factory: alternancia instantánea entre Gemini 1.5 Flash, Groq y OpenAI mediante variables de entorno.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/proveedores/proveedor_base.py">
+            <i data-lucide="file-code"></i> proveedor_base.py
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: MOTOR DE IA Y REGLAS CLÍNICAS -->
+    <section class="slide" data-slide="5">
+      <div class="slide-header">
+        <div class="slide-tag">
+          <i data-lucide="brain"></i> Inteligencia Artificial y Algoritmo Clínico
+        </div>
+        <h2 class="slide-title">Doble Capa de Decisión: Reglas Duras + IA Generativa</h2>
+        <p class="slide-subtitle">
+          Por qué MediSinc-IA es 100% seguro para uso hospitalario: la IA asiste al médico, pero nunca tiene la última palabra sobre las alertas de emergencia vital.
+        </p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div class="card-icon" style="background: rgba(244, 63, 94, 0.2); color: #fb7185; margin: 0;">
+                <i data-lucide="shield-alert"></i>
+              </div>
+              <h3 class="card-title" style="margin: 0;">Capa 1: Safety Overrides Engine</h3>
+            </div>
+            <span class="badge-triage triage-red">Prioridad Máxima</span>
+          </div>
+          <p class="card-text">
+            Un motor determinístico basado en código evalúa síntomas críticos antes de llamar a la IA. Si se detecta dolor opresivo de pecho, disnea severa, alteración de conciencia o dolor &ge; 8/10, se fuerza inmediatamente la clasificación <strong>ROJA</strong> y se alerta al personal.
+          </p>
+          <div style="margin-top: 1rem; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #a5f3fc;">
+            <code>if severidad_dolor &gt;= 8 or tiene_bandera_roja:<br>&nbsp;&nbsp;return ClasificacionTriaje.ROJO</code>
+          </div>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/servicios/motor_reglas.py">
+            <i data-lucide="file-code"></i> backend/app/servicios/motor_reglas.py
+          </a>
+        </div>
+
+        <div class="card">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div class="card-icon" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8; margin: 0;">
+                <i data-lucide="sparkles"></i>
+              </div>
+              <h3 class="card-title" style="margin: 0;">Capa 2: Síntesis Estructurada IA</h3>
+            </div>
+            <span class="badge-triage triage-green">Pydantic V2 Output</span>
+          </div>
+          <p class="card-text">
+            Genera un resumen clínico estandarizado para el médico que incluye:
+          </p>
+          <ul style="margin: 0.5rem 0 0.5rem 1.25rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+            <li>Motivo de consulta traducido a lenguaje técnico.</li>
+            <li>Cronología y evolución de los síntomas.</li>
+            <li>Hipótesis diagnósticas presuntivas para orientar al profesional.</li>
+            <li>Especialidad médica sugerida (Medicina General, Pediatría, Gineco-Obstetricia, etc.).</li>
+          </ul>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/esquemas/administracion.py">
+            <i data-lucide="file-code"></i> backend/app/esquemas/administracion.py
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6: SEGURIDAD, CIFRADO Y AUDITORÍA -->
+    <section class="slide" data-slide="6">
+      <div class="slide-header">
+        <div class="slide-tag">
+          <i data-lucide="lock"></i> Privacidad y Cumplimiento Normativo
+        </div>
+        <h2 class="slide-title">Seguridad de Datos Clínicos de Grado Militar</h2>
+        <p class="slide-subtitle">
+          Diseñado bajo principios de Privacidad por Diseño (Privacy by Design) para cumplir con las regulaciones de protección de datos de salud en Bolivia e internacionales.
+        </p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-icon" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);">
+            <i data-lucide="key"></i>
+          </div>
+          <h4 class="card-title">Cifrado Simétrico AES-256-GCM</h4>
+          <p class="card-text">
+            El número de Cédula de Identidad (CI) y los datos de contacto se cifran antes de ser almacenados en la base de datos.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/core/seguridad.py#L40-L80">
+            <i data-lucide="file-code"></i> core/seguridad.py
+          </a>
+        </div>
+
+        <div class="card">
+          <div class="card-icon" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">
+            <i data-lucide="hash"></i>
+          </div>
+          <h4 class="card-title">Blind Index (HMAC-SHA256)</h4>
+          <p class="card-text">
+            Permite búsquedas exactas por CI en el backend sin descifrar masivamente la base de datos, agregando una llave secreta Pepper.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/core/seguridad.py#L85-L110">
+            <i data-lucide="file-code"></i> Blind Indexing
+          </a>
+        </div>
+
+        <div class="card">
+          <div class="card-icon" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">
+            <i data-lucide="file-check"></i>
+          </div>
+          <h4 class="card-title">Auditoría Inalterable (Audit Log)</h4>
+          <p class="card-text">
+            Cada lectura, actualización o cierre de consulta registra usuario, IP, timestamp y acción en la tabla de trazabilidad protegida.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/database/04_esquema_definitivo_3fn.sql#L150-L190">
+            <i data-lucide="file-code"></i> Tabla AUDIT_LOG
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 7: IMPACTO CLÍNICO Y MÉTRICAS DE ÉXITO -->
+    <section class="slide" data-slide="7">
+      <div class="slide-header">
+        <div class="slide-tag">
+          <i data-lucide="trending-up"></i> Retorno de Inversión e Impacto
+        </div>
+        <h2 class="slide-title">Resultados Cuantificables para el Centro de Salud</h2>
+        <p class="slide-subtitle">
+          Mejora directa en la satisfacción del paciente, descongestión de salas de espera y aumento en la capacidad resolutiva médica.
+        </p>
+      </div>
+
+      <div class="grid-4" style="margin-bottom: 1.5rem;">
+        <div class="metric-card">
+          <div class="metric-value highlight-cyan">&lt; 2 min</div>
+          <div class="metric-label">Tiempo de Pre-Triaje por Paciente</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-value highlight-emerald">60%</div>
+          <div class="metric-label">Reducción en Tiempo de Anamnesis</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-value" style="color: #fb7185;">0</div>
+          <div class="metric-label">Apps que el Paciente debe Descargar</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-value" style="color: #c084fc;">100%</div>
+          <div class="metric-label">Trazabilidad y Seguridad de Datos</div>
+        </div>
+      </div>
+
+      <div class="card" style="background: rgba(15, 23, 42, 0.9);">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <h4 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 4px;">Validación con 20 Casos Clínicos Reales</h4>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">
+              Evaluado exhaustivamente ante casos de Dengue con signos de alarma, Cólico Renal, Cetoacidosis, Apendicitis y cuadros respiratorios pediátricos.
+            </p>
+          </div>
+          <a class="code-link" style="margin-top: 0;" href="file:///c:/Users/josem/Desktop/medisinc_iav1/docs/CASOS_DE_VALIDACION_CV01_CV20.md">
+            <i data-lucide="file-text"></i> Ver CASOS_DE_VALIDACION_CV01_CV20.md
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 8: CONCLUSIÓN Y DEMO EN VIVO -->
+    <section class="slide" data-slide="8">
+      <div class="slide-header">
+        <div class="slide-tag">
+          <i data-lucide="rocket"></i> Próximos Pasos y Despliegue
+        </div>
+        <h2 class="slide-title">Listo para Despliegue en Redes de Salud</h2>
+        <p class="slide-subtitle">
+          MediSinc-IA combina simplicidad para la población con potencia analítica y seguridad para los profesionales médicos.
+        </p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card card-highlight">
+          <div class="card-icon" style="background: var(--primary-gradient);">
+            <i data-lucide="user-check"></i>
+          </div>
+          <h4 class="card-title">Portal del Paciente</h4>
+          <p class="card-text">
+            Flujo guiado para captura de síntomas y generación de código de atención.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/paginas/InicioPaciente.jsx">
+            <i data-lucide="external-link"></i> Abrir InicioPaciente.jsx
+          </a>
+        </div>
+
+        <div class="card card-highlight">
+          <div class="card-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <i data-lucide="stethoscope"></i>
+          </div>
+          <h4 class="card-title">Panel del Médico</h4>
+          <p class="card-text">
+            Tablero en tiempo real ordenado por gravedad Manchester con modal de anamnesis asistida.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/paginas/PanelMedico.jsx">
+            <i data-lucide="external-link"></i> Abrir PanelMedico.jsx
+          </a>
+        </div>
+
+        <div class="card card-highlight">
+          <div class="card-icon" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+            <i data-lucide="shield-check"></i>
+          </div>
+          <h4 class="card-title">Panel de Administración</h4>
+          <p class="card-text">
+            Gestión de médicos, especialidades, métricas de atención y registros de auditoría.
+          </p>
+          <a class="code-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/paginas/PanelAdministrador.jsx">
+            <i data-lucide="external-link"></i> Abrir PanelAdministrador.jsx
+          </a>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.5rem; text-align: center;">
+        <button class="btn-action btn-primary" style="margin: 0 auto; padding: 12px 24px; font-size: 1rem;" onclick="goToSlide(1)">
+          <i data-lucide="rotate-ccw"></i> Reiniciar Presentación
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Interactive Bar -->
+  <footer>
+    <div class="progress-track">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="footer-hints">
+      <span>Navegar: <span class="kbd">←</span> <span class="kbd">→</span> o <span class="kbd">Espacio</span></span>
+      <span>|</span>
+      <span>Pantalla Completa: <span class="kbd">F</span></span>
+    </div>
+
+    <div class="slide-nav-buttons">
+      <button class="btn-action" onclick="prevSlide()">
+        <i data-lucide="chevron-left"></i> Anterior
+      </button>
+      <button class="btn-action btn-primary" onclick="nextSlide()">
+        Siguiente <i data-lucide="chevron-right"></i>
+      </button>
+    </div>
+  </footer>
+
+  <!-- Drawer Modal: Explorador de Archivos del Proyecto -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawerOutside(event)">
+    <div class="drawer-content">
+      <div class="drawer-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="folder-tree" style="color: #38bdf8;"></i>
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff;">Explorador del Proyecto</h3>
+        </div>
+        <button class="btn-action" onclick="toggleDrawer()" style="padding: 4px 8px;">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <p style="font-size: 0.8rem; color: var(--text-muted);">
+        Haz clic en cualquier archivo para abrir la referencia técnica directa en tu entorno de desarrollo.
+      </p>
+
+      <!-- Salto rápido de diapositiva -->
+      <div>
+        <div class="tree-section">Ir a Diapositiva:</div>
+        <div class="slide-jump-grid">
+          <button class="jump-btn active" onclick="goToSlide(1)">1. Portada</button>
+          <button class="jump-btn" onclick="goToSlide(2)">2. Problema</button>
+          <button class="jump-btn" onclick="goToSlide(3)">3. Flujo</button>
+          <button class="jump-btn" onclick="goToSlide(4)">4. Stack</button>
+          <button class="jump-btn" onclick="goToSlide(5)">5. Motor IA</button>
+          <button class="jump-btn" onclick="goToSlide(6)">6. Seguridad</button>
+          <button class="jump-btn" onclick="goToSlide(7)">7. Métricas</button>
+          <button class="jump-btn" onclick="goToSlide(8)">8. Cierre</button>
+        </div>
+      </div>
+
+      <div class="file-index-tree">
+        <div class="tree-section">Documentación Técnica & Casos</div>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/docs/DOCUMENTACION_MEDISINC_IA.md">
+          <span>DOCUMENTACION_MEDISINC_IA.md</span>
+          <i data-lucide="file-text" style="width: 14px;"></i>
+        </a>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/docs/DIAGRAMAS_MEDISINC_IA.md">
+          <span>DIAGRAMAS_MEDISINC_IA.md</span>
+          <i data-lucide="file-text" style="width: 14px;"></i>
+        </a>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/docs/CASOS_DE_VALIDACION_CV01_CV20.md">
+          <span>CASOS_DE_VALIDACION_CV01_CV20.md</span>
+          <i data-lucide="file-text" style="width: 14px;"></i>
+        </a>
+
+        <div class="tree-section">Backend (FastAPI)</div>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/main.py">
+          <span>backend/app/main.py</span>
+          <i data-lucide="terminal" style="width: 14px;"></i>
+        </a>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/servicios/motor_reglas.py">
+          <span>app/servicios/motor_reglas.py</span>
+          <i data-lucide="shield" style="width: 14px;"></i>
+        </a>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/proveedores/fabrica_ia.py">
+          <span>app/proveedores/fabrica_ia.py</span>
+          <i data-lucide="bot" style="width: 14px;"></i>
+        </a>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/core/seguridad.py">
+          <span>app/core/seguridad.py (AES-256)</span>
+          <i data-lucide="lock" style="width: 14px;"></i>
+        </a>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/api/v1/triaje.py">
+          <span>app/api/v1/triaje.py</span>
+          <i data-lucide="activity" style="width: 14px;"></i>
+        </a>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/api/v1/medico.py">
+          <span>app/api/v1/medico.py</span>
+          <i data-lucide="stethoscope" style="width: 14px;"></i>
+        </a>
+
+        <div class="tree-section">Frontend (React + Vite)</div>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/paginas/InicioPaciente.jsx">
+          <span>frontend/paginas/InicioPaciente.jsx</span>
+          <i data-lucide="layout" style="width: 14px;"></i>
+        </a>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/paginas/PanelMedico.jsx">
+          <span>frontend/paginas/PanelMedico.jsx</span>
+          <i data-lucide="layout" style="width: 14px;"></i>
+        </a>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/paginas/PanelAdministrador.jsx">
+          <span>frontend/paginas/PanelAdministrador.jsx</span>
+          <i data-lucide="layout" style="width: 14px;"></i>
+        </a>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/medico/ModalDetallePaciente.jsx">
+          <span>componentes/ModalDetallePaciente.jsx</span>
+          <i data-lucide="layers" style="width: 14px;"></i>
+        </a>
+
+        <div class="tree-section">Base de Datos (PostgreSQL en Supabase)</div>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/database/04_esquema_definitivo_3fn.sql">
+          <span>database/04_esquema_definitivo_3fn.sql</span>
+          <i data-lucide="database" style="width: 14px;"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Inicializar iconos Lucide
+    lucide.createIcons();
+
+    let currentSlide = 1;
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+
+    document.getElementById('totalSlidesNum').innerText = totalSlides;
+
+    function updateSlideUI() {
+      slides.forEach((s, idx) => {
+        if (idx + 1 === currentSlide) {
+          s.classList.add('active');
+        } else {
+          s.classList.remove('active');
+        }
+      });
+
+      document.getElementById('currentSlideNum').innerText = currentSlide;
+      
+      const progressPercent = (currentSlide / totalSlides) * 100;
+      document.getElementById('progressBar').style.width = progressPercent + '%';
+
+      // Actualizar botones de salto rápido
+      document.querySelectorAll('.jump-btn').forEach((btn, idx) => {
+        if (idx + 1 === currentSlide) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        currentSlide++;
+        updateSlideUI();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        currentSlide--;
+        updateSlideUI();
+      }
+    }
+
+    function goToSlide(n) {
+      if (n >= 1 && n <= totalSlides) {
+        currentSlide = n;
+        updateSlideUI();
+        closeDrawer();
+      }
+    }
+
+    // Navegación por teclado
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullScreen();
+      } else if (e.key === 'Escape') {
+        closeDrawer();
+      }
+    });
+
+    // Control de Pantalla Completa
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn('Error intentando entrar a pantalla completa:', err);
+        });
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // Control del Drawer del Proyecto
+    function toggleDrawer() {
+      const drawer = document.getElementById('drawerOverlay');
+      drawer.classList.toggle('active');
+    }
+
+    function closeDrawer() {
+      const drawer = document.getElementById('drawerOverlay');
+      drawer.classList.remove('active');
+    }
+
+    function closeDrawerOutside(e) {
+      if (e.target.id === 'drawerOverlay') {
+        closeDrawer();
+      }
+    }
+
+    // Inicializar UI
+    updateSlideUI();
+  </script>
+</body>
+</html>
