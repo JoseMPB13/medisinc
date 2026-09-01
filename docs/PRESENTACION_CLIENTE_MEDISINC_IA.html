@@ -12,9 +12,9 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     :root {
-      --bg-dark: #040711;
-      --bg-card: rgba(10, 18, 34, 0.88);
-      --bg-card-hover: rgba(18, 29, 54, 0.96);
+      --bg-dark: #03060f;
+      --bg-card: rgba(9, 16, 32, 0.88);
+      --bg-card-hover: rgba(16, 27, 52, 0.96);
       --primary: #0ea5e9;
       --primary-gradient: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
       --accent-cyan: #06b6d4;
@@ -29,7 +29,7 @@
       --border-color: rgba(255, 255, 255, 0.08);
       --border-glow: rgba(14, 165, 233, 0.32);
       --glass-blur: blur(16px);
-      --shadow-subtle: 0 10px 30px -10px rgba(0,0,0,0.7);
+      --shadow-subtle: 0 10px 30px -10px rgba(0,0,0,0.75);
     }
 
     * {
@@ -61,7 +61,7 @@
       z-index: 0;
       pointer-events: none;
       background: 
-        radial-gradient(circle at 10% 12%, rgba(14, 165, 233, 0.14) 0%, transparent 45%),
+        radial-gradient(circle at 10% 12%, rgba(14, 165, 233, 0.15) 0%, transparent 45%),
         radial-gradient(circle at 90% 88%, rgba(139, 92, 246, 0.12) 0%, transparent 45%),
         radial-gradient(circle at 50% 50%, rgba(20, 184, 166, 0.06) 0%, transparent 60%);
     }
@@ -84,13 +84,13 @@
     header {
       position: relative;
       z-index: 100;
-      height: 62px;
+      height: 60px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 1.8rem;
       border-bottom: 1px solid var(--border-color);
-      background: rgba(4, 7, 17, 0.92);
+      background: rgba(3, 6, 15, 0.94);
       backdrop-filter: var(--glass-blur);
     }
 
@@ -101,8 +101,8 @@
     }
 
     .brand-logo {
-      width: 36px;
-      height: 36px;
+      width: 34px;
+      height: 34px;
       border-radius: 8px;
       background: var(--primary-gradient);
       display: flex;
@@ -206,14 +206,14 @@
       left: 0;
       width: 100%;
       height: 100%;
-      padding: 1.6rem 3rem;
+      padding: 1.5rem 2.8rem;
       display: flex;
       flex-direction: column;
       justify-content: center;
       opacity: 0;
       pointer-events: none;
       transform: scale(0.97) translateY(14px);
-      transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       overflow-y: auto;
     }
 
@@ -225,7 +225,7 @@
 
     /* Slide Header */
     .slide-header {
-      margin-bottom: 0.95rem;
+      margin-bottom: 0.9rem;
     }
 
     .slide-tag {
@@ -241,41 +241,41 @@
       border: 1px solid rgba(6, 182, 212, 0.25);
       padding: 3px 9px;
       border-radius: 20px;
-      margin-bottom: 0.3rem;
+      margin-bottom: 0.25rem;
     }
 
     .slide-title {
-      font-size: 1.85rem;
+      font-size: 1.8rem;
       font-weight: 800;
       letter-spacing: -0.7px;
-      line-height: 1.16;
+      line-height: 1.15;
       margin-bottom: 0.25rem;
     }
 
     .slide-subtitle {
-      font-size: 0.88rem;
+      font-size: 0.86rem;
       color: var(--text-muted);
       max-width: 950px;
-      line-height: 1.4;
+      line-height: 1.38;
     }
 
     /* Grid Layouts */
     .grid-2 {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 0.95rem;
+      gap: 0.9rem;
     }
 
     .grid-3 {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 0.9rem;
+      gap: 0.85rem;
     }
 
     .grid-4 {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 0.8rem;
+      gap: 0.75rem;
     }
 
     /* Cards */
@@ -283,7 +283,7 @@
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 11px;
-      padding: 1.1rem;
+      padding: 1.05rem;
       backdrop-filter: var(--glass-blur);
       transition: all 0.2s ease;
       display: flex;
@@ -301,43 +301,43 @@
 
     .card-highlight {
       border-color: var(--border-glow);
-      background: linear-gradient(145deg, rgba(14, 165, 233, 0.08) 0%, rgba(10, 18, 34, 0.92) 100%);
+      background: linear-gradient(145deg, rgba(14, 165, 233, 0.08) 0%, rgba(9, 16, 32, 0.94) 100%);
     }
 
     .card-icon {
-      width: 34px;
-      height: 34px;
+      width: 32px;
+      height: 32px;
       border-radius: 7px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 0.55rem;
+      margin-bottom: 0.5rem;
       color: white;
     }
 
     .card-title {
-      font-size: 0.96rem;
+      font-size: 0.95rem;
       font-weight: 700;
-      margin-bottom: 0.3rem;
+      margin-bottom: 0.28rem;
       color: var(--text-main);
     }
 
     .card-text {
-      font-size: 0.8rem;
+      font-size: 0.79rem;
       color: var(--text-muted);
-      line-height: 1.42;
+      line-height: 1.4;
       flex: 1;
     }
 
     /* Concept In-Situ Box */
     .concept-box {
-      margin-top: 0.55rem;
-      padding: 0.5rem 0.7rem;
+      margin-top: 0.5rem;
+      padding: 0.45rem 0.65rem;
       background: rgba(14, 165, 233, 0.07);
       border-left: 3px solid #38bdf8;
       border-radius: 0 5px 5px 0;
-      font-size: 0.74rem;
-      line-height: 1.34;
+      font-size: 0.73rem;
+      line-height: 1.32;
       color: #cbd5e1;
     }
 
@@ -375,8 +375,8 @@
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      margin-top: 0.7rem;
-      padding-top: 0.5rem;
+      margin-top: 0.65rem;
+      padding-top: 0.45rem;
       border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
 
@@ -384,11 +384,11 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      font-size: 0.72rem;
+      font-size: 0.71rem;
       font-weight: 700;
       color: #0284c7;
       background: #e0f2fe;
-      padding: 4px 9px;
+      padding: 3px 8px;
       border-radius: 5px;
       text-decoration: none;
       transition: all 0.2s ease;
@@ -410,7 +410,7 @@
       color: #94a3b8;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border-color);
-      padding: 4px 8px;
+      padding: 3px 8px;
       border-radius: 5px;
       text-decoration: none;
       transition: all 0.2s ease;
@@ -425,9 +425,9 @@
 
     /* Badges */
     .badge-triage {
-      padding: 2px 7px;
+      padding: 2px 6px;
       border-radius: 4px;
-      font-size: 0.68rem;
+      font-size: 0.67rem;
       font-weight: 700;
       display: inline-flex;
       align-items: center;
@@ -456,32 +456,32 @@
     .wizard-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 0.75rem;
-      margin-top: 0.35rem;
+      gap: 0.7rem;
+      margin-top: 0.3rem;
     }
 
     .wizard-card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 10px;
-      padding: 0.95rem;
+      padding: 0.9rem;
       display: flex;
       flex-direction: column;
-      gap: 0.35rem;
+      gap: 0.3rem;
       position: relative;
     }
 
     .wizard-card.active-step {
       border-color: var(--border-glow);
-      background: linear-gradient(145deg, rgba(14, 165, 233, 0.12) 0%, rgba(10, 18, 34, 0.92) 100%);
+      background: linear-gradient(145deg, rgba(14, 165, 233, 0.12) 0%, rgba(9, 16, 32, 0.94) 100%);
     }
 
     .wizard-badge {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       font-weight: 800;
-      width: 24px;
-      height: 24px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       background: var(--primary-gradient);
       display: flex;
@@ -494,16 +494,16 @@
     .comparison-container {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 0.95rem;
-      margin-top: 0.25rem;
+      gap: 0.9rem;
+      margin-top: 0.2rem;
     }
 
     .compare-box {
       border-radius: 11px;
-      padding: 1.1rem;
+      padding: 1rem;
       display: flex;
       flex-direction: column;
-      gap: 0.65rem;
+      gap: 0.6rem;
     }
 
     .compare-as-is {
@@ -521,15 +521,15 @@
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 0.45rem;
     }
 
     .compare-item {
-      font-size: 0.81rem;
+      font-size: 0.8rem;
       display: flex;
       align-items: flex-start;
-      gap: 8px;
-      line-height: 1.36;
+      gap: 7px;
+      line-height: 1.34;
     }
 
     .compare-item i {
@@ -541,23 +541,23 @@
     .stack-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       text-align: left;
-      margin-top: 0.5rem;
+      margin-top: 0.4rem;
     }
 
     .stack-table th {
       background: rgba(255, 255, 255, 0.06);
       color: #38bdf8;
-      padding: 8px 10px;
+      padding: 7px 9px;
       border-bottom: 1px solid var(--border-color);
       font-weight: 700;
       text-transform: uppercase;
-      font-size: 0.7rem;
+      font-size: 0.68rem;
     }
 
     .stack-table td {
-      padding: 8px 10px;
+      padding: 7px 9px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
       color: var(--text-muted);
       vertical-align: top;
@@ -573,19 +573,19 @@
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 11px;
-      padding: 1rem;
+      padding: 0.9rem;
       text-align: center;
     }
 
     .metric-value {
-      font-size: 2.1rem;
+      font-size: 2rem;
       font-weight: 800;
       line-height: 1;
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.2rem;
     }
 
     .metric-label {
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       font-weight: 600;
       color: var(--text-muted);
       text-transform: uppercase;
@@ -596,8 +596,8 @@
     footer {
       position: relative;
       z-index: 100;
-      height: 52px;
-      background: rgba(4, 7, 17, 0.95);
+      height: 50px;
+      background: rgba(3, 6, 15, 0.96);
       border-top: 1px solid var(--border-color);
       display: flex;
       align-items: center;
@@ -617,26 +617,26 @@
     .progress-bar {
       height: 100%;
       background: var(--primary-gradient);
-      width: 7.14%;
+      width: 6.66%;
       transition: width 0.3s ease;
       box-shadow: 0 0 10px var(--primary);
     }
 
     .footer-hints {
-      font-size: 0.74rem;
+      font-size: 0.72rem;
       color: var(--text-dim);
       display: flex;
       align-items: center;
-      gap: 0.8rem;
+      gap: 0.75rem;
     }
 
     .kbd {
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid var(--border-color);
-      padding: 2px 5px;
-      border-radius: 4px;
+      padding: 2px 4px;
+      border-radius: 3px;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.68rem;
+      font-size: 0.66rem;
       color: var(--text-muted);
     }
 
@@ -671,15 +671,15 @@
     .drawer-content {
       width: 530px;
       height: 100%;
-      background: #080d1a;
+      background: #060a16;
       border-left: 1px solid var(--border-color);
-      padding: 1.6rem;
+      padding: 1.5rem;
       overflow-y: auto;
       transform: translateX(100%);
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 0.95rem;
     }
 
     .drawer-overlay.active .drawer-content {
@@ -690,16 +690,16 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 5px;
-      margin-top: 0.35rem;
+      margin-top: 0.3rem;
     }
 
     .jump-btn {
-      padding: 6px 5px;
+      padding: 5px 4px;
       border-radius: 5px;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--border-color);
       color: var(--text-muted);
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       font-weight: 600;
       cursor: pointer;
       text-align: left;
@@ -716,11 +716,11 @@
     }
 
     .tree-section {
-      font-size: 0.68rem;
+      font-size: 0.66rem;
       font-weight: 700;
       text-transform: uppercase;
       color: var(--text-dim);
-      margin-top: 0.55rem;
+      margin-top: 0.5rem;
       letter-spacing: 0.5px;
     }
 
@@ -728,14 +728,14 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 6px 10px;
+      padding: 5px 9px;
       border-radius: 6px;
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid var(--border-color);
       color: var(--text-main);
       text-decoration: none;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       transition: all 0.2s ease;
     }
 
@@ -750,17 +750,17 @@
         grid-template-columns: repeat(2, 1fr);
       }
       .slide {
-        padding: 1.2rem;
+        padding: 1.1rem;
       }
       .slide-title {
-        font-size: 1.5rem;
+        font-size: 1.45rem;
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- Background Ambience -->
+  <!-- Ambient Glow -->
   <div class="ambient-bg"></div>
   <div class="grid-overlay"></div>
 
@@ -778,7 +778,7 @@
 
     <div class="nav-controls">
       <div class="slide-counter">
-        <span id="currentSlideNum">1</span> / <span id="totalSlidesNum">14</span>
+        <span id="currentSlideNum">1</span> / <span id="totalSlidesNum">15</span>
       </div>
       <button class="btn-action" onclick="toggleDrawer()">
         <i data-lucide="folder-git-2"></i>
@@ -1019,7 +1019,7 @@
         </tbody>
       </table>
 
-      <div class="dual-actions" style="margin-top: 0.8rem;">
+      <div class="dual-actions" style="margin-top: 0.7rem;">
         <a class="link-app" href="http://localhost:8000/docs" target="_blank">
           <i data-lucide="external-link"></i> Ver Swagger API OpenAPI
         </a>
@@ -1101,7 +1101,7 @@
         </div>
       </div>
 
-      <div class="concept-box" style="margin-top: 0.8rem;">
+      <div class="concept-box" style="margin-top: 0.75rem;">
         <strong>Arquitectura Desacoplada (Clean Architecture):</strong> Los cambios en la base de datos o en el proveedor de IA no afectan la lógica de negocio ni la interfaz de usuario.
       </div>
     </section>
@@ -1179,7 +1179,7 @@
         </div>
       </div>
 
-      <div style="margin-top: 0.9rem; display: flex; align-items: center; justify-content: space-between; background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: 9px; padding: 0.7rem 1.2rem;">
+      <div style="margin-top: 0.85rem; display: flex; align-items: center; justify-content: space-between; background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: 9px; padding: 0.65rem 1.15rem;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <i data-lucide="play-circle" style="color: #38bdf8; width: 18px; height: 18px;"></i>
           <span style="font-size: 0.82rem;"><strong>Probar el asistente de paciente en vivo desde el navegador:</strong></span>
@@ -1737,9 +1737,78 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 14: VALIDACIÓN CLÍNICA (CV01-CV20) & CIERRE -->
+    <!-- SLIDE 14: SUITE DE PRUEBAS AUTOMATIZADAS -->
     <!-- ========================================== -->
     <section class="slide" data-slide="14">
+      <div class="slide-header">
+        <div class="slide-tag">
+          <i data-lucide="test-tube-2"></i> Calidad de Software & Testing
+        </div>
+        <h2 class="slide-title">Suite de Pruebas Automatizadas y Aseguramiento de Calidad</h2>
+        <p class="slide-subtitle">
+          Cobertura de pruebas unitarias, integración de seguridad criptográfica y validación de endpoints administrativos en FastAPI con Pytest.
+        </p>
+      </div>
+
+      <div class="grid-3">
+        <!-- Pruebas de Seguridad -->
+        <div class="card">
+          <div class="card-icon" style="background: rgba(244, 63, 94, 0.2); color: #fb7185;">
+            <i data-lucide="shield-check"></i>
+          </div>
+          <h4 class="card-title">Pruebas de Seguridad</h4>
+          <p class="card-text">
+            Validación de integridad en cifrado y descifrado AES-256, consistencia del Blind Indexing con Pepper y resistencia a ataques de inyección.
+          </p>
+          <div class="dual-actions">
+            <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/pruebas/prueba_seguridad_fase2.py">
+              <i data-lucide="file-code"></i> prueba_seguridad_fase2.py
+            </a>
+          </div>
+        </div>
+
+        <!-- Pruebas de Arquitectura -->
+        <div class="card">
+          <div class="card-icon" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8;">
+            <i data-lucide="cpu"></i>
+          </div>
+          <h4 class="card-title">Pruebas de Arquitectura</h4>
+          <p class="card-text">
+            Verificación del desacoplamiento de repositorios (`repositorio_pacientes.py`, `repositorio_triaje.py`) y DTOs tipados Pydantic V2.
+          </p>
+          <div class="dual-actions">
+            <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/pruebas/prueba_arquitectura_fase3.py">
+              <i data-lucide="file-code"></i> prueba_arquitectura_fase3.py
+            </a>
+          </div>
+        </div>
+
+        <!-- Suite de Validación -->
+        <div class="card">
+          <div class="card-icon" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">
+            <i data-lucide="check-circle-2"></i>
+          </div>
+          <h4 class="card-title">Suite de Validación General</h4>
+          <p class="card-text">
+            Ejecución integral de 20 casos clínicos simulados y control de fallbacks cuando los proveedores de IA no están disponibles.
+          </p>
+          <div class="dual-actions">
+            <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/pruebas/prueba_suite_validacion.py">
+              <i data-lucide="file-code"></i> prueba_suite_validacion.py
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="concept-box" style="margin-top: 0.8rem;">
+        <strong>Automatización de Pruebas:</strong> Ejecutable mediante <code>pytest backend/pruebas/</code> para asegurar que ninguna modificación de código introduzca regresiones en la lógica clínica ni en la seguridad de los datos.
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 15: VALIDACIÓN CLÍNICA (CV01-CV20) & CIERRE -->
+    <!-- ========================================== -->
+    <section class="slide" data-slide="15">
       <div class="slide-header">
         <div class="slide-tag">
           <i data-lucide="check-circle-2"></i> Resultados y Validación Clínica
@@ -1769,7 +1838,7 @@
         </div>
       </div>
 
-      <div class="card" style="background: rgba(10, 18, 34, 0.95); border: 1px solid var(--border-glow);">
+      <div class="card" style="background: rgba(9, 16, 32, 0.95); border: 1px solid var(--border-glow);">
         <div style="display: flex; align-items: center; justify-content: space-between;">
           <div>
             <h4 style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 2px;">
@@ -1855,7 +1924,8 @@
           <button class="jump-btn" onclick="goToSlide(11)">11. Fábrica IA</button>
           <button class="jump-btn" onclick="goToSlide(12)">12. Criptografía</button>
           <button class="jump-btn" onclick="goToSlide(13)">13. Base Datos 3FN</button>
-          <button class="jump-btn" onclick="goToSlide(14)">14. Validación</button>
+          <button class="jump-btn" onclick="goToSlide(14)">14. Testing & QA</button>
+          <button class="jump-btn" onclick="goToSlide(15)">15. Validación</button>
         </div>
       </div>
 
@@ -1928,6 +1998,10 @@
         <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/database/04_esquema_definitivo_3fn.sql">
           <span>04_esquema_definitivo_3fn.sql</span>
           <i data-lucide="database" style="width: 14px;"></i>
+        </a>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/pruebas/prueba_suite_validacion.py">
+          <span>prueba_suite_validacion.py (QA)</span>
+          <i data-lucide="test-tube" style="width: 14px;"></i>
         </a>
       </div>
     </div>
