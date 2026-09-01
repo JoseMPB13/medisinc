@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MediSinc-IA | Presentación Integral del Sistema y Demostración Ejecutiva</title>
+  <title>MediSinc-IA | Presentación Integral del Sistema, Arquitectura y Glosario Clínico</title>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,9 +12,9 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     :root {
-      --bg-dark: #070c18;
-      --bg-card: rgba(15, 23, 42, 0.78);
-      --bg-card-hover: rgba(30, 41, 59, 0.9);
+      --bg-dark: #060a14;
+      --bg-card: rgba(13, 21, 38, 0.82);
+      --bg-card-hover: rgba(26, 38, 66, 0.95);
       --primary: #0ea5e9;
       --primary-gradient: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
       --accent-cyan: #06b6d4;
@@ -22,14 +22,14 @@
       --accent-amber: #f59e0b;
       --accent-rose: #f43f5e;
       --accent-purple: #8b5cf6;
-      --accent-indigo: #6366f1;
+      --accent-teal: #14b8a6;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --text-dim: #64748b;
       --border-color: rgba(255, 255, 255, 0.09);
       --border-glow: rgba(14, 165, 233, 0.35);
       --glass-blur: blur(16px);
-      --shadow-subtle: 0 10px 30px -10px rgba(0,0,0,0.6);
+      --shadow-subtle: 0 10px 30px -10px rgba(0,0,0,0.7);
       --shadow-glow: 0 0 40px -10px rgba(14, 165, 233, 0.35);
     }
 
@@ -62,9 +62,9 @@
       z-index: 0;
       pointer-events: none;
       background: 
-        radial-gradient(circle at 12% 18%, rgba(14, 165, 233, 0.14) 0%, transparent 45%),
-        radial-gradient(circle at 88% 82%, rgba(139, 92, 246, 0.12) 0%, transparent 45%),
-        radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.06) 0%, transparent 60%);
+        radial-gradient(circle at 10% 15%, rgba(14, 165, 233, 0.15) 0%, transparent 45%),
+        radial-gradient(circle at 90% 85%, rgba(139, 92, 246, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(20, 184, 166, 0.07) 0%, transparent 60%);
     }
 
     .grid-overlay {
@@ -76,7 +76,7 @@
       background-image: 
         linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-      background-size: 40px 40px;
+      background-size: 38px 38px;
       z-index: 0;
       pointer-events: none;
     }
@@ -91,7 +91,7 @@
       justify-content: space-between;
       padding: 0 2rem;
       border-bottom: 1px solid var(--border-color);
-      background: rgba(7, 12, 24, 0.85);
+      background: rgba(6, 10, 20, 0.88);
       backdrop-filter: var(--glass-blur);
     }
 
@@ -143,7 +143,7 @@
     .nav-controls {
       display: flex;
       align-items: center;
-      gap: 0.85rem;
+      gap: 0.75rem;
     }
 
     .slide-counter {
@@ -207,7 +207,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      padding: 2.25rem 3.5rem;
+      padding: 2rem 3.5rem;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -226,7 +226,7 @@
 
     /* Slide Header */
     .slide-header {
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
     }
 
     .slide-tag {
@@ -242,19 +242,19 @@
       border: 1px solid rgba(6, 182, 212, 0.25);
       padding: 4px 12px;
       border-radius: 20px;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.45rem;
     }
 
     .slide-title {
-      font-size: 2.15rem;
+      font-size: 2.1rem;
       font-weight: 800;
       letter-spacing: -0.8px;
       line-height: 1.18;
-      margin-bottom: 0.4rem;
+      margin-bottom: 0.35rem;
     }
 
     .slide-subtitle {
-      font-size: 0.98rem;
+      font-size: 0.96rem;
       color: var(--text-muted);
       max-width: 950px;
       line-height: 1.45;
@@ -264,19 +264,19 @@
     .grid-2 {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 1.25rem;
+      gap: 1.15rem;
     }
 
     .grid-3 {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 1.15rem;
+      gap: 1.1rem;
     }
 
     .grid-4 {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 1rem;
+      gap: 0.95rem;
     }
 
     /* Cards */
@@ -284,7 +284,7 @@
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 14px;
-      padding: 1.35rem;
+      padding: 1.3rem;
       backdrop-filter: var(--glass-blur);
       transition: all 0.25s ease;
       display: flex;
@@ -306,37 +306,37 @@
     }
 
     .card-icon {
-      width: 40px;
-      height: 40px;
+      width: 38px;
+      height: 38px;
       border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.7rem;
       color: white;
     }
 
     .card-title {
-      font-size: 1.08rem;
+      font-size: 1.05rem;
       font-weight: 700;
-      margin-bottom: 0.45rem;
+      margin-bottom: 0.4rem;
       color: var(--text-main);
     }
 
     .card-text {
-      font-size: 0.84rem;
+      font-size: 0.83rem;
       color: var(--text-muted);
-      line-height: 1.48;
+      line-height: 1.46;
       flex: 1;
     }
 
-    /* Action Buttons Dual Bar (App Web + Código) */
+    /* Dual Action Links (App Web + Código) */
     .dual-actions {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 1rem;
-      padding-top: 0.75rem;
+      margin-top: 0.9rem;
+      padding-top: 0.65rem;
       border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
 
@@ -344,7 +344,7 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 0.76rem;
+      font-size: 0.75rem;
       font-weight: 700;
       color: #0284c7;
       background: #e0f2fe;
@@ -384,6 +384,32 @@
       transform: translateY(-1px);
     }
 
+    /* Concept & Key Glossary Badges */
+    .concept-card {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 1rem 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .concept-term {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .concept-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
     /* Badges & Tags */
     .badge-triage {
       padding: 3px 9px;
@@ -413,20 +439,58 @@
       color: #34d399;
     }
 
-    /* Comparative Box */
+    /* Wizard 4 Steps Timeline */
+    .wizard-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    .wizard-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      position: relative;
+    }
+
+    .wizard-card.active-step {
+      border-color: var(--border-glow);
+      background: linear-gradient(145deg, rgba(14, 165, 233, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%);
+    }
+
+    .wizard-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 800;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    /* Comparison Container */
     .comparison-container {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 1.25rem;
-      margin-top: 0.5rem;
+      gap: 1.15rem;
+      margin-top: 0.35rem;
     }
 
     .compare-box {
       border-radius: 14px;
-      padding: 1.4rem;
+      padding: 1.35rem;
       display: flex;
       flex-direction: column;
-      gap: 0.85rem;
+      gap: 0.8rem;
     }
 
     .compare-as-is {
@@ -440,29 +504,15 @@
       box-shadow: 0 0 30px rgba(16, 185, 129, 0.06);
     }
 
-    .compare-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .compare-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
     .compare-list {
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 0.65rem;
+      gap: 0.6rem;
     }
 
     .compare-item {
-      font-size: 0.86rem;
+      font-size: 0.85rem;
       display: flex;
       align-items: flex-start;
       gap: 10px;
@@ -479,64 +529,31 @@
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 14px;
-      padding: 1.25rem;
+      padding: 1.15rem;
       text-align: center;
     }
 
     .metric-value {
-      font-size: 2.5rem;
+      font-size: 2.4rem;
       font-weight: 800;
       line-height: 1;
-      margin-bottom: 0.4rem;
+      margin-bottom: 0.35rem;
     }
 
     .metric-label {
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       font-weight: 600;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
-    /* Timeline steps */
-    .flow-steps {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 0.85rem;
-      margin-top: 0.5rem;
-    }
-
-    .step-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 1.1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.45rem;
-    }
-
-    .step-badge {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.75rem;
-      font-weight: 700;
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background: var(--primary-gradient);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      margin-bottom: 0.2rem;
-    }
-
-    /* Bottom Interactive Bar */
+    /* Footer */
     footer {
       position: relative;
       z-index: 100;
-      height: 58px;
-      background: rgba(7, 12, 24, 0.92);
+      height: 56px;
+      background: rgba(6, 10, 20, 0.94);
       border-top: 1px solid var(--border-color);
       display: flex;
       align-items: center;
@@ -556,7 +573,7 @@
     .progress-bar {
       height: 100%;
       background: var(--primary-gradient);
-      width: 8.33%;
+      width: 7.69%;
       transition: width 0.3s ease;
       box-shadow: 0 0 10px var(--primary);
     }
@@ -585,7 +602,7 @@
       gap: 8px;
     }
 
-    /* Drawer Modal: Explorador del Proyecto */
+    /* Drawer Modal */
     .drawer-overlay {
       position: fixed;
       top: 0;
@@ -608,29 +625,21 @@
     }
 
     .drawer-content {
-      width: 520px;
+      width: 530px;
       height: 100%;
-      background: #0d1527;
+      background: #0b1222;
       border-left: 1px solid var(--border-color);
-      padding: 2rem;
+      padding: 1.85rem;
       overflow-y: auto;
       transform: translateX(100%);
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
-      gap: 1.25rem;
+      gap: 1.15rem;
     }
 
     .drawer-overlay.active .drawer-content {
       transform: translateX(0);
-    }
-
-    .drawer-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 0.85rem;
     }
 
     .slide-jump-grid {
@@ -667,7 +676,7 @@
       font-weight: 700;
       text-transform: uppercase;
       color: var(--text-dim);
-      margin-top: 0.75rem;
+      margin-top: 0.65rem;
       letter-spacing: 0.5px;
     }
 
@@ -692,44 +701,40 @@
       color: #38bdf8;
     }
 
-    /* Media queries */
     @media (max-width: 1100px) {
-      .grid-3, .grid-4 {
+      .grid-3, .grid-4, .wizard-grid {
         grid-template-columns: repeat(2, 1fr);
-      }
-      .flow-steps {
-        grid-template-columns: repeat(3, 1fr);
       }
       .slide {
         padding: 1.5rem;
       }
       .slide-title {
-        font-size: 1.7rem;
+        font-size: 1.65rem;
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- Background Ambience -->
+  <!-- Background Ambient Glow -->
   <div class="ambient-bg"></div>
   <div class="grid-overlay"></div>
 
-  <!-- Header -->
+  <!-- Header Top Bar -->
   <header>
     <div class="brand-container">
       <div class="brand-logo">
-        <i data-lucide="activity"></i>
+        <i data-lucide="heart-pulse"></i>
       </div>
       <div>
         <div class="brand-title">MediSinc<span>-IA</span></div>
       </div>
-      <div class="brand-badge">Sistema Clínico de Pre-Triaje e Inteligencia de Salud</div>
+      <div class="brand-badge">Pre-Triaje Clínico & Inteligencia Hospitalaria</div>
     </div>
 
     <div class="nav-controls">
       <div class="slide-counter">
-        <span id="currentSlideNum">1</span> / <span id="totalSlidesNum">12</span>
+        <span id="currentSlideNum">1</span> / <span id="totalSlidesNum">13</span>
       </div>
       <button class="btn-action" onclick="toggleDrawer()">
         <i data-lucide="folder-git-2"></i>
@@ -741,20 +746,20 @@
     </div>
   </header>
 
-  <!-- Main Slide Container -->
+  <!-- Slide Stage -->
   <main id="slideContainer">
 
     <!-- ========================================== -->
-    <!-- SLIDE 1: PORTADA & PROPUESTA DE VALOR -->
+    <!-- SLIDE 1: PORTADA EJECUTIVA & PROPUESTA -->
     <!-- ========================================== -->
     <section class="slide active" data-slide="1">
       <div class="slide-header">
         <div class="slide-tag">
-          <i data-lucide="sparkles"></i> Innovación en Salud Pública & Inteligencia Artificial
+          <i data-lucide="sparkles"></i> Innovación Sanitaria en Redes de Salud
         </div>
-        <h1 class="slide-title">MediSinc-IA: Transformando el Triaje y la Admisión Hospitalaria</h1>
+        <h1 class="slide-title">MediSinc-IA: Transformando el Pre-Triaje Clínico</h1>
         <p class="slide-subtitle">
-          Sistema integral de pre-clasificación clínica, anamnesis adaptativa con IA y optimización de flujos hospitalarios para centros de salud y hospitales de 1er y 2do nivel en Santa Cruz de la Sierra, Bolivia.
+          Sistema inteligente de pre-clasificación médica, anamnesis adaptativa con IA y optimización de flujos hospitalarios para centros de salud y hospitales de 1er y 2do nivel en Santa Cruz de la Sierra, Bolivia.
         </p>
       </div>
 
@@ -765,7 +770,7 @@
           </div>
           <h3 class="card-title">Portal del Paciente (Cero Descargas)</h3>
           <p class="card-text">
-            Acceso web instantáneo mediante QR o enlace directo sin instalar aplicaciones nativas. Formulario adaptativo de 4 pasos con generación de token alfanumérico seguro.
+            Acceso web instantáneo por QR o enlace directo. Flujo Wizard de 4 pasos (Especialidad &rarr; Datos & CI &rarr; Preguntas IA PQRST &rarr; Ficha QR) sin instalar apps pesadas.
           </p>
           <div class="dual-actions">
             <a class="link-app" href="http://localhost:5173/" target="_blank">
@@ -799,9 +804,9 @@
           <div class="card-icon" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
             <i data-lucide="shield-check"></i>
           </div>
-          <h3 class="card-title">Seguridad & Capa de IA Dual</h3>
+          <h3 class="card-title">Seguridad Criptográfica AES-256</h3>
           <p class="card-text">
-            Cifrado AES-256-GCM para cédulas de identidad, auditoría inalterable RLS y un motor de reglas duras (Safety Overrides) que garantiza prioridad máxima en emergencias.
+            Cifrado de grado militar para la Cédula de Identidad (CI), Blind Index con HMAC-SHA256, auditoría inalterable RLS y Safety Overrides determinísticos.
           </p>
           <div class="dual-actions">
             <a class="link-app" href="http://localhost:8000/docs" target="_blank">
@@ -816,58 +821,123 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 2: CASO DE ESTUDIO (SANTA CRUZ) -->
+    <!-- SLIDE 2: GLOSARIO DE CONCEPTOS CLAVE -->
     <!-- ========================================== -->
     <section class="slide" data-slide="2">
       <div class="slide-header">
         <div class="slide-tag">
-          <i data-lucide="map-pin"></i> Diagnóstico de Contexto: Santa Cruz de la Sierra
+          <i data-lucide="book-open"></i> Marco Teórico & Terminología de Negocio
         </div>
-        <h2 class="slide-title">El Problema Clínico-Operativo: Filas de 4:00 AM vs MediSinc-IA</h2>
+        <h2 class="slide-title">Glosario de Conceptos Clave del Sistema</h2>
         <p class="slide-subtitle">
-          Estudio de caso en centros de salud de 1er nivel (Lazareto, Bajío del Oriente, El Bateón) y hospitales de 2do nivel (Plan 3000, Francés, Pampa de la Isla).
+          Términos médicos, operacionales y tecnológicos fundamentales implementados en MediSinc-IA para optimizar la toma de decisiones clínicas.
+        </p>
+      </div>
+
+      <div class="grid-3">
+        <!-- Pre-Triaje -->
+        <div class="concept-card">
+          <div class="concept-term"><i data-lucide="activity"></i> Pre-Triaje Clínico</div>
+          <p class="concept-desc">
+            Captura y estructuración preliminar de síntomas y antecedentes realizada por el paciente <em>antes</em> de llegar a la ventanilla, clasificando el nivel de urgencia anticipadamente.
+          </p>
+        </div>
+
+        <!-- Sistema Manchester -->
+        <div class="concept-card">
+          <div class="concept-term"><i data-lucide="alert-triangle"></i> Triaje Manchester (MTS)</div>
+          <p class="concept-desc">
+            Estándar clínico internacional de 5 niveles que prioriza la atención por riesgo vital y no por orden de llegada (Rojo = Inmediato, Amarillo = Urgencia &lt;60 min, Verde = Estándar).
+          </p>
+        </div>
+
+        <!-- Anamnesis Semiológica -->
+        <div class="concept-card">
+          <div class="concept-term"><i data-lucide="clipboard-list"></i> Anamnesis Semiológica (PQRST)</div>
+          <p class="concept-desc">
+            Interrogatorio estructurado sobre Provocación/Alivio, Calidad (Quality), Radiación, Severidad (Scale) y Tiempo (Timing) que ahorra el 60% de preguntas rutinarias al doctor.
+          </p>
+        </div>
+
+        <!-- Safety Overrides Engine -->
+        <div class="concept-card">
+          <div class="concept-term" style="color: #fb7185;"><i data-lucide="shield-alert"></i> Safety Overrides (Reglas Duras)</div>
+          <p class="concept-desc">
+            Motor de código determinístico que anula o sobreescribe cualquier recomendación de IA forzando prioridad <strong>ROJA</strong> ante signos de alarma vital (dolor &ge; 8/10, disnea, sangrado).
+          </p>
+        </div>
+
+        <!-- Blind Indexing -->
+        <div class="concept-card">
+          <div class="concept-term" style="color: #34d399;"><i data-lucide="hash"></i> Blind Index (HMAC-SHA256)</div>
+          <p class="concept-desc">
+            Técnica criptográfica para buscar pacientes por su Carnet (CI) mediante un hash seguro con sal secreta (Pepper), sin descifrar la base de datos ni revelar el número real.
+          </p>
+        </div>
+
+        <!-- Calibración Sociolingüística -->
+        <div class="concept-card">
+          <div class="concept-term" style="color: #c084fc;"><i data-lucide="languages"></i> Calibración Sociolingüística</div>
+          <p class="concept-desc">
+            Mapeo de expresiones populares cruceñas (<em>"chuy"</em> &rarr; escalofríos febriles, <em>"tutuma"</em> &rarr; cefalea, <em>"basca"</em> &rarr; náuseas) hacia terminología médica formal.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SLIDE 3: CASO DE ESTUDIO (SANTA CRUZ) -->
+    <!-- ========================================== -->
+    <section class="slide" data-slide="3">
+      <div class="slide-header">
+        <div class="slide-tag">
+          <i data-lucide="map-pin"></i> Estudio de Caso: Santa Cruz de la Sierra
+        </div>
+        <h2 class="slide-title">El Problema de Fondo: Filas de 4:00 AM vs MediSinc-IA</h2>
+        <p class="slide-subtitle">
+          Diagnóstico de saturación en Centros de Salud de 1er nivel (Lazareto, Bajío del Oriente, El Bateón) y Hospitales de 2do nivel (Plan 3000, Francés, Pampa de la Isla).
         </p>
       </div>
 
       <div class="comparison-container">
         <!-- AS-IS -->
         <div class="compare-box compare-as-is">
-          <div class="compare-header">
-            <div class="compare-title" style="color: #f43f5e;">
-              <i data-lucide="x-circle"></i> Modelo Tradicional (AS-IS)
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-size: 1.05rem; font-weight: 700; color: #f43f5e; display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="x-circle"></i> Proceso Tradicional (AS-IS)
             </div>
             <span class="badge-triage triage-red">Saturación Crónica</span>
           </div>
           <ul class="compare-list">
             <li class="compare-item">
               <i data-lucide="clock" style="color: #f43f5e;"></i>
-              <span><strong>Filas de Madrugada a la Intemperie:</strong> Pacientes llegan a las 04:00 AM para obtener 30 a 50 fichas diarias por turno.</span>
+              <span><strong>Filas de Madrugada a la Intemperie:</strong> Pacientes llegan a las 04:00 AM para alcanzar 30 a 50 fichas diarias por turno.</span>
             </li>
             <li class="compare-item">
               <i data-lucide="alert-octagon" style="color: #f43f5e;"></i>
-              <span><strong>Triaje Empírico por Orden de Llegada:</strong> Un infarto o dengue con signos de alarma espera horas junto a un resfriado común.</span>
+              <span><strong>Triaje Empírico por Orden de Llegada:</strong> Casos graves (infartos, dengue con alarma) esperan horas junto a cuadros leves.</span>
             </li>
             <li class="compare-item">
               <i data-lucide="file-x" style="color: #f43f5e;"></i>
-              <span><strong>50-60% del Tiempo Perdido:</strong> De 15 minutos de consulta, 8 a 10 min se gastan en preguntas repetitivas de filiación.</span>
+              <span><strong>Pérdida de Tiempo en Consulta:</strong> 50% a 60% de los 15 minutos se van en preguntas rutinarias de filiación y antecedentes.</span>
             </li>
             <li class="compare-item">
               <i data-lucide="message-square-off" style="color: #f43f5e;"></i>
-              <span><strong>Barreras Dialectales Cruceñas:</strong> Modismos (<em>"me dio un chuy"</em>, <em>"siento basca"</em>, <em>"tutuma"</em>) generan subestimación clínica.</span>
+              <span><strong>Barreras Sociolingüísticas:</strong> Modismos cruceños generan confusión en recepción y retraso en el diagnóstico.</span>
             </li>
           </ul>
           <div class="dual-actions">
             <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/docs/DOCUMENTACION_MEDISINC_IA.md#L21-L50">
-              <i data-lucide="file-text"></i> Ver Diagnóstico Completo en DOCUMENTACION_MEDISINC_IA.md
+              <i data-lucide="file-text"></i> Ver Estudio de Caso Completo en DOCUMENTACION_MEDISINC_IA.md
             </a>
           </div>
         </div>
 
         <!-- TO-BE -->
         <div class="compare-box compare-to-be">
-          <div class="compare-header">
-            <div class="compare-title" style="color: #10b981;">
-              <i data-lucide="check-circle-2"></i> Modelo con MediSinc-IA (TO-BE)
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-size: 1.05rem; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="check-circle-2"></i> Solución con MediSinc-IA (TO-BE)
             </div>
             <span class="badge-triage triage-green">Triaje Ágil & Priorizado</span>
           </div>
@@ -886,7 +956,7 @@
             </li>
             <li class="compare-item">
               <i data-lucide="languages" style="color: #10b981;"></i>
-              <span><strong>Calibración Sociolingüística IA:</strong> Traducción automática de expresiones populares bolivianas a términos médicos estandarizados.</span>
+              <span><strong>Comprensión Dialectal IA:</strong> Traducción automática de expresiones populares bolivianas a términos médicos formales.</span>
             </li>
           </ul>
           <div class="dual-actions">
@@ -902,26 +972,41 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 3: PORTAL DEL PACIENTE (PASO A PASO) -->
+    <!-- SLIDE 4: FLUJO REAL DEL PACIENTE (WIZARD) -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="3">
+    <section class="slide" data-slide="4">
       <div class="slide-header">
         <div class="slide-tag">
-          <i data-lucide="user-check"></i> Módulo 1: Experiencia del Paciente
+          <i data-lucide="user-check"></i> Módulo 1: Flujo Guiado del Paciente
         </div>
-        <h2 class="slide-title">Portal del Paciente: Flujo Guiado en 4 Pasos</h2>
+        <h2 class="slide-title">Flujo Wizard del Paciente: Paso a Paso Real</h2>
         <p class="slide-subtitle">
-          Interfaz ultraligera diseñada para teléfonos móviles sin importar gama ni velocidad de conexión.
+          El proceso exacto de 4 pasos implementado en <code>InicioPaciente.jsx</code> que estructura la información desde la selección de especialidad hasta la ficha digital QR.
         </p>
       </div>
 
-      <div class="flow-steps">
-        <!-- Paso 1 -->
-        <div class="step-card">
-          <div class="step-badge">1</div>
-          <h4 style="font-size: 0.95rem; font-weight: 700; color: #38bdf8;">Datos Básicos</h4>
+      <div class="wizard-grid">
+        <!-- Paso 0 -->
+        <div class="wizard-card active-step">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div class="wizard-badge">0</div>
+            <span style="font-size: 0.68rem; font-weight: 700; color: #38bdf8;">INICIO OBLIGATORIO</span>
+          </div>
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: #38bdf8;">Paso 0: Especialidad</h4>
           <p style="font-size: 0.78rem; color: var(--text-muted); flex: 1;">
-            Captura de CI (cifrado local), edad, sexo, dolor EVA (1-10) y motivo de consulta en lenguaje natural.
+            Selección del servicio clínico requerido (Medicina General, Pediatría, Gineco-Obstetricia, Traumatología) y médico en turno.
+          </p>
+          <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PasoSelectorEspecialidad.jsx">
+            <i data-lucide="file-code"></i> PasoSelectorEspecialidad.jsx
+          </a>
+        </div>
+
+        <!-- Paso 1 -->
+        <div class="wizard-card">
+          <div class="wizard-badge">1</div>
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: #818cf8;">Paso 1: Datos & CI</h4>
+          <p style="font-size: 0.78rem; color: var(--text-muted); flex: 1;">
+            Filiación, Carnet de Identidad (cifrado AES-256), edad, sexo, dolor EVA (1-10), duración y motivo de consulta en lenguaje natural.
           </p>
           <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PasoDatosEstaticos.jsx">
             <i data-lucide="file-code"></i> PasoDatosEstaticos.jsx
@@ -929,11 +1014,11 @@
         </div>
 
         <!-- Paso 2 -->
-        <div class="step-card">
-          <div class="step-badge">2</div>
-          <h4 style="font-size: 0.95rem; font-weight: 700; color: #818cf8;">Preguntas IA</h4>
+        <div class="wizard-card">
+          <div class="wizard-badge">2</div>
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: #14b8a6;">Paso 2: Preguntas IA</h4>
           <p style="font-size: 0.78rem; color: var(--text-muted); flex: 1;">
-            La IA genera 2 a 3 preguntas adaptativas de opción múltiple según el síntoma para discriminar severidad.
+            Preguntas dinámicas semiológicas (PQRST) generadas por IA según el síntoma, más antecedentes (diabetes, hipertensión, alergias).
           </p>
           <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PasoPreguntasDinamicas.jsx">
             <i data-lucide="file-code"></i> PasoPreguntasDinamicas.jsx
@@ -941,35 +1026,11 @@
         </div>
 
         <!-- Paso 3 -->
-        <div class="step-card">
-          <div class="step-badge">3</div>
-          <h4 style="font-size: 0.95rem; font-weight: 700; color: #06b6d4;">Especialidad</h4>
+        <div class="wizard-card">
+          <div class="wizard-badge">3</div>
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: #10b981;">Paso 3: Ficha QR</h4>
           <p style="font-size: 0.78rem; color: var(--text-muted); flex: 1;">
-            Selección o recomendación asistida del servicio clínico adecuado (Medicina General, Pediatría, etc.).
-          </p>
-          <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PasoSelectorEspecialidad.jsx">
-            <i data-lucide="file-code"></i> PasoSelectorEspecialidad.jsx
-          </a>
-        </div>
-
-        <!-- Paso 4 -->
-        <div class="step-card">
-          <div class="step-badge">4</div>
-          <h4 style="font-size: 0.95rem; font-weight: 700; color: #10b981;">Análisis Neural</h4>
-          <p style="font-size: 0.78rem; color: var(--text-muted); flex: 1;">
-            Pantalla de procesamiento que evalúa banderas rojas y genera la clasificación Manchester en segundo plano.
-          </p>
-          <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PantallaAnalisisNeuronal.jsx">
-            <i data-lucide="file-code"></i> PantallaAnalisisNeuronal.jsx
-          </a>
-        </div>
-
-        <!-- Paso 5 -->
-        <div class="step-card">
-          <div class="step-badge">5</div>
-          <h4 style="font-size: 0.95rem; font-weight: 700; color: #f59e0b;">Ficha QR Digital</h4>
-          <p style="font-size: 0.78rem; color: var(--text-muted); flex: 1;">
-            Entrega del código corto alfanumérico (ej. <code>MS-8X92K</code>) y código QR para presentar en ventanilla.
+            Generación del código alfanumérico (<code>MS-XXXXX</code>), token QR escaneable en ventanilla y tiempo estimado de espera.
           </p>
           <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PasoConfirmacionQR.jsx">
             <i data-lucide="file-code"></i> PasoConfirmacionQR.jsx
@@ -977,23 +1038,23 @@
         </div>
       </div>
 
-      <div style="margin-top: 1.25rem; display: flex; align-items: center; justify-content: space-between; background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: 12px; padding: 0.9rem 1.4rem;">
+      <div style="margin-top: 1.15rem; display: flex; align-items: center; justify-content: space-between; background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: 12px; padding: 0.85rem 1.35rem;">
         <div style="display: flex; align-items: center; gap: 10px;">
           <i data-lucide="play-circle" style="color: #38bdf8; width: 22px; height: 22px;"></i>
-          <span style="font-size: 0.88rem;"><strong>Probar el flujo completo en vivo en tu navegador:</strong></span>
+          <span style="font-size: 0.86rem;"><strong>Probar el asistente de paciente en vivo desde el navegador:</strong></span>
         </div>
         <div class="dual-actions" style="margin-top: 0; padding-top: 0; border: none;">
           <a class="link-app" href="http://localhost:5173/" target="_blank">
-            <i data-lucide="external-link"></i> Abrir Portal de Paciente (localhost:5173)
+            <i data-lucide="external-link"></i> Abrir Portal del Paciente (localhost:5173)
           </a>
         </div>
       </div>
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 4: PANEL DEL MÉDICO (DASHBOARD) -->
+    <!-- SLIDE 5: PANEL DEL MÉDICO (DASHBOARD) -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="4">
+    <section class="slide" data-slide="5">
       <div class="slide-header">
         <div class="slide-tag">
           <i data-lucide="layout-dashboard"></i> Módulo 2: Portal Médico de Guardia
@@ -1009,11 +1070,11 @@
         <div class="card" style="border-top: 3px solid #f43f5e;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
             <span class="badge-triage triage-red"><i data-lucide="alert-circle"></i> NIVEL ROJO (Emergencia)</span>
-            <span style="font-size: 0.75rem; color: #f43f5e; font-weight: 700;">Atención Inmediata</span>
+            <span style="font-size: 0.72rem; color: #f43f5e; font-weight: 700;">Atención Inmediata</span>
           </div>
           <h4 class="card-title">Prioridad 1: Emergencia Vital</h4>
           <p class="card-text">
-            Pacientes con dolor &ge; 8/10, sospecha de infarto, disnea severa, sangrado activo o signos de dengue grave. El sistema emite alertas visuales destacadas.
+            Pacientes con dolor EVA &ge; 8/10, sospecha de infarto agudo, disnea severa, sangrado activo o signos de dengue grave.
           </p>
         </div>
 
@@ -1021,11 +1082,11 @@
         <div class="card" style="border-top: 3px solid #f59e0b;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
             <span class="badge-triage triage-yellow"><i data-lucide="clock"></i> NIVEL AMARILLO (Urgencia)</span>
-            <span style="font-size: 0.75rem; color: #f59e0b; font-weight: 700;">&lt; 30 - 60 min</span>
+            <span style="font-size: 0.72rem; color: #f59e0b; font-weight: 700;">&lt; 30 - 60 min</span>
           </div>
           <h4 class="card-title">Prioridad 2: Urgencia Relativa</h4>
           <p class="card-text">
-            Cuadros febriles agudos, dolor moderado (EVA 5-7), cólicos renales, o deshidratación moderada que requieren atención médica antes de los casos leves.
+            Cuadros febriles agudos, dolor moderado (EVA 5-7), cólicos renales o deshidratación moderada que requieren atención pronta.
           </p>
         </div>
 
@@ -1033,25 +1094,25 @@
         <div class="card" style="border-top: 3px solid #10b981;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
             <span class="badge-triage triage-green"><i data-lucide="check"></i> NIVEL VERDE (Estándar)</span>
-            <span style="font-size: 0.75rem; color: #10b981; font-weight: 700;">Consulta Externa</span>
+            <span style="font-size: 0.72rem; color: #10b981; font-weight: 700;">Consulta Externa</span>
           </div>
           <h4 class="card-title">Prioridad 3: No Urgente</h4>
           <p class="card-text">
-            Sintomatología leve, cuadros respiratorios sin compromiso ventilatorio, controles o solicitudes administrativas habituales.
+            Sintomatología leve, cuadros respiratorios sin disnea, chequeos generales o solicitudes administrativas.
           </p>
         </div>
       </div>
 
-      <div class="grid-2" style="margin-top: 1rem;">
-        <div class="card" style="padding: 1rem;">
-          <div style="font-size: 0.85rem; font-weight: 700; color: #38bdf8; margin-bottom: 4px;">
+      <div class="grid-2" style="margin-top: 0.9rem;">
+        <div class="card" style="padding: 0.95rem;">
+          <div style="font-size: 0.85rem; font-weight: 700; color: #38bdf8; margin-bottom: 3px;">
             <i data-lucide="refresh-cw"></i> Suscripción en Tiempo Real y Filtros Avanzados
           </div>
           <p style="font-size: 0.78rem; color: var(--text-muted);">
-            Actualización automática vía WebSocket / Supabase sin recargar la página. Filtros por especialidad, estado de turno y búsqueda por código <code>MS-XXXXX</code>.
+            Actualización instantánea vía Supabase Realtime sin recargar página. Filtros por especialidad, estado de turno y búsqueda por código corto <code>MS-XXXXX</code>.
           </p>
         </div>
-        <div class="card" style="padding: 1rem; justify-content: center;">
+        <div class="card" style="padding: 0.95rem; justify-content: center;">
           <div class="dual-actions" style="margin-top: 0; padding-top: 0; border: none; justify-content: flex-end;">
             <a class="link-app" href="http://localhost:5173/medico" target="_blank">
               <i data-lucide="external-link"></i> Abrir Panel Médico en Vivo
@@ -1065,54 +1126,52 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 5: MODAL CLÍNICO EN PANTALLA DIVIDIDA -->
+    <!-- SLIDE 6: MODAL CLÍNICO EN PANTALLA DIVIDIDA -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="5">
+    <section class="slide" data-slide="6">
       <div class="slide-header">
         <div class="slide-tag">
-          <i data-lucide="columns"></i> Módulo 2.1: Consulta Asistida
+          <i data-lucide="columns"></i> Módulo 2.1: Consulta Médica Asistida
         </div>
-        <h2 class="slide-title">Modal Clínico en Pantalla Dividida & Cierre de Consulta</h2>
+        <h2 class="slide-title">Modal Clínico en Pantalla Dividida & Cierre SOAP</h2>
         <p class="slide-subtitle">
-          Al seleccionar un paciente, el médico accede a un espacio de trabajo inteligente que consolida anamnesis asistida, reclasificación manual y notas SOAP.
+          Espacio de trabajo para el médico con expediente completo a la izquierda y herramientas de reclasificación y evolución SOAP a la derecha.
         </p>
       </div>
 
       <div class="grid-2">
-        <!-- Columna Izquierda -->
         <div class="card">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.65rem;">
             <div class="card-icon" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8; margin: 0;">
               <i data-lucide="file-text"></i>
             </div>
             <h3 class="card-title" style="margin: 0;">Panel Izquierdo: Expediente Sintomático</h3>
           </div>
-          <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem; color: var(--text-muted); line-height: 1.45;">
-            <li><strong style="color: #fff;">• Motivo en Crudo vs Traducido:</strong> Transcripción exacta del paciente y traducción médica.</li>
-            <li><strong style="color: #fff;">• Respuestas Dinámicas IA:</strong> Respuestas exactas que el paciente brindó en el pre-triaje.</li>
-            <li><strong style="color: #fff;">• Hipótesis Diagnósticas Sugeridas:</strong> Diferenciales clínicos orientativos generados por IA.</li>
-            <li><strong style="color: #fff;">• Alertas de Banderas Rojas:</strong> Señalización explícita si se activaron reglas duras.</li>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 7px; font-size: 0.82rem; color: var(--text-muted); line-height: 1.45;">
+            <li><strong style="color: #fff;">• Motivo en Crudo vs Traducido:</strong> Transcripción exacta del paciente y traducción médica normalizada.</li>
+            <li><strong style="color: #fff;">• Respuestas Dinámicas IA (PQRST):</strong> Respuestas a preguntas semiológicas y antecedentes base.</li>
+            <li><strong style="color: #fff;">• Hipótesis Diagnósticas IA:</strong> Posibilidades clínicas orientativas ordenadas por probabilidad.</li>
+            <li><strong style="color: #fff;">• Banderas Rojas Detectadas:</strong> Resaltado de alertas automáticas emitidas por el motor de reglas.</li>
           </ul>
         </div>
 
-        <!-- Columna Derecha -->
         <div class="card">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.65rem;">
             <div class="card-icon" style="background: rgba(16, 185, 129, 0.2); color: #34d399; margin: 0;">
               <i data-lucide="check-square"></i>
             </div>
-            <h3 class="card-title" style="margin: 0;">Panel Derecho: Decisión & Cierre Médico</h3>
+            <h3 class="card-title" style="margin: 0;">Panel Derecho: Decisión & Formato SOAP</h3>
           </div>
-          <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem; color: var(--text-muted); line-height: 1.45;">
-            <li><strong style="color: #fff;">• Reclasificación Manchester:</strong> El profesional puede ajustar el nivel a criterio clínico soberano.</li>
-            <li><strong style="color: #fff;">• Notas Médicas de Evolución:</strong> Registro de observaciones, signos vitales tomados y conducta.</li>
-            <li><strong style="color: #fff;">• Diagnóstico Final (CIE-10):</strong> Registro de diagnóstico definitivo.</li>
-            <li><strong style="color: #fff;">• Cierre de Turno y Trazabilidad:</strong> Notificación en tiempo real a la sala y auditoría.</li>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 7px; font-size: 0.82rem; color: var(--text-muted); line-height: 1.45;">
+            <li><strong style="color: #fff;">• Reclasificación Manchester:</strong> Ajuste soberano del nivel de triaje por el médico tratante.</li>
+            <li><strong style="color: #fff;">• Notas de Evolución SOAP:</strong> Registro de hallazgos objetivos, signos vitales y conducta.</li>
+            <li><strong style="color: #fff;">• Diagnóstico Final (CIE-10):</strong> Confirmación del diagnóstico principal y tratamiento.</li>
+            <li><strong style="color: #fff;">• Cierre de Turno y Trazabilidad:</strong> Liberación del paciente y registro inalterable en auditoría.</li>
           </ul>
         </div>
       </div>
 
-      <div class="dual-actions" style="margin-top: 1rem;">
+      <div class="dual-actions" style="margin-top: 0.9rem;">
         <a class="link-app" href="http://localhost:5173/medico" target="_blank">
           <i data-lucide="external-link"></i> Abrir Vista Médica en Vivo
         </a>
@@ -1123,28 +1182,28 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 6: PANEL DE ADMINISTRACIÓN & AUDITORÍA -->
+    <!-- SLIDE 7: PANEL DE ADMINISTRACIÓN & AUDITORÍA -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="6">
+    <section class="slide" data-slide="7">
       <div class="slide-header">
         <div class="slide-tag">
-          <i data-lucide="settings"></i> Módulo 3: Dirección Médica y Auditoría
+          <i data-lucide="settings"></i> Módulo 3: Dirección Médica & Auditoría
         </div>
         <h2 class="slide-title">Panel de Administración, Métricas y Trazabilidad</h2>
         <p class="slide-subtitle">
-          Control hospitalario centralizado para directores médicos, jefes de enfermería y autoridades de salud (SEDES / Ministerio).
+          Control hospitalario centralizado para directores médicos, jefes de enfermería y autoridades sanitarias (SEDES / Ministerio).
         </p>
       </div>
 
       <div class="grid-3">
-        <!-- Tarjeta Métricas -->
+        <!-- Métricas -->
         <div class="card">
           <div class="card-icon" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8;">
             <i data-lucide="bar-chart-2"></i>
           </div>
           <h4 class="card-title">Métricas de Rendimiento</h4>
           <p class="card-text">
-            Tiempos de espera promedio, distribución de pacientes por nivel de triaje Manchester y volumen de atención por especialidad y turno.
+            Tiempos de espera promedio, distribución de pacientes por nivel de triaje Manchester y volumen de atención por especialidad.
           </p>
           <div class="dual-actions">
             <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/api/v1/administracion.py">
@@ -1153,14 +1212,14 @@
           </div>
         </div>
 
-        <!-- Tarjeta Gestión Médicos -->
+        <!-- Personal Médico -->
         <div class="card">
           <div class="card-icon" style="background: rgba(139, 92, 246, 0.2); color: #c084fc;">
             <i data-lucide="users"></i>
           </div>
-          <h4 class="card-title">Gestión de Personal Médico</h4>
+          <h4 class="card-title">Gestión de Médicos</h4>
           <p class="card-text">
-            Asignación de consultorios, altas de médicos con credenciales seguras y control de estados de guardia activo/inactivo.
+            Asignación de consultorios, altas de profesionales con contraseñas seguras y control de turnos de guardia activo/inactivo.
           </p>
           <div class="dual-actions">
             <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/esquemas/administracion.py">
@@ -1169,7 +1228,7 @@
           </div>
         </div>
 
-        <!-- Tarjeta Audit Log -->
+        <!-- Audit Log -->
         <div class="card">
           <div class="card-icon" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">
             <i data-lucide="shield-check"></i>
@@ -1186,7 +1245,7 @@
         </div>
       </div>
 
-      <div class="dual-actions" style="margin-top: 1.25rem;">
+      <div class="dual-actions" style="margin-top: 1.1rem;">
         <a class="link-app" href="http://localhost:5173/admin" target="_blank">
           <i data-lucide="external-link"></i> Abrir Panel de Administración en Vivo
         </a>
@@ -1197,9 +1256,9 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 7: PANTALLA PÚBLICA DE SALA DE ESPERA -->
+    <!-- SLIDE 8: SALA DE ESPERA & MONITORES TV -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="7">
+    <section class="slide" data-slide="8">
       <div class="slide-header">
         <div class="slide-tag">
           <i data-lucide="tv"></i> Módulo 4: Sala de Espera y Pantalla Pública
@@ -1247,36 +1306,36 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 8: DOBLE CAPA DE DECISIÓN CLÍNICA -->
+    <!-- SLIDE 9: DOBLE CAPA DE DECISIÓN CLÍNICA -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="8">
+    <section class="slide" data-slide="9">
       <div class="slide-header">
         <div class="slide-tag">
           <i data-lucide="shield-alert"></i> Seguridad Clínica Determinística
         </div>
         <h2 class="slide-title">Doble Capa de Decisión: Reglas Duras + IA</h2>
         <p class="slide-subtitle">
-          La IA asiste en la redacción y síntesis, pero la seguridad del paciente está garantizada por un motor determinístico estricto de banderas rojas.
+          Por qué MediSinc-IA es seguro: un motor determinístico forzará prioridad ROJA ante signos de alarma vital antes de que la IA genere su síntesis.
         </p>
       </div>
 
       <div class="grid-2">
         <div class="card" style="border-left: 4px solid #f43f5e;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem;">
             <h3 class="card-title" style="color: #fb7185; margin: 0;">Capa 1: Safety Overrides Engine</h3>
-            <span class="badge-triage triage-red">Código Puro (Sin Alucinaciones)</span>
+            <span class="badge-triage triage-red">Reglas Determinísticas</span>
           </div>
           <p class="card-text">
             Evalúa reglas clínicas críticas antes o independientemente de la IA. Si se detecta:
           </p>
-          <ul style="margin: 0.5rem 0 0.5rem 1.25rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;">
+          <ul style="margin: 0.4rem 0 0.4rem 1.25rem; font-size: 0.81rem; color: var(--text-muted); line-height: 1.45;">
             <li>Dolor agudo con escala EVA &ge; 8 / 10.</li>
-            <li>Dolor torácico opresivo con irradiación a brazo/mandíbula.</li>
+            <li>Dolor torácico opresivo con irradiación a brazo o mandíbula.</li>
             <li>Disnea / Asfixia respiratoria aguda.</li>
-            <li>Sangrado profuso o signos de shock.</li>
+            <li>Sangrado profuso o signos de dengue grave.</li>
           </ul>
-          <div style="margin-top: 0.75rem; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #a5f3fc;">
-            <code>if dolor >= 8 or es_bandera_roja:<br>&nbsp;&nbsp;return TriajeManchester.ROJO # Override</code>
+          <div style="margin-top: 0.6rem; background: rgba(0,0,0,0.5); padding: 9px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #a5f3fc;">
+            <code>if dolor >= 8 or tiene_bandera_roja:<br>&nbsp;&nbsp;return TriajeManchester.ROJO # Override</code>
           </div>
           <div class="dual-actions">
             <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/servicios/motor_reglas.py">
@@ -1286,17 +1345,17 @@
         </div>
 
         <div class="card" style="border-left: 4px solid #10b981;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem;">
             <h3 class="card-title" style="color: #34d399; margin: 0;">Capa 2: Síntesis Estructurada IA</h3>
             <span class="badge-triage triage-green">Pydantic V2 Strict JSON</span>
           </div>
           <p class="card-text">
             Genera la estructura clínica estandarizada:
           </p>
-          <ul style="margin: 0.5rem 0 0.5rem 1.25rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;">
-            <li>Traducción de expresiones regionales cruceñas a lenguaje médico.</li>
-            <li>Extracción de antecedentes patológicos relevantes.</li>
-            <li>Generación de preguntas de clarificación dinámicas (Paso 2).</li>
+          <ul style="margin: 0.4rem 0 0.4rem 1.25rem; font-size: 0.81rem; color: var(--text-muted); line-height: 1.45;">
+            <li>Traducción de modismos cruceños a terminología médica.</li>
+            <li>Extracción de antecedentes patológicos y alergias.</li>
+            <li>Generación adaptativa de preguntas semiológicas (Paso 2).</li>
             <li>Hipótesis diagnósticas diferenciales para el médico.</li>
           </ul>
           <div class="dual-actions">
@@ -1309,16 +1368,16 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 9: CAPA DE IA MULTI-PROVEEDOR -->
+    <!-- SLIDE 10: FACTORY IA MULTI-PROVEEDOR -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="9">
+    <section class="slide" data-slide="10">
       <div class="slide-header">
         <div class="slide-tag">
           <i data-lucide="cpu"></i> Arquitectura de Inteligencia Artificial
         </div>
         <h2 class="slide-title">Patrón Factory: IA Agnóstica Multi-Proveedor</h2>
         <p class="slide-subtitle">
-          El sistema no depende de un único proveedor de IA. Permite alternar entre Google Gemini, Groq y OpenAI en caliente mediante variables de entorno.
+          El sistema no tiene acoplamiento rígido con ningún proveedor de IA. Permite alternar entre Google Gemini, Groq y OpenAI mediante variables de entorno.
         </p>
       </div>
 
@@ -1330,7 +1389,7 @@
           </div>
           <h4 class="card-title">Google Gemini 1.5 Flash</h4>
           <p class="card-text">
-            Proveedor primario de alto rendimiento y bajo costo, con ventana de contexto extendida y respuesta ultra rápida en lenguaje natural.
+            Proveedor primario de alta velocidad, bajo costo por token y gran capacidad de comprensión de lenguaje coloquial boliviano.
           </p>
           <div class="dual-actions">
             <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/proveedores/proveedor_gemini.py">
@@ -1346,7 +1405,7 @@
           </div>
           <h4 class="card-title">Groq (Llama-3 70B)</h4>
           <p class="card-text">
-            Inferencia ultra rápida por hardware LPU (menos de 500 ms por consulta) ideal para situaciones de contingencia y picos de demanda.
+            Inferencia ultra rápida por hardware LPU (&lt; 500 ms por consulta) para momentos de alta demanda y contingencias.
           </p>
           <div class="dual-actions">
             <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/proveedores/proveedor_groq.py">
@@ -1362,7 +1421,7 @@
           </div>
           <h4 class="card-title">OpenAI (GPT-4o-mini)</h4>
           <p class="card-text">
-            Proveedor alternativo con excelente precisión en extracción de datos estructurados Pydantic V2 y razonamiento clínico.
+            Proveedor alternativo con estricta adherencia a esquemas JSON Pydantic V2 y solidez en razonamiento clínico.
           </p>
           <div class="dual-actions">
             <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/proveedores/proveedor_openai.py">
@@ -1372,7 +1431,7 @@
         </div>
       </div>
 
-      <div class="dual-actions" style="margin-top: 1.25rem;">
+      <div class="dual-actions" style="margin-top: 1.1rem;">
         <a class="link-code" href="file:///c:/Users/josem/Desktop/medisinc_iav1/backend/app/proveedores/fabrica_ia.py">
           <i data-lucide="file-code"></i> Ver Factoría Abstracta: backend/app/proveedores/fabrica_ia.py
         </a>
@@ -1380,9 +1439,9 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 10: SEGURIDAD, CIFRADO Y PRIVACIDAD -->
+    <!-- SLIDE 11: SEGURIDAD, CIFRADO Y PRIVACIDAD -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="10">
+    <section class="slide" data-slide="11">
       <div class="slide-header">
         <div class="slide-tag">
           <i data-lucide="lock"></i> Seguridad y Cumplimiento Normativo
@@ -1399,7 +1458,7 @@
           <div class="card-icon" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">
             <i data-lucide="key"></i>
           </div>
-          <h4 class="card-title">Cifrado Simétrico AES-256-GCM</h4>
+          <h4 class="card-title">Cifrado AES-256-GCM</h4>
           <p class="card-text">
             Los números de Cédula de Identidad (CI) y datos de contacto se cifran antes de persistirse en base de datos.
           </p>
@@ -1445,9 +1504,9 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 11: BACKEND, SUPABASE Y BASE DE DATOS -->
+    <!-- SLIDE 12: BACKEND, SUPABASE Y BASE DE DATOS -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="11">
+    <section class="slide" data-slide="12">
       <div class="slide-header">
         <div class="slide-tag">
           <i data-lucide="database"></i> Infraestructura y Base de Datos
@@ -1499,9 +1558,9 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- SLIDE 12: MÉTRICAS, VALIDACIÓN Y CIERRE -->
+    <!-- SLIDE 13: MÉTRICAS, VALIDACIÓN Y CIERRE -->
     <!-- ========================================== -->
-    <section class="slide" data-slide="12">
+    <section class="slide" data-slide="13">
       <div class="slide-header">
         <div class="slide-tag">
           <i data-lucide="check-circle-2"></i> Resultados y Validación Clínica
@@ -1512,7 +1571,7 @@
         </p>
       </div>
 
-      <div class="grid-4" style="margin-bottom: 1.25rem;">
+      <div class="grid-4" style="margin-bottom: 1.15rem;">
         <div class="metric-card">
           <div class="metric-value" style="color: #38bdf8;">&lt; 2 min</div>
           <div class="metric-label">Tiempo de Pre-Triaje</div>
@@ -1549,7 +1608,7 @@
         </div>
       </div>
 
-      <div style="margin-top: 1.25rem; text-align: center; display: flex; justify-content: center; gap: 12px;">
+      <div style="margin-top: 1.15rem; text-align: center; display: flex; justify-content: center; gap: 12px;">
         <a class="btn-action btn-primary" style="padding: 10px 20px; font-size: 0.9rem;" href="http://localhost:5173/" target="_blank">
           <i data-lucide="play"></i> Iniciar Demostración en Vivo
         </a>
@@ -1605,17 +1664,18 @@
         <div class="tree-section">Saltar a Diapositiva:</div>
         <div class="slide-jump-grid">
           <button class="jump-btn active" onclick="goToSlide(1)">1. Portada</button>
-          <button class="jump-btn" onclick="goToSlide(2)">2. Santa Cruz</button>
-          <button class="jump-btn" onclick="goToSlide(3)">3. Paciente</button>
-          <button class="jump-btn" onclick="goToSlide(4)">4. Panel Médico</button>
-          <button class="jump-btn" onclick="goToSlide(5)">5. Modal Clínico</button>
-          <button class="jump-btn" onclick="goToSlide(6)">6. Admin & Auditoría</button>
-          <button class="jump-btn" onclick="goToSlide(7)">7. Sala Espera</button>
-          <button class="jump-btn" onclick="goToSlide(8)">8. Reglas Duras</button>
-          <button class="jump-btn" onclick="goToSlide(9)">9. Capa IA</button>
-          <button class="jump-btn" onclick="goToSlide(10)">10. Seguridad</button>
-          <button class="jump-btn" onclick="goToSlide(11)">11. Base de Datos</button>
-          <button class="jump-btn" onclick="goToSlide(12)">12. Validación</button>
+          <button class="jump-btn" onclick="goToSlide(2)">2. Glosario Clave</button>
+          <button class="jump-btn" onclick="goToSlide(3)">3. Santa Cruz</button>
+          <button class="jump-btn" onclick="goToSlide(4)">4. Flujo Wizard</button>
+          <button class="jump-btn" onclick="goToSlide(5)">5. Panel Médico</button>
+          <button class="jump-btn" onclick="goToSlide(6)">6. Modal Clínico</button>
+          <button class="jump-btn" onclick="goToSlide(7)">7. Admin & Audit</button>
+          <button class="jump-btn" onclick="goToSlide(8)">8. Sala de Espera</button>
+          <button class="jump-btn" onclick="goToSlide(9)">9. Reglas Duras</button>
+          <button class="jump-btn" onclick="goToSlide(10)">10. Capa IA</button>
+          <button class="jump-btn" onclick="goToSlide(11)">11. Seguridad</button>
+          <button class="jump-btn" onclick="goToSlide(12)">12. Base de Datos</button>
+          <button class="jump-btn" onclick="goToSlide(13)">13. Validación</button>
         </div>
       </div>
 
@@ -1641,6 +1701,26 @@
       <!-- Enlaces a Código Fuente -->
       <div class="file-index-tree">
         <div class="tree-section">💻 Código Fuente (IDE Links)</div>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/paginas/InicioPaciente.jsx">
+          <span>InicioPaciente.jsx (Wizard)</span>
+          <i data-lucide="layout" style="width: 14px;"></i>
+        </a>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PasoSelectorEspecialidad.jsx">
+          <span>PasoSelectorEspecialidad.jsx (Paso 0)</span>
+          <i data-lucide="check-circle" style="width: 14px;"></i>
+        </a>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PasoDatosEstaticos.jsx">
+          <span>PasoDatosEstaticos.jsx (Paso 1)</span>
+          <i data-lucide="user" style="width: 14px;"></i>
+        </a>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PasoPreguntasDinamicas.jsx">
+          <span>PasoPreguntasDinamicas.jsx (Paso 2)</span>
+          <i data-lucide="help-circle" style="width: 14px;"></i>
+        </a>
+        <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/componentes/paciente/PasoConfirmacionQR.jsx">
+          <span>PasoConfirmacionQR.jsx (Paso 3)</span>
+          <i data-lucide="qr-code" style="width: 14px;"></i>
+        </a>
         <a class="tree-link" href="file:///c:/Users/josem/Desktop/medisinc_iav1/frontend/src/paginas/PanelMedico.jsx">
           <span>PanelMedico.jsx</span>
           <i data-lucide="layout" style="width: 14px;"></i>
